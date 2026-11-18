@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-BT="$ROOT/buildtools"
+BT="$ROOT/tools/ci"
 JAVA="${JAVA:-/tmp/probe/jdk17/jdk4py/java-runtime/bin/java}"
 JAVAC_JAR="${JAVAC_JAR:-/tmp/probe/tools/package/tools.jar}"
 APP="$ROOT/app/android"
