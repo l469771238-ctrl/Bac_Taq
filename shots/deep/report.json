@@ -1,14 +1,11 @@
 {
-  "when": "2026-11-18T04:24:19.508Z",
-  "passed": 47,
-  "failed": 1,
+  "when": "2026-11-18T04:28:51.414Z",
+  "passed": 50,
+  "failed": 0,
   "consoleErrors": [
-    "Failed to load resource: the server responded with a status of 404 (Not Found)",
-    "Bac-Taq error: Uncaught ReferenceError: fillAbout is not defined"
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
   ],
-  "pageErrors": [
-    "ReferenceError: fillAbout is not defined"
-  ],
+  "pageErrors": [],
   "failedRequests": [
     "favicon.ico :: HTTP 404"
   ],
@@ -118,9 +115,14 @@
       "detail": "396 -> 494"
     },
     {
-      "name": "table of contents has entries",
-      "ok": false,
-      "detail": "rows=0"
+      "name": "contents tab is usable",
+      "ok": true,
+      "detail": "outline=0 chips=8 jumpbox=true"
+    },
+    {
+      "name": "contents jump box moves the reader",
+      "ok": true,
+      "detail": "40"
     },
     {
       "name": "marks tab reachable",
@@ -165,7 +167,7 @@
     {
       "name": "progress stored",
       "ok": true,
-      "detail": "{\"page\":121,\"total\":148,\"at\":1794975837673}"
+      "detail": "{\"page\":41,\"total\":148,\"at\":1794976109610}"
     },
     {
       "name": "reload skips the password (asked once)",
@@ -190,6 +192,11 @@
     {
       "name": "about screen opens",
       "ok": true
+    },
+    {
+      "name": "about screen raises no error",
+      "ok": true,
+      "detail": ""
     },
     {
       "name": "about has no dead device-key UI",
