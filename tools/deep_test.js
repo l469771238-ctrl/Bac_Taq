@@ -241,6 +241,19 @@ const check = (name, cond, detail) => { results.push({ name, ok: !!cond, detail 
   srv.close();
 
   const hardFails = results.filter(r => !r.ok);
+  const report = {
+    when: new Date().toISOString(),
+    passed: results.filter(r => r.ok).length,
+    failed: hardFails.length,
+    consoleErrors, pageErrors, failedRequests: failed,
+    results
+  };
+  fs.writeFileSync(path.join(__dirname, '..', 'shots', 'deep', 'report.json'), JSON.stringify(report, null, 2));
+  fs.writeFileSync(path.join(__dirname, '..', 'shots', 'deep', 'report.txt'),
+    results.map(r => (r.ok ? 'PASS ' : 'FAIL ') + r.name + (r.detail ? '  [' + r.detail + ']' : '')).join('\n') +
+    '\n\nconsole errors: ' + (consoleErrors.join(' | ') || 'none') +
+    '\npage errors: ' + (pageErrors.join(' | ') || 'none') +
+    '\nfailed requests: ' + (failed.join(' | ') || 'none') + '\n');
   console.log('\n=== RESULTS ===');
   results.forEach(r => console.log((r.ok ? 'PASS ' : 'FAIL ') + r.name + (r.detail ? '   [' + r.detail + ']' : '')));
   console.log('\nconsole errors:', consoleErrors.length ? consoleErrors.slice(0, 6) : 'none');
