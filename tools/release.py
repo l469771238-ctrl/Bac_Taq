@@ -12,7 +12,7 @@ Usage:
 import json, os, re, subprocess, sys, hashlib, datetime
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-VERSION = '1.2'
+VERSION = '1.3'
 TAG = f'v{VERSION}'
 APK = os.path.join(ROOT, 'dist', f'Bac-Taq-{VERSION}.apk')
 

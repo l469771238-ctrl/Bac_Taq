@@ -8,6 +8,7 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.WindowInsets;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -59,15 +60,33 @@ public class MainActivity extends Activity {
 
         Window w = getWindow();
         w.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            w.getAttributes().layoutInDisplayCutoutMode =
+                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+        }
         w.setStatusBarColor(Color.parseColor("#0A1F4D"));
         w.setNavigationBarColor(Color.parseColor("#071A3F"));
 
-        FrameLayout root = new FrameLayout(this);
+        final FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(Color.parseColor("#071A3F"));
         web = new WebView(this);
         root.addView(web, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         setContentView(root);
+
+        // Android 15+ draws edge-to-edge whether we ask or not; keep the content
+        // out from under the status/navigation bars instead of clipping it.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            root.setOnApplyWindowInsetsListener(new View.OnApplyWindowInsetsListener() {
+                @Override
+                public WindowInsets onApplyWindowInsets(View v, WindowInsets insets) {
+                    int top = insets.getSystemWindowInsetTop();
+                    int bottom = insets.getSystemWindowInsetBottom();
+                    v.setPadding(0, top, 0, bottom);
+                    return insets;
+                }
+            });
+        }
 
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
@@ -98,16 +117,14 @@ public class MainActivity extends Activity {
         web.addJavascriptInterface(new Bridge(), "BacTaqBridge");
 
         // Serve the bundled web app over the virtual https origin.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            web.setWebViewClient(new LocalClient());
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                ServiceWorkerController.getInstance().setServiceWorkerClient(new ServiceWorkerClient() {
-                    @Override
-                    public WebResourceResponse shouldInterceptRequest(WebResourceRequest request) {
-                        return serve(request.getUrl().toString());
-                    }
-                });
-            }
+        web.setWebViewClient(new LocalClient());
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            ServiceWorkerController.getInstance().setServiceWorkerClient(new ServiceWorkerClient() {
+                @Override
+                public WebResourceResponse shouldInterceptRequest(WebResourceRequest request) {
+                    return serve(request.getUrl().toString());
+                }
+            });
         }
         web.setWebChromeClient(new WebChromeClient());
         CookieManager.getInstance().setAcceptCookie(false);
@@ -138,6 +155,15 @@ public class MainActivity extends Activity {
 
     /** Streams a file from assets/web for a local request URL, or null when not local. */
     private WebResourceResponse serve(String url) {
+        try {
+            return serveInner(url);
+        } catch (Throwable t) {
+            // Any unexpected failure must degrade to a 404 response, never to a crash.
+            return notFound();
+        }
+    }
+
+    private WebResourceResponse serveInner(String url) {
         if (url == null || !url.startsWith("https://appassets.androidplatform.net/")) return null;
         String path = url.substring("https://appassets.androidplatform.net/".length());
         int q = path.indexOf('?');
@@ -196,6 +222,9 @@ public class MainActivity extends Activity {
         public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
             String u = request.getUrl().toString();
             if (u.startsWith("https://appassets.androidplatform.net/")) return false;
+            String cur = view.getUrl();
+            // Same-document (hash / "javascript:") navigation is part of the app.
+            if (cur != null && !u.startsWith("http") && !u.startsWith("mailto:")) return false;
             try {
                 startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(u)));
             } catch (Exception ignored) {

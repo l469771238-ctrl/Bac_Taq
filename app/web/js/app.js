@@ -280,6 +280,29 @@
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'js/vendor/pdf.worker.min.js';
   }
 
+  /* Reads a bundled book into an ArrayBuffer we own.
+     XMLHttpRequest + responseType=arraybuffer works on every WebView that can run
+     this app (Android 5+); fetch() is a fallback for the browser preview. */
+  function readerSource(key) {
+    var url = 'books/' + key + '.pdf';
+    return new Promise(function (resolve, reject) {
+      if (typeof XMLHttpRequest === 'undefined') { resolve(url); return; }
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', url, true);
+      xhr.responseType = 'arraybuffer';
+      xhr.onload = function () {
+        var okStatus = xhr.status === 200 || xhr.status === 0;
+        if (okStatus && xhr.response && xhr.response.byteLength) {
+          resolve(new Uint8Array(xhr.response));
+        } else {
+          reject(new Error('book http ' + xhr.status));
+        }
+      };
+      xhr.onerror = function () { reject(new Error('book xhr failed')); };
+      xhr.send();
+    }).catch(function () { return url; });
+  }
+
   function openReader(key, page) {
     var s = SUBJECTS.filter(function (x) { return x.key === key; })[0];
     if (!s) return;
@@ -304,12 +327,27 @@
       $('#reader-loading span').textContent = 'محرّك PDF مش متاح على الجهاز ده';
       return;
     }
-    pdfjsLib.getDocument({
-      url: 'books/' + key + '.pdf',
+    // Memory: fetch the bytes here, hand the owned ArrayBuffer to the engine and
+    // let the worker own it — the main thread keeps no second copy (arabic.pdf is 22 MB).
+    // useWorkerFetch is false so the worker never re-downloads the file itself:
+    // over the local asset origin that second fetch can fail on big books.
+    var opts = {
       cMapUrl: 'js/cmaps/',
       cMapPacked: true,
-      standardFontDataUrl: 'js/standard_fonts/'
-    }).promise.then(function (doc) {
+      standardFontDataUrl: 'js/standard_fonts/',
+      useWorkerFetch: false,
+      disableAutoFetch: true
+    };
+    function startDoc(src) {
+      return pdfjsLib.getDocument(optsWithSource(src)).promise;
+    }
+    function optsWithSource(src) {
+      var o = {};
+      for (var k in opts) { if (Object.prototype.hasOwnProperty.call(opts, k)) o[k] = opts[k]; }
+      o.data = src;
+      return o;
+    }
+    readerSource(key).then(startDoc).then(function (doc) {
       pdfState.doc = doc;
       pdfState.total = doc.numPages;
       pdfState.page = Math.min(Math.max(1, startPage), doc.numPages);
@@ -321,7 +359,7 @@
       loadOutline(doc);
       paintMarksCount();
       $('#reader-loading').classList.add('hidden');
-    }).catch(function (err) {
+    }, function () { return undefined; }).catch(function (err) {
       $('#reader-loading span').textContent = 'تعذّر فتح الكتاب، جرّب تاني';
       if (window.console) console.error(err);
     });
@@ -742,25 +780,58 @@
      ABOUT / SETTINGS
      ============================================================ */
   $('#btn-reset').addEventListener('click', function () {
-    if (!window.confirm('إعادة ضبط التفعيل هتخلي التطبيق يطلب الكود تاني. متأكد؟')) return;
+    // Re-lock the app but keep the reader's work: progress and bookmarks stay.
+    if (!window.confirm('هيطلب منك كلمة السر تاني المرة الجاية.\nتقدّمك في القراءة وإشاراتك هتفضل محفوظة. متأكد؟')) return;
     store(STORE_KEY, false);
-    store(PROGRESS_KEY, {});
+    if (window.BacTaqBridge && BacTaqBridge.toast) {
+      try { BacTaqBridge.toast('اتقفل التطبيق — افتحه واكتب كلمة السر'); } catch (e) {}
+    }
     location.reload();
   });
 
   /* ---------- boot ---------- */
-  function boot() {
-    loadMeta().then(function () {
-      renderHome();
-      if (isActivated()) {
-        show('home');
-      } else {
-        $('#lock-card').classList.remove('hidden');
-        $('#welcome-card').classList.add('hidden');
-        setTimeout(function () { $('#pw').focus(); }, 400);
-      }
-    });
+  var booted = false;
+
+  function showLockOrHome() {
+    if (isActivated()) {
+      show('home');
+    } else {
+      $('#lock-card').classList.remove('hidden');
+      $('#welcome-card').classList.add('hidden');
+      show('lock');
+      setTimeout(function () { try { $('#pw').focus(); } catch (e) {} }, 400);
+    }
   }
+
+  function boot() {
+    if (booted) return;
+    booted = true;
+    var done = false;
+    function start() {
+      if (done) return;
+      done = true;
+      try { renderHome(); } catch (e) { if (window.console) console.error(e); }
+      try { showLockOrHome(); } catch (e) {
+        // last resort: never leave the user on a blank screen
+        if (window.console) console.error(e);
+        try { show('lock'); } catch (e2) {}
+      }
+    }
+    // metadata is nice-to-have: never let it hold the app hostage
+    var guard = setTimeout(start, 2500);
+    loadMeta().then(function () { clearTimeout(guard); start(); },
+                    function () { clearTimeout(guard); start(); });
+  }
+
+  /* A failure anywhere else must not leave a dead screen: log it, and if we are
+     still on the lock screen with no content, fall back to a usable state. */
+  window.addEventListener('error', function (e) {
+    if (window.console) console.error('Bac-Taq error:', e && (e.message || e));
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    if (window.console) console.error('Bac-Taq promise:', e && e.reason);
+  });
+
   document.addEventListener('DOMContentLoaded', boot);
   if (document.readyState !== 'loading') { boot(); }
 })();

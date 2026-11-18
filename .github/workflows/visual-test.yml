@@ -27,6 +27,9 @@ jobs:
       - name: run app in real chrome
         run: node tools/visual_test.js
 
+      - name: deep end-to-end check (every screen, every control)
+        run: node tools/deep_test.js
+
       - name: push screenshots
         run: |
           git config user.email ci@agents.local
