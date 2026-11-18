@@ -49,3 +49,12 @@ python3 tools/release.py          # build + نشر على GitHub Releases
 - شكل العنصر: `{id, page, name, at}` — الترتيب في القائمة حسب رقم الصفحة.
 - التفعيل مش بيتأثر بأي تحديث: `bactaq.activated` = `true` وبيتحافظ عليه.
 - لو غيّرت `appId`/الـ keystore، التحديثات الجديدة مش هتتثبت فوق القديمة — خليك على `keystore/bactaq.jks`.
+
+## إصلاح «Not found» (1.2)
+- السبب: البناء كان بيعمل zip من جوّا `web/`، فالمدخلات كانت `web/index.html`.
+  `AssetManager.open("web/index.html")` بيقرأ من `assets/web/index.html` بس → كل الطلبات 404
+  والـ MainActivity بترجّع نص «Not found».
+- الحل: `cd "$WORK" && zip -r base.apk assets` + فحص في `build_apk.sh` و`publish.yml`.
+- `python3 tools/check_assets.py dist/Bac-Taq-X.apk` بيشغّل نفس منطق `MainActivity.serve()`
+  على كل URL بيطلبه التطبيق — شغّله قبل أي إصدار.
+- التفعيل: كلمة سر واحدة (`tools/OWNER.md` فيها النص) — مفيش أكواد أجهزة ولا `make_keys.py`.
