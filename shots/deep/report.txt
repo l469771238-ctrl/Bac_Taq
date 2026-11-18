@@ -33,7 +33,7 @@ PASS delete removes one
 PASS jumping from a mark closes the sheet
 PASS back from reader returns home
 PASS continue card remembers the book
-PASS progress stored  [{"page":41,"total":148,"at":1794976387833}]
+PASS progress stored  [{"page":41,"total":148,"at":1794976950172}]
 PASS reload skips the password (asked once)
 PASS bookmarks survive reload
 PASS english book renders
