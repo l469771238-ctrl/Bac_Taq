@@ -10,7 +10,7 @@
 </head>
 <body>
 
-<!-- ============ 1. SPLASH / ACTIVATION ============ -->
+<!-- ============ 1. ACTIVATION ============ -->
 <section id="screen-lock" class="screen active">
   <div class="lock-wrap">
     <div class="brand-blob"></div>
@@ -19,20 +19,27 @@
     <p class="lock-sub">باك طق — بوابتك لكل الكتب في مكان واحد</p>
 
     <div id="lock-card" class="card lock-card">
-      <p class="lock-hint">أدخل كود التفعيل للدخول لأول مرة</p>
-      <div class="pin-field" id="pin-field">
-        <input id="pin" class="pin" type="password" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off" spellcheck="false">
-        <div class="pin-dots" id="pin-dots" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <p class="lock-hint">اكتب كود التفعيل للدخول</p>
+      <div class="pw-field" id="pw-field">
+        <input id="pw" class="pw" type="password" inputmode="text" dir="ltr" autocomplete="off"
+               autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="كود التفعيل">
+        <button class="pw-eye" id="pw-eye" type="button" aria-label="إظهار">
+          <svg viewBox="0 0 24 24"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/></svg>
+        </button>
       </div>
-      <div class="keypad" id="keypad"></div>
+      <p class="pw-help">اكتب الكود زي ما وصلك بالظبط (حروف وأرقام)</p>
+      <button class="btn btn-primary" id="btn-unlock" type="button">تفعيل وفتح التطبيق</button>
       <p class="pin-error" id="pin-error"></p>
+      <div class="lock-sep"><span>أو</span></div>
+      <button class="btn-device" id="btn-device-key" type="button">عندي كود جهاز مختلف؟</button>
       <p class="lock-note">يتم التفعيل مرة واحدة فقط على هذا الجهاز</p>
     </div>
 
     <div id="welcome-card" class="card lock-card hidden">
       <div class="check-ring"><svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="24"/><path d="M14 27l8 8 16-17"/></svg></div>
       <h2 class="welcome-name">أهلاً بيك يا جاسر</h2>
-      <p class="welcome-text">تم تفعيل Bac-Taq على جهازك بنجاح.<br>الكود صالح لجهاز واحد، ومش هيتطلب منك تاني.</p>
+      <p class="welcome-text">تم تفعيل Bac-Taq على جهازك بنجاح.<br>الكود بيشتغل على جهاز واحد بس، ومش هيتطلب منك تاني.</p>
+      <div class="welcome-device" id="welcome-device"></div>
       <button class="btn btn-primary" id="btn-start">يلا نبدأ</button>
     </div>
   </div>
@@ -114,13 +121,13 @@
   </div>
 
   <div class="reader-seek">
-    <input type="range" id="seek" min="1" max="1" value="1">
+    <input type="range" id="seek" min="1" max="1" value="1" aria-label="الصفحات">
   </div>
 
   <nav class="reader-bar">
     <button class="rbtn" id="btn-prev"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg><span>السابق</span></button>
     <button class="rbtn" id="btn-zoom-out"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg><span>تصغير</span></button>
-    <div class="rpage"><input id="page-input" type="number" min="1" value="1"><span id="page-total">/ —</span></div>
+    <div class="rpage"><input id="page-input" type="number" min="1" value="1" aria-label="رقم الصفحة"><span id="page-total">/ —</span></div>
     <button class="rbtn" id="btn-zoom-in"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>تكبير</span></button>
     <button class="rbtn" id="btn-next"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg><span>التالي</span></button>
   </nav>
@@ -134,7 +141,7 @@
   </div>
 </section>
 
-<!-- ============ 5. ABOUT ============ -->
+<!-- ============ 5. ABOUT / SETTINGS ============ -->
 <section id="screen-about" class="screen">
   <header class="lib-head">
     <button class="icon-btn" data-nav="home" aria-label="رجوع"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
@@ -145,25 +152,45 @@
       <img src="img/logo.png" alt="">
       <div><h3>Bac-Taq</h3><p>تطبيق مجاني يجمع كتب الثانوية العامة في مكان واحد، ويشتغل بدون إنترنت.</p></div>
     </div>
+
     <div class="about-card">
-      <h4>الكود والتفعيل</h4>
-      <p>التطبيق بيتفعل بكود لمرة واحدة على الجهاز. بعد التفعيل هيفتح على طول في كل مرة. لو محتاج تغيّر الجهاز كلّم <b>جاسر</b>.</p>
+      <h4>التفعيل</h4>
+      <p>التطبيق بيتفعل بكود لمرة واحدة على الجهاز. بعد التفعيل هيفتح على طول في كل مرة.</p>
+      <div class="device-box">
+        <span class="tiny">كود الجهاز</span>
+        <bdi id="device-id">—</bdi>
+      </div>
     </div>
+
+    <div class="about-card">
+      <h4>دخول بكود جهاز</h4>
+      <p>لو الكود اللي معاك من نوع «كود جهاز»، اكتبه هنا عشان يتفعّل على الموبايل ده.</p>
+      <div class="pw-field small">
+        <input id="invite" class="pw" type="text" dir="ltr" autocomplete="off" autocapitalize="off"
+               autocorrect="off" spellcheck="false" placeholder="مثال: abyc-v25-aum">
+      </div>
+      <button class="btn btn-primary mini" id="btn-invite" type="button">تفعيل الكود</button>
+      <p class="pin-error" id="invite-msg"></p>
+    </div>
+
     <div class="about-card">
       <h4>المحتوى</h4>
-      <p>الكتب منسوخة من مجلد Google Drive الخاص بالمادة، ومحفوظة جوّا التطبيق. كل الحقوق لأصحابها.</p>
+      <p>الكتب منسوخة من مجلد Google Drive الخاص بكل مادة، ومحفوظة جوّا التطبيق. كل الحقوق لأصحابها.</p>
     </div>
+
     <div class="about-card">
       <h4>تواصل</h4>
       <p class="contact"><span>واتساب / اتصال</span><bdi dir="ltr">01115530517</bdi></p>
       <p class="contact"><span>المطوّر</span><bdi>جاسر</bdi></p>
     </div>
-    <button class="btn btn-ghost" id="btn-reset">إعادة ضبط التفعيل (للتجربة)</button>
+
+    <button class="btn btn-ghost" id="btn-reset">إعادة ضبط التفعيل</button>
   </main>
 </section>
 
 <div class="toast" id="toast"></div>
 
+<script src="js/security.js"></script>
 <script src="js/vendor/pdf.min.js"></script>
 <script src="js/app.js"></script>
 </body>

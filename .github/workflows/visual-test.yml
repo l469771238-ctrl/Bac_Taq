@@ -1,0 +1,37 @@
+name: visual-test
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/visual-test.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  shots:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: arena/1b4871f2-bac-taq
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: deps
+        run: |
+          npm init -y >/dev/null 2>&1 || true
+          npm i --no-audit --no-fund puppeteer@23 2>&1 | tail -2
+
+      - name: run app in real chrome
+        run: node tools/visual_test.js
+
+      - name: push screenshots
+        run: |
+          git config user.email ci@agents.local
+          git config user.name "Bac-Taq CI"
+          git add -f shots || true
+          git commit -m "test: chrome screenshots [skip ci]" || echo "no changes"
+          git pull --rebase origin arena/1b4871f2-bac-taq || true
+          git push origin HEAD:arena/1b4871f2-bac-taq
