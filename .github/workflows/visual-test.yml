@@ -30,6 +30,9 @@ jobs:
       - name: deep end-to-end check (every screen, every control)
         run: node tools/deep_test.js || true
 
+      - name: small-screen layout probe (320/360/412 px)
+        run: node tools/small_screens.js || true
+
       - name: push screenshots
         run: |
           git config user.email ci@agents.local
