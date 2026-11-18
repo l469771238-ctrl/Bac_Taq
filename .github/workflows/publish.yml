@@ -1,0 +1,43 @@
+name: publish-release
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: verify apk
+        run: |
+          ls -la dist/
+          sha256sum dist/Bac-Taq-1.0.apk
+          python3 - <<'PY'
+          import zipfile
+          z = zipfile.ZipFile('dist/Bac-Taq-1.0.apk')
+          print('zip entries', len(z.infolist()), 'corrupt:', z.testzip())
+          names = [i.filename for i in z.infolist()]
+          for must in ('AndroidManifest.xml', 'classes.dex', 'resources.arsc',
+                       'web/index.html', 'web/js/app.js', 'web/js/security.js', 'web/js/vendor/pdf.worker.min.js',
+                       'web/books/arabic.pdf', 'web/books/english.pdf',
+                       'web/books/history.pdf', 'web/books/programming.pdf'):
+              print(('OK  ' if must in names else 'MISS'), must)
+          PY
+
+      - name: publish to GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0
+          name: Bac-Taq 1.0 — التطبيق
+          body_path: dist/release-notes.md
+          files: |
+            dist/Bac-Taq-1.0.apk
+            dist/Bac-Taq-Keys.html
+            dist/Bac-Taq-Keys.md
+          fail_on_unmatched_files: false
+          make_latest: true
