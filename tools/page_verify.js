@@ -52,7 +52,12 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
         const i = document.querySelector('#page-input');
         i.value = n; i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
       }, p);
-      await sleep(650);
+      // wait until the reader really shows that page, then let the canvas settle
+      await page.waitForFunction(n => {
+        const h = document.querySelector('#reader-page');
+        return h && h.textContent.includes('صفحة ' + n + ' ');
+      }, { timeout: 30000 }, p).catch(() => {});
+      await sleep(450);
       const stats = await page.evaluate(() => {
         const c = document.querySelector('#pdf-canvas');
         const ctx = c.getContext('2d');
@@ -73,7 +78,11 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     for (const p of [1, Math.ceil(total / 2)]) {
       await page.evaluate(n => { const i = document.querySelector('#page-input');
         i.value = n; i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); }, p);
-      await sleep(900);
+      await page.waitForFunction(n => {
+        const h = document.querySelector('#reader-page');
+        return h && h.textContent.includes('صفحة ' + n + ' ');
+      }, { timeout: 30000 }, p).catch(() => {});
+      await sleep(700);
       await page.screenshot({ path: path.join(OUT, `${key}-p${p}.png`) });
     }
   }

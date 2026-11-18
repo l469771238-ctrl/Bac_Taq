@@ -3,7 +3,7 @@
   "private": true,
   "description": "Behavioural tests for the Bac-Taq web app (jsdom)",
   "scripts": {
-    "test": "node app.test.js && node bookmarks.test.js"
+    "test": "node app.test.js && node bookmarks.test.js && node jump.test.js"
   },
   "devDependencies": {
     "jsdom": "^24.0.0"

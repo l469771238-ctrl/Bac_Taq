@@ -420,6 +420,19 @@
   });
   $('#seek').addEventListener('change', function (e) { goToPage(+e.target.value); });
   $('#page-input').addEventListener('change', function (e) { goToPage(+e.target.value); });
+  // typing the number and pressing Enter must jump immediately (on mobile the
+  // change event only fires on blur, so Enter looked dead)
+  function jumpFromInput(e) {
+    e.preventDefault();
+    var n = parseInt(e.target.value, 10);
+    if (!n) { e.target.value = pdfState.page; return; }
+    goToPage(n);
+    e.target.blur();
+  }
+  $('#page-input').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.keyCode === 13) jumpFromInput(e);
+  });
+  $('#page-input').addEventListener('focus', function () { this.select(); });
 
   // swipe between pages
   (function () {
