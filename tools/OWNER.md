@@ -58,3 +58,10 @@ python3 tools/release.py          # build + نشر على GitHub Releases
 - `python3 tools/check_assets.py dist/Bac-Taq-X.apk` بيشغّل نفس منطق `MainActivity.serve()`
   على كل URL بيطلبه التطبيق — شغّله قبل أي إصدار.
 - التفعيل: كلمة سر واحدة (`tools/OWNER.md` فيها النص) — مفيش أكواد أجهزة ولا `make_keys.py`.
+
+## تداخل النص في الكتب (1.7)
+- السبب الحقيقي: `AbdoLine` (برمجة) بترميز مخصص مش قابل للفك، و`Dubai` (تاريخ) بـ ToUnicode تالف
+  → المتصفحات بتفرّق الحروف وتطبقّها فوق بعض. العربي كان صور ممسوحة فسليم.
+- الحل: الصفحات اتحولت لصور عبر `tools/flatten_books.py` (MuPDF) → صفر طبقة نص.
+- لو حبيت ترجع لنسخة النص الأصلية: `git show v1.5:app/web/books/history.pdf > /tmp/h.pdf`.
+- تأكد دائمًا قبل أي إصدار: `node tools/page_verify.js` و`python3 tools/check_assets.py dist/Bac-Taq-X.apk`.
