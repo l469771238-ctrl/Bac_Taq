@@ -1,0 +1,60 @@
+name: probe-books
+on:
+  push:
+    paths:
+      - '.github/workflows/probe.yml'
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq poppler-utils >/dev/null
+          pip3 install --quiet pypdf pillow
+
+      - name: Fetch folder listing
+        run: |
+          mkdir -p out/books out/covers out/meta
+          curl -sSL -A "Mozilla/5.0" "https://drive.google.com/embeddedfolderview?id=1V7hPlrPv2AlmKeHMhkDYqjyQWbAytT5x#list" -o /tmp/list.html
+          echo "list.html bytes: $(wc -c < /tmp/list.html)"
+          head -c 2000 /tmp/list.html
+          echo "====="
+          python3 - <<'PY'
+          import re, json
+          html = open('/tmp/list.html', encoding='utf-8', errors='replace').read()
+          ids = re.findall(r'/file/d/([-\w]{28,})/', html)
+          names = re.findall(r'flip-entry-title">([^<]*)<', html)
+          print("ids:", ids)
+          print("names:", names)
+          json.dump(list(zip(ids, names)), open('out/meta/files.json','w'), ensure_ascii=False, indent=1)
+          PY
+
+      - name: Download books
+        run: |
+          python3 - <<'PY'
+          import json, subprocess, os
+          files = json.load(open('out/meta/files.json'))
+          for i,(fid, name) in enumerate(files):
+              dest = f'out/books/book{i+1}.pdf'
+              url = f'https://drive.usercontent.google.com/download?id={fid}&export=download&confirm=t'
+              subprocess.run(['curl','-sSL','-A','Mozilla/5.0','-o',dest,url], check=True)
+              print(name, '->', dest, os.path.getsize(dest), 'bytes')
+              with open('out/meta/names.txt','a') as f: f.write(f'book{i+1}: {name}\n')
+          PY
+          ls -la out/books
+          for f in out/books/*.pdf; do
+            echo "== $f"; file "$f"; pdfinfo "$f" 2>&1 | head -12 || true
+            pdftoppm -jpeg -f 1 -l 1 -scale-to 700 "$f" "out/covers/$(basename $f .pdf)" 2>&1 || true
+            pdftotext -f 1 -l 1 "$f" - 2>/dev/null | head -c 400 || true
+            echo
+          done
+          ls -la out/covers
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: books
+          path: out
+          retention-days: 3
