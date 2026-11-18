@@ -1,14 +1,10 @@
 {
-  "when": "2026-11-18T04:28:51.414Z",
+  "when": "2026-11-18T04:33:30.109Z",
   "passed": 50,
   "failed": 0,
-  "consoleErrors": [
-    "Failed to load resource: the server responded with a status of 404 (Not Found)"
-  ],
+  "consoleErrors": [],
   "pageErrors": [],
-  "failedRequests": [
-    "favicon.ico :: HTTP 404"
-  ],
+  "failedRequests": [],
   "results": [
     {
       "name": "lock screen is the first screen",
@@ -167,7 +163,7 @@
     {
       "name": "progress stored",
       "ok": true,
-      "detail": "{\"page\":41,\"total\":148,\"at\":1794976109610}"
+      "detail": "{\"page\":41,\"total\":148,\"at\":1794976387833}"
     },
     {
       "name": "reload skips the password (asked once)",

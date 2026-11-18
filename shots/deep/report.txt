@@ -33,7 +33,7 @@ PASS delete removes one
 PASS jumping from a mark closes the sheet
 PASS back from reader returns home
 PASS continue card remembers the book
-PASS progress stored  [{"page":41,"total":148,"at":1794976109610}]
+PASS progress stored  [{"page":41,"total":148,"at":1794976387833}]
 PASS reload skips the password (asked once)
 PASS bookmarks survive reload
 PASS english book renders
@@ -49,6 +49,6 @@ PASS password spelling accepted: 3mk.gasser.2026
 PASS password spelling accepted: 3mk-gasser-2026
 PASS password spelling accepted: 3MK_GASSER_2026
 
-console errors: Failed to load resource: the server responded with a status of 404 (Not Found)
+console errors: none
 page errors: none
-failed requests: favicon.ico :: HTTP 404
+failed requests: none
