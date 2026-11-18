@@ -1,0 +1,38 @@
+name: fetch-tools
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/fetch-tools.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  tools:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: arena/1b4871f2-bac-taq
+      - name: locate sdk tools
+        run: |
+          set -x
+          ls $ANDROID_HOME/build-tools/
+          BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
+          echo "BT=$BT"
+          mkdir -p buildtools/lib
+          cp "$BT/lib/d8.jar" buildtools/lib/d8.jar
+          cp "$BT/lib/apksigner.jar" buildtools/lib/apksigner.jar 2>/dev/null || true
+          cp "$BT/aapt2" buildtools/aapt2
+          cp "$BT/zipalign" buildtools/zipalign
+          cp "$ANDROID_HOME/platforms/android-34/android.jar" buildtools/android.jar
+          chmod +x buildtools/aapt2 buildtools/zipalign
+          ls -la buildtools buildtools/lib
+      - name: push
+        run: |
+          git config user.email ci@agents.local
+          git config user.name "Bac-Taq CI"
+          git add -f buildtools
+          git commit -m "chore: sdk build tools [skip ci]" || echo "no changes"
+          git pull --rebase origin arena/1b4871f2-bac-taq || true
+          git push origin HEAD:arena/1b4871f2-bac-taq
