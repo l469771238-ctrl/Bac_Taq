@@ -45,6 +45,8 @@
   }
   function toast(msg) {
     var t = $('#toast');
+    // never cover an open sheet or dialog: the list itself is the feedback there
+    if ($('#toc-sheet').classList.contains('open') || $('#mark-modal').classList.contains('open')) { return; }
     t.textContent = msg;
     t.classList.add('show');
     clearTimeout(toast._t);

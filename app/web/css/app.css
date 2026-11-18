@@ -307,17 +307,17 @@ input{font-family:inherit;}
 .sheet-tab:not(.on) b{background:#dfe5f1;color:var(--ink-2);}
 
 /* bookmark rows ---------------------------------------------- */
-.mark-row{background:#f5f7fc;border-radius:14px;padding:11px 12px;display:flex;gap:11px;align-items:flex-start;}
-.mark-icon{width:34px;height:34px;border-radius:11px;background:#fff4dd;color:#a76900;display:flex;align-items:center;
+.mark-row{background:#f5f7fc;border-radius:13px;padding:9px 10px;display:flex;gap:9px;align-items:center;}
+.mark-icon{width:30px;height:30px;border-radius:10px;background:#fff4dd;color:#a76900;display:flex;align-items:center;
   justify-content:center;flex:0 0 auto;}
 .mark-icon svg{width:17px;height:17px;fill:currentColor;stroke:none;}
 .mark-icon.plain{background:#eef1f8;color:#8794ab;}
 .mark-body{flex:1;min-width:0;}
-.mark-body b{display:block;font-size:13.5px;font-weight:800;color:var(--ink);line-height:1.5;
+.mark-body b{display:block;font-size:13px;font-weight:800;color:var(--ink);line-height:1.45;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .mark-body span{font-size:11px;font-weight:700;color:var(--ink-3);}
-.mark-open{display:flex;align-items:center;gap:6px;margin-top:6px;}
-.mark-open .chip-mini{background:#e9effc;color:var(--navy-700);font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:8px;border:0;font-family:inherit;}
+.mark-open{display:flex;align-items:center;gap:5px;margin-top:4px;}
+.mark-open .chip-mini{background:#e9effc;color:var(--navy-700);font-size:10.5px;font-weight:800;padding:4px 9px;border-radius:8px;border:0;font-family:inherit;line-height:1.3;}
 .mark-actions{display:flex;gap:5px;flex:0 0 auto;}
 .ibtn{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;
   background:#fff;color:var(--ink-2);border:1px solid #e7ecf7;font-family:inherit;}
@@ -336,7 +336,10 @@ input{font-family:inherit;}
 .list-head span{font-size:11.5px;font-weight:700;color:var(--ink-3);}
 .list-head button{font-family:inherit;font-size:11.5px;font-weight:800;color:var(--navy-700);background:#eef3ff;
   padding:5px 10px;border-radius:9px;}
-.sheet-list .mark-row + .mark-row{margin-top:8px;}
+.sheet-list .mark-row + .mark-row{margin-top:7px;}
+/* keep the toast clear of the bottom sheets */
+.toast{bottom:calc(96px + var(--safe-bot));}
+.sheet.open ~ .toast,.modal.open ~ .toast{display:none;}
 
 /* modal ------------------------------------------------------ */
 .modal{position:fixed;inset:0;z-index:30;background:rgba(7,12,22,.55);display:none;align-items:flex-end;}

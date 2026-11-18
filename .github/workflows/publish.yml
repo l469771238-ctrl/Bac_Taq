@@ -2,7 +2,7 @@ name: publish-release
 on:
   workflow_dispatch:
   push:
-    tags: ['v*']
+    tags: ['v1.1', 'v1.2', 'v1.3']
 
 permissions:
   contents: write
@@ -16,10 +16,10 @@ jobs:
       - name: verify apk
         run: |
           ls -la dist/
-          sha256sum dist/Bac-Taq-1.0.apk
+          sha256sum dist/Bac-Taq-1.1.apk
           python3 - <<'PY'
           import zipfile
-          z = zipfile.ZipFile('dist/Bac-Taq-1.0.apk')
+          z = zipfile.ZipFile('dist/Bac-Taq-1.1.apk')
           print('zip entries', len(z.infolist()), 'corrupt:', z.testzip())
           names = [i.filename for i in z.infolist()]
           for must in ('AndroidManifest.xml', 'classes.dex', 'resources.arsc',
@@ -32,11 +32,11 @@ jobs:
       - name: publish to GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0
-          name: Bac-Taq 1.0 — التطبيق
+          tag_name: v1.1
+          name: Bac-Taq 1.1 — التطبيق + الإشارات المرجعية
           body_path: dist/release-notes.md
           files: |
-            dist/Bac-Taq-1.0.apk
+            dist/Bac-Taq-1.1.apk
             dist/Bac-Taq-Keys.html
             dist/Bac-Taq-Keys.md
           fail_on_unmatched_files: false
