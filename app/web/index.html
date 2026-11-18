@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0a1f4d">
+<title>Bac-Taq</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<!-- ============ 1. SPLASH / ACTIVATION ============ -->
+<section id="screen-lock" class="screen active">
+  <div class="lock-wrap">
+    <div class="brand-blob"></div>
+    <img class="lock-logo" src="img/logo.svg" alt="">
+    <h1 class="lock-title">Bac-Taq</h1>
+    <p class="lock-sub">باك طق — بوابتك لكل الكتب في مكان واحد</p>
+
+    <div id="lock-card" class="card lock-card">
+      <p class="lock-hint">أدخل كود التفعيل للدخول لأول مرة</p>
+      <div class="pin-field" id="pin-field">
+        <input id="pin" class="pin" type="password" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off" spellcheck="false">
+        <div class="pin-dots" id="pin-dots" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      </div>
+      <div class="keypad" id="keypad"></div>
+      <p class="pin-error" id="pin-error"></p>
+      <p class="lock-note">يتم التفعيل مرة واحدة فقط على هذا الجهاز</p>
+    </div>
+
+    <div id="welcome-card" class="card lock-card hidden">
+      <div class="check-ring"><svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="24"/><path d="M14 27l8 8 16-17"/></svg></div>
+      <h2 class="welcome-name">أهلاً بيك يا جاسر</h2>
+      <p class="welcome-text">تم تفعيل Bac-Taq على جهازك بنجاح.<br>الكود صالح لجهاز واحد، ومش هيتطلب منك تاني.</p>
+      <button class="btn btn-primary" id="btn-start">يلا نبدأ</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 2. HOME ============ -->
+<section id="screen-home" class="screen">
+  <header class="home-head">
+    <div class="home-top">
+      <div class="home-greet">
+        <span class="tiny">مساء الخير 👋</span>
+        <h2 class="name">جاسر</h2>
+      </div>
+      <img class="home-logo" src="img/logo.svg" alt="Bac-Taq">
+    </div>
+    <div class="hero">
+      <div class="hero-text">
+        <span class="hero-kicker">الصف الثالث الثانوي</span>
+        <h3>كل الكتب في جيبك، بدون نت</h3>
+        <p>4 مواد · <span id="hero-pages">—</span> صفحة · اقرأ في أي وقت</p>
+      </div>
+      <div class="hero-badge"><span>2026</span></div>
+    </div>
+  </header>
+
+  <main class="home-body">
+    <div class="sec-head"><h3>الكتب</h3><span class="tiny" id="lib-size"></span></div>
+    <div class="grid" id="subjects"></div>
+    <div class="continue" id="continue-card" hidden>
+      <span class="tiny">كمّل من حيث ما وقفت</span>
+      <div class="continue-row" id="continue-row"></div>
+    </div>
+  </main>
+  <nav class="tabbar">
+    <button class="tab active" data-nav="home"><svg viewBox="0 0 24 24"><path d="M3 10.2 12 3l9 7.2V21H3z"/></svg><span>الرئيسية</span></button>
+    <button class="tab" data-nav="about"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg><span>عن التطبيق</span></button>
+  </nav>
+</section>
+
+<!-- ============ 3. LIBRARY (Drive-like) ============ -->
+<section id="screen-library" class="screen">
+  <header class="lib-head">
+    <button class="icon-btn" data-nav="home" aria-label="رجوع"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+    <div class="lib-titles">
+      <h2 id="lib-title">—</h2>
+      <span class="tiny" id="lib-sub">—</span>
+    </div>
+    <div class="lib-icon" id="lib-icon"></div>
+  </header>
+
+  <div class="chips" id="lib-chips">
+    <span class="chip on">كل الملفات</span>
+    <span class="chip" id="chip-size">الحجم: —</span>
+    <span class="chip" id="chip-pages">— صفحات</span>
+    <span class="chip chip-ghost">PDF · بدون إنترنت</span>
+  </div>
+
+  <main class="lib-body">
+    <div class="folder-row">
+      <svg class="folder-ic" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+      <span id="folder-count">—</span>
+    </div>
+    <div class="files" id="files"></div>
+    <p class="lib-note">الكتب محفوظة جوّا التطبيق · بتفتح بدون إنترنت وبشكل مجاني</p>
+  </main>
+</section>
+
+<!-- ============ 4. READER ============ -->
+<section id="screen-reader" class="screen reader">
+  <header class="reader-head">
+    <button class="icon-btn" data-nav="library" aria-label="رجوع"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+    <div class="reader-titles"><h2 id="reader-title">—</h2><span class="tiny" id="reader-page">—</span></div>
+    <button class="icon-btn" id="btn-contents" aria-label="الفهرس"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></button>
+  </header>
+
+  <div class="reader-viewport" id="reader-viewport">
+    <div class="pdf-hold" id="pdf-hold"><canvas id="pdf-canvas"></canvas></div>
+    <div class="reader-loading" id="reader-loading"><div class="spinner"></div><span>جاري فتح الكتاب…</span></div>
+  </div>
+
+  <div class="reader-seek">
+    <input type="range" id="seek" min="1" max="1" value="1">
+  </div>
+
+  <nav class="reader-bar">
+    <button class="rbtn" id="btn-prev"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg><span>السابق</span></button>
+    <button class="rbtn" id="btn-zoom-out"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg><span>تصغير</span></button>
+    <div class="rpage"><input id="page-input" type="number" min="1" value="1"><span id="page-total">/ —</span></div>
+    <button class="rbtn" id="btn-zoom-in"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>تكبير</span></button>
+    <button class="rbtn" id="btn-next"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg><span>التالي</span></button>
+  </nav>
+
+  <div class="sheet" id="toc-sheet">
+    <div class="sheet-card">
+      <div class="sheet-grab"></div>
+      <h3>الفهرس</h3>
+      <div class="sheet-list" id="toc-list"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 5. ABOUT ============ -->
+<section id="screen-about" class="screen">
+  <header class="lib-head">
+    <button class="icon-btn" data-nav="home" aria-label="رجوع"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+    <div class="lib-titles"><h2>عن التطبيق</h2><span class="tiny">Bac-Taq · إصدار 1.0</span></div>
+  </header>
+  <main class="about-body">
+    <div class="about-card brand">
+      <img src="img/logo.svg" alt="">
+      <div><h3>Bac-Taq</h3><p>تطبيق مجاني يجمع كتب الثانوية العامة في مكان واحد، ويشتغل بدون إنترنت.</p></div>
+    </div>
+    <div class="about-card">
+      <h4>الكود والتفعيل</h4>
+      <p>التطبيق بيتفعل بكود لمرة واحدة على الجهاز. بعد التفعيل هيفتح على طول في كل مرة. لو محتاج تغيّر الجهاز كلّم <b>جاسر</b>.</p>
+    </div>
+    <div class="about-card">
+      <h4>المحتوى</h4>
+      <p>الكتب منسوخة من مجلد Google Drive الخاص بالمادة، ومحفوظة جوّا التطبيق. كل الحقوق لأصحابها.</p>
+    </div>
+    <div class="about-card">
+      <h4>تواصل</h4>
+      <p class="contact"><span>واتساب / اتصال</span><bdi dir="ltr">01115530517</bdi></p>
+      <p class="contact"><span>المطوّر</span><bdi>جاسر</bdi></p>
+    </div>
+    <button class="btn btn-ghost" id="btn-reset">إعادة ضبط التفعيل (للتجربة)</button>
+  </main>
+</section>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/vendor/pdf.min.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
