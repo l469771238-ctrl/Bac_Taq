@@ -1,0 +1,223 @@
+{
+  "when": "2026-11-18T04:24:19.508Z",
+  "passed": 47,
+  "failed": 1,
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Bac-Taq error: Uncaught ReferenceError: fillAbout is not defined"
+  ],
+  "pageErrors": [
+    "ReferenceError: fillAbout is not defined"
+  ],
+  "failedRequests": [
+    "favicon.ico :: HTTP 404"
+  ],
+  "results": [
+    {
+      "name": "lock screen is the first screen",
+      "ok": true
+    },
+    {
+      "name": "title set",
+      "ok": true
+    },
+    {
+      "name": "wrong password rejected",
+      "ok": true
+    },
+    {
+      "name": "error message visible",
+      "ok": true
+    },
+    {
+      "name": "activation succeeded",
+      "ok": true
+    },
+    {
+      "name": "home shown after welcome",
+      "ok": true
+    },
+    {
+      "name": "4 subject cards",
+      "ok": true
+    },
+    {
+      "name": "covers loaded",
+      "ok": true
+    },
+    {
+      "name": "page total from metadata",
+      "ok": true
+    },
+    {
+      "name": "library 0 has 1 file",
+      "ok": true,
+      "detail": "مجلد عربي / اللغة العربية"
+    },
+    {
+      "name": "library 0 thumb loads",
+      "ok": true,
+      "detail": "مجلد عربي / اللغة العربية"
+    },
+    {
+      "name": "library 1 has 1 file",
+      "ok": true,
+      "detail": "مجلد إنجليزي / English"
+    },
+    {
+      "name": "library 1 thumb loads",
+      "ok": true,
+      "detail": "مجلد إنجليزي / English"
+    },
+    {
+      "name": "library 2 has 1 file",
+      "ok": true,
+      "detail": "مجلد تاريخ / التاريخ"
+    },
+    {
+      "name": "library 2 thumb loads",
+      "ok": true,
+      "detail": "مجلد تاريخ / التاريخ"
+    },
+    {
+      "name": "library 3 has 1 file",
+      "ok": true,
+      "detail": "مجلد برمجة / البرمجة"
+    },
+    {
+      "name": "library 3 thumb loads",
+      "ok": true,
+      "detail": "مجلد برمجة / البرمجة"
+    },
+    {
+      "name": "arabic book renders page 1",
+      "ok": true
+    },
+    {
+      "name": "page counter starts at 1",
+      "ok": true
+    },
+    {
+      "name": "next button advances to page 4",
+      "ok": true,
+      "detail": "4"
+    },
+    {
+      "name": "previous button goes back",
+      "ok": true,
+      "detail": "3"
+    },
+    {
+      "name": "typed page jump works",
+      "ok": true,
+      "detail": "120"
+    },
+    {
+      "name": "zoom in enlarges the page",
+      "ok": true,
+      "detail": "396 -> 494"
+    },
+    {
+      "name": "table of contents has entries",
+      "ok": false,
+      "detail": "rows=0"
+    },
+    {
+      "name": "marks tab reachable",
+      "ok": true
+    },
+    {
+      "name": "empty state shown for marks",
+      "ok": true
+    },
+    {
+      "name": "three bookmarks stored",
+      "ok": true
+    },
+    {
+      "name": "header shows saved state",
+      "ok": true
+    },
+    {
+      "name": "three rows listed",
+      "ok": true
+    },
+    {
+      "name": "rename persisted",
+      "ok": true
+    },
+    {
+      "name": "delete removes one",
+      "ok": true
+    },
+    {
+      "name": "jumping from a mark closes the sheet",
+      "ok": true
+    },
+    {
+      "name": "back from reader returns home",
+      "ok": true
+    },
+    {
+      "name": "continue card remembers the book",
+      "ok": true
+    },
+    {
+      "name": "progress stored",
+      "ok": true,
+      "detail": "{\"page\":121,\"total\":148,\"at\":1794975837673}"
+    },
+    {
+      "name": "reload skips the password (asked once)",
+      "ok": true
+    },
+    {
+      "name": "bookmarks survive reload",
+      "ok": true
+    },
+    {
+      "name": "english book renders",
+      "ok": true
+    },
+    {
+      "name": "history book renders",
+      "ok": true
+    },
+    {
+      "name": "programming book renders",
+      "ok": true
+    },
+    {
+      "name": "about screen opens",
+      "ok": true
+    },
+    {
+      "name": "about has no dead device-key UI",
+      "ok": true
+    },
+    {
+      "name": "reset re-locks the app",
+      "ok": true
+    },
+    {
+      "name": "reset keeps bookmarks and progress",
+      "ok": true
+    },
+    {
+      "name": "lock screen after reset",
+      "ok": true
+    },
+    {
+      "name": "password spelling accepted: 3mk.gasser.2026",
+      "ok": true
+    },
+    {
+      "name": "password spelling accepted: 3mk-gasser-2026",
+      "ok": true
+    },
+    {
+      "name": "password spelling accepted: 3MK_GASSER_2026",
+      "ok": true
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+PASS lock screen is the first screen
+PASS title set
+PASS wrong password rejected
+PASS error message visible
+PASS activation succeeded
+PASS home shown after welcome
+PASS 4 subject cards
+PASS covers loaded
+PASS page total from metadata
+PASS library 0 has 1 file  [مجلد عربي / اللغة العربية]
+PASS library 0 thumb loads  [مجلد عربي / اللغة العربية]
+PASS library 1 has 1 file  [مجلد إنجليزي / English]
+PASS library 1 thumb loads  [مجلد إنجليزي / English]
+PASS library 2 has 1 file  [مجلد تاريخ / التاريخ]
+PASS library 2 thumb loads  [مجلد تاريخ / التاريخ]
+PASS library 3 has 1 file  [مجلد برمجة / البرمجة]
+PASS library 3 thumb loads  [مجلد برمجة / البرمجة]
+PASS arabic book renders page 1
+PASS page counter starts at 1
+PASS next button advances to page 4  [4]
+PASS previous button goes back  [3]
+PASS typed page jump works  [120]
+PASS zoom in enlarges the page  [396 -> 494]
+FAIL table of contents has entries  [rows=0]
+PASS marks tab reachable
+PASS empty state shown for marks
+PASS three bookmarks stored
+PASS header shows saved state
+PASS three rows listed
+PASS rename persisted
+PASS delete removes one
+PASS jumping from a mark closes the sheet
+PASS back from reader returns home
+PASS continue card remembers the book
+PASS progress stored  [{"page":121,"total":148,"at":1794975837673}]
+PASS reload skips the password (asked once)
+PASS bookmarks survive reload
+PASS english book renders
+PASS history book renders
+PASS programming book renders
+PASS about screen opens
+PASS about has no dead device-key UI
+PASS reset re-locks the app
+PASS reset keeps bookmarks and progress
+PASS lock screen after reset
+PASS password spelling accepted: 3mk.gasser.2026
+PASS password spelling accepted: 3mk-gasser-2026
+PASS password spelling accepted: 3MK_GASSER_2026
+
+console errors: Failed to load resource: the server responded with a status of 404 (Not Found) | Bac-Taq error: Uncaught ReferenceError: fillAbout is not defined
+page errors: ReferenceError: fillAbout is not defined
+failed requests: favicon.ico :: HTTP 404
