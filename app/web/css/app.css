@@ -283,3 +283,86 @@ input{font-family:inherit;}
 .toc-search input{width:100%;height:46px;border-radius:14px;border:2px solid #e7ecf7;background:#f5f7fc;padding:0 14px;font-family:inherit;font-size:13px;font-weight:700;color:var(--ink);outline:0;}
 .toc-search input:focus{border-color:var(--navy-700);background:#fff;}
 .toc-results .sheet-item b{background:#fff4dd;color:#a76900;font-size:11.5px;}
+
+/* ============================================================
+   BOOKMARKS
+   ============================================================ */
+.icon-btn{position:relative;}
+.bookmark-dot{position:absolute;top:7px;inset-inline-end:7px;width:8px;height:8px;border-radius:50%;
+  background:var(--gold);border:2px solid #14171d;box-sizing:content-box;display:none;}
+.bookmark-dot.on{display:block;}
+#btn-bookmark.on{background:var(--gold);color:#3d2400;}
+#btn-bookmark.on svg{fill:currentColor;stroke:#3d2400;stroke-width:1.6;}
+#btn-bookmark.saved svg{animation:pop .32s ease;}
+@keyframes pop{40%{transform:scale(1.28)}100%{transform:scale(1)}}
+
+/* sheet tabs ------------------------------------------------- */
+.sheet-tabs{display:flex;gap:8px;margin:0 0 12px;background:#f1f4fb;padding:5px;border-radius:15px;}
+.sheet-tab{flex:1;height:40px;border-radius:11px;font-family:inherit;font-size:13px;font-weight:800;color:var(--ink-3);
+  display:flex;align-items:center;justify-content:center;gap:6px;transition:all .16s;}
+.sheet-tab.on{background:#fff;color:var(--navy-800);box-shadow:0 3px 10px rgba(13,27,51,.09);}
+.sheet-tab b{min-width:20px;height:20px;border-radius:10px;background:var(--navy-800);color:#fff;font-size:10.5px;
+  font-weight:800;display:inline-flex;align-items:center;justify-content:center;padding:0 5px;}
+.sheet-tab.on b{background:var(--gold);color:#3d2400;}
+.sheet-tab:not(.on) b{background:#dfe5f1;color:var(--ink-2);}
+
+/* bookmark rows ---------------------------------------------- */
+.mark-row{background:#f5f7fc;border-radius:14px;padding:11px 12px;display:flex;gap:11px;align-items:flex-start;}
+.mark-icon{width:34px;height:34px;border-radius:11px;background:#fff4dd;color:#a76900;display:flex;align-items:center;
+  justify-content:center;flex:0 0 auto;}
+.mark-icon svg{width:17px;height:17px;fill:currentColor;stroke:none;}
+.mark-icon.plain{background:#eef1f8;color:#8794ab;}
+.mark-body{flex:1;min-width:0;}
+.mark-body b{display:block;font-size:13.5px;font-weight:800;color:var(--ink);line-height:1.5;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mark-body span{font-size:11px;font-weight:700;color:var(--ink-3);}
+.mark-open{display:flex;align-items:center;gap:6px;margin-top:6px;}
+.mark-open .chip-mini{background:#e9effc;color:var(--navy-700);font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:8px;border:0;font-family:inherit;}
+.mark-actions{display:flex;gap:5px;flex:0 0 auto;}
+.ibtn{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  background:#fff;color:var(--ink-2);border:1px solid #e7ecf7;font-family:inherit;}
+.ibtn svg{width:15px;height:15px;stroke-width:2.2;}
+.ibtn.danger{color:#e5486b;border-color:#ffe0e7;background:#fff6f8;}
+.ibtn:active{transform:scale(.93);}
+.mark-empty{text-align:center;padding:14px 6px 8px;}
+.mark-empty .big{font-size:38px;line-height:1;margin-bottom:10px;}
+.mark-empty p{margin:0 0 4px;font-size:13px;font-weight:800;color:var(--ink-2);}
+.mark-empty span{font-size:12px;font-weight:600;color:var(--ink-3);line-height:1.9;}
+.add-mark-btn{margin-top:12px;width:100%;height:48px;border-radius:14px;background:var(--grad-brand);color:#fff;
+  font-size:13.5px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 8px 20px rgba(14,47,107,.22);}
+.add-mark-btn svg{width:17px;height:17px;stroke-width:2.4;}
+.add-mark-btn:disabled{opacity:.45;box-shadow:none;}
+.list-head{display:flex;align-items:center;justify-content:space-between;padding:0 4px 8px;}
+.list-head span{font-size:11.5px;font-weight:700;color:var(--ink-3);}
+.list-head button{font-family:inherit;font-size:11.5px;font-weight:800;color:var(--navy-700);background:#eef3ff;
+  padding:5px 10px;border-radius:9px;}
+.sheet-list .mark-row + .mark-row{margin-top:8px;}
+
+/* modal ------------------------------------------------------ */
+.modal{position:fixed;inset:0;z-index:30;background:rgba(7,12,22,.55);display:none;align-items:flex-end;}
+.modal.open{display:flex;animation:fadeIn .18s;}
+.modal-card{width:100%;background:#fff;border-radius:24px 24px 0 0;padding:20px 18px calc(20px + var(--safe-bot));
+  animation:up .24s ease;max-height:86%;overflow-y:auto;}
+@keyframes up{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}
+.mark-modal-head{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+.mark-modal-head b{font-size:15.5px;font-weight:800;color:var(--ink);}
+.mark-page-badge{background:var(--navy-800);color:#fff;font-size:11px;font-weight:800;padding:5px 11px;border-radius:20px;flex:0 0 auto;}
+.field{display:block;}
+.field .tiny{display:block;margin:0 0 6px 2px;}
+.field input{width:100%;height:52px;border-radius:14px;border:2px solid #e7ecf7;background:#f5f7fc;padding:0 14px;
+  font-family:inherit;font-size:14.5px;font-weight:700;color:var(--ink);outline:0;}
+.field input:focus{border-color:var(--navy-700);background:#fff;box-shadow:0 0 0 4px rgba(14,47,107,.07);}
+.suggest{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0 4px;}
+.suggest button{font-family:inherit;font-size:11.5px;font-weight:700;color:var(--ink-2);background:#f1f4fb;
+  border:1px solid #e7ecf7;padding:7px 11px;border-radius:20px;max-width:100%;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;}
+.suggest button:active{background:#e7ecf7;}
+.modal-actions{display:flex;gap:10px;margin-top:16px;}
+.modal-actions .btn{height:50px;}
+.btn-ghost-2{flex:0 0 34%;background:#f1f4fb;color:var(--ink-2);}
+.modal-actions .btn-primary{flex:1;}
+.modal-actions .btn-primary:disabled{opacity:.5;box-shadow:none;}
+
+.reader-head{gap:7px;}
+.reader-head .icon-btn{width:40px;height:40px;}
+@media (min-width:520px){ .modal{max-width:520px;margin:0 auto;} }

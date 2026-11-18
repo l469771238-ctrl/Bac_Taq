@@ -112,6 +112,10 @@
   <header class="reader-head">
     <button class="icon-btn" data-nav="library" aria-label="رجوع"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
     <div class="reader-titles"><h2 id="reader-title">—</h2><span class="tiny" id="reader-page">—</span></div>
+    <button class="icon-btn" id="btn-bookmark" aria-label="إشارة مرجعية">
+      <svg viewBox="0 0 24 24"><path d="M7 4.5h10a1 1 0 0 1 1 1V21l-6-4.2L6 21V5.5a1 1 0 0 1 1-1z"/></svg>
+      <i class="bookmark-dot" id="bookmark-dot"></i>
+    </button>
     <button class="icon-btn" id="btn-contents" aria-label="الفهرس"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></button>
   </header>
 
@@ -135,8 +139,31 @@
   <div class="sheet" id="toc-sheet">
     <div class="sheet-card">
       <div class="sheet-grab"></div>
-      <h3>الفهرس</h3>
+      <div class="sheet-tabs">
+        <button class="sheet-tab on" id="tab-index">الفهرس</button>
+        <button class="sheet-tab" id="tab-marks">إشاراتي <b id="marks-count">0</b></button>
+      </div>
       <div class="sheet-list" id="toc-list"></div>
+      <div class="sheet-list hidden" id="marks-view"></div>
+    </div>
+  </div>
+
+  <!-- add / rename a bookmark -->
+  <div class="modal" id="mark-modal">
+    <div class="modal-card">
+      <div class="mark-modal-head">
+        <span class="mark-page-badge" id="mark-page-label">صفحة 12</span>
+        <b id="mark-modal-title">إشارة مرجعية جديدة</b>
+      </div>
+      <label class="field">
+        <span class="tiny">اسم الإشارة</span>
+        <input id="mark-name" type="text" maxlength="60" autocomplete="off" placeholder="مثال: امتحان 2024 — السؤال 3">
+      </label>
+      <div class="suggest" id="mark-suggest"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost-2" id="mark-cancel" type="button">إلغاء</button>
+        <button class="btn btn-primary" id="mark-save" type="button">حفظ</button>
+      </div>
     </div>
   </div>
 </section>

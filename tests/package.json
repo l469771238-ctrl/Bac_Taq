@@ -1,0 +1,11 @@
+{
+  "name": "bactaq-tests",
+  "private": true,
+  "description": "Behavioural tests for the Bac-Taq web app (jsdom)",
+  "scripts": {
+    "test": "node app.test.js && node bookmarks.test.js"
+  },
+  "devDependencies": {
+    "jsdom": "^24.0.0"
+  }
+}

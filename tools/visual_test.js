@@ -120,6 +120,53 @@ async function shot(page, name) {
     await shot(page, `09-reader-${name}`);
   }
 
+  // ---- bookmarks ----
+  await page.evaluate(() => document.querySelector('[data-nav="home"]').click());
+  await new Promise(r => setTimeout(r, 250));
+  await page.evaluate(() => document.querySelectorAll('#subjects .subject')[2].click());
+  await new Promise(r => setTimeout(r, 300));
+  await page.evaluate(() => document.querySelector('#files .file').click());
+  await page.waitForFunction(() => {
+    const c = document.querySelector('#pdf-canvas');
+    return c && c.width > 100 && document.querySelector('#reader-loading').classList.contains('hidden');
+  }, { timeout: 60000 });
+  await new Promise(r => setTimeout(r, 600));
+
+  // add a named bookmark on the current page
+  await page.evaluate(() => document.querySelector('#btn-bookmark').click());
+  await new Promise(r => setTimeout(r, 400));
+  await shot(page, '11-bookmark-modal');
+  await page.evaluate(() => { document.querySelector('#mark-name').value = 'تواريخ مهمة — الفصل 3'; });
+  await page.click('#mark-save');
+  await new Promise(r => setTimeout(r, 400));
+  await shot(page, '12-bookmark-saved');
+
+  // a few more on other pages (no limit)
+  for (const [i, name] of [['1', 'مراجعة سريعة'], ['2', 'أسئلة امتحان 2024'], ['3', 'خريطة ذهنية']]) {
+    await page.evaluate(() => document.querySelector('#btn-next').click());
+    await new Promise(r => setTimeout(r, 900));
+    await page.evaluate(() => document.querySelector('#btn-bookmark').click());
+    await new Promise(r => setTimeout(r, 350));
+    await page.evaluate(n => { document.querySelector('#mark-name').value = n; }, name);
+    await page.click('#mark-save');
+    await new Promise(r => setTimeout(r, 250));
+  }
+
+  // the marks tab
+  await page.evaluate(() => document.querySelector('#btn-contents').click());
+  await new Promise(r => setTimeout(r, 300));
+  await page.evaluate(() => document.querySelector('#tab-marks').click());
+  await new Promise(r => setTimeout(r, 400));
+  await shot(page, '13-bookmarks-list');
+
+  // jump from a bookmark
+  await page.evaluate(() => {
+    const rows = Array.from(document.querySelectorAll('#marks-view .mark-row'));
+    (rows[0] || { querySelector: () => null }).querySelector('.mark-body').click();
+  });
+  await new Promise(r => setTimeout(r, 1200));
+  await shot(page, '14-bookmark-jumped');
+
   // about
   await page.evaluate(() => document.querySelector('[data-nav="home"]').click());
   await new Promise(r => setTimeout(r, 250));

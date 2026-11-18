@@ -143,7 +143,15 @@
   }
 
   /* ---------- public API ---------- */
-  function normalize(pw) { return (pw || '').trim().toLowerCase(); }
+  // Accept the code however it is typed: dots, underscores, dashes or spaces
+  // between the parts, and any letter case. "3mk_gasser_2026" == "3mk.gasser.2026".
+  function normalize(pw) {
+    return String(pw || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[_\u2013\u2014\s]+/g, '.')
+      .replace(/-+/g, '.');
+  }
 
   function checkPassword(input) {
     return sha256(normalize(input)).then(function (h) { return h === MASTER_HASH; });

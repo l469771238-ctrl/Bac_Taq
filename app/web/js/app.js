@@ -8,6 +8,8 @@
   var STORE_KEY = 'bactaq.activated';
   var PROGRESS_KEY = 'bactaq.progress';
   var DEVICE_KEY = 'bactaq.device';
+  var MARKS_KEY = 'bactaq.bookmarks';
+  var MAX_NAME = 60;
   var THEME = {
     arabic:      { color: '#16a085' },
     english:     { color: '#2f6fed' },
@@ -344,6 +346,7 @@
     show('reader');
     $('#reader-title').textContent = s.title;
     $('#toc-list').innerHTML = '';
+    $('#marks-view').innerHTML = '';
     var saved = getProgress(key);
     var startPage = page || (saved && saved.page) || 1;
     $('#reader-loading').classList.remove('hidden');
@@ -376,6 +379,7 @@
       $('#reader-page').textContent = 'صفحة ' + pdfState.page + ' من ' + doc.numPages;
       renderPage();
       loadOutline(doc);
+      paintMarksCount();
       $('#reader-loading').classList.add('hidden');
     }).catch(function (err) {
       $('#reader-loading span').textContent = 'تعذّر فتح الكتاب، جرّب تاني';
@@ -404,6 +408,8 @@
         $('#page-input').value = pdfState.page;
         $('#reader-page').textContent = 'صفحة ' + pdfState.page + ' من ' + pdfState.total;
         setProgress(pdfState.key, pdfState.page, pdfState.total);
+        paintMarksCount();
+        if ($('#toc-sheet').classList.contains('open') && !$('#marks-view').classList.contains('hidden')) { renderMarks(); }
         if (pdfState.pending) {
           var p = pdfState.pending;
           pdfState.pending = null;
@@ -542,12 +548,249 @@
     next();
   }
 
-  function openSheet() { $('#toc-sheet').classList.add('open'); }
-  function closeSheet() { $('#toc-sheet').classList.remove('open'); }
-  $('#btn-contents').addEventListener('click', openSheet);
+  /* ============================================================
+     BOOKMARKS — unlimited, named, per book, stored on the device
+     ============================================================ */
+  function allMarks() {
+    var m = store(MARKS_KEY);
+    return (m && typeof m === 'object') ? m : {};
+  }
+  function bookMarks(key) {
+    var all = allMarks();
+    return (all[key] || []).slice().sort(function (a, b) { return a.page - b.page; });
+  }
+  function persistMarks(all) { store(MARKS_KEY, all); paintMarksCount(); }
+  function saveMark(key, page, name) {
+    var all = allMarks();
+    var list = all[key] || (all[key] = []);
+    var mark = { id: 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+                 page: page, name: (name || '').trim().slice(0, MAX_NAME) || ('صفحة ' + page), at: Date.now() };
+    list.push(mark);
+    persistMarks(all);
+    return mark;
+  }
+  function renameMark(key, id, name) {
+    var all = allMarks();
+    (all[key] || []).forEach(function (m) {
+      if (m.id === id) { m.name = (name || '').trim().slice(0, MAX_NAME) || m.name; }
+    });
+    persistMarks(all);
+  }
+  function deleteMark(key, id) {
+    var all = allMarks();
+    all[key] = (all[key] || []).filter(function (m) { return m.id !== id; });
+    persistMarks(all);
+  }
+  function markOnPage(key, page) {
+    return bookMarks(key).filter(function (m) { return m.page === page; })[0] || null;
+  }
+  function paintMarksCount() {
+    var n = pdfState.key ? bookMarks(pdfState.key).length : 0;
+    var c = $('#marks-count');
+    if (c) c.textContent = n;
+    var here = pdfState.key ? markOnPage(pdfState.key, pdfState.page) : null;
+    var btn = $('#btn-bookmark');
+    if (btn) btn.classList.toggle('on', !!here);
+    var dot = $('#bookmark-dot');
+    if (dot) dot.classList.toggle('on', pdfState.key ? bookMarks(pdfState.key).length > 0 : false);
+  }
+
+  /* ---------- add / rename modal ---------- */
+  var markEdit = { id: null, page: 1 };
+
+  function suggestLabels(page) {
+    var out = ['صفحة ' + page];
+    if (pdfState.key === 'arabic') out = out.concat(['مراجعة قواعد', 'قطعة نحو', 'نصوص وأدب']);
+    if (pdfState.key === 'english') out = out.concat(['مفردات', 'قواعد Unit', 'Reading', 'Writing']);
+    if (pdfState.key === 'history') out = out.concat(['فصل مهم', 'تواريخ', 'أسئلة امتحان']);
+    if (pdfState.key === 'programming') out = out.concat(['كود مهم', 'تعريفات', 'أسئلة النموذج']);
+    out.push('مراجعة سريعة');
+    return out;
+  }
+
+  function openMarkModal(opts) {
+    markEdit.id = opts && opts.id ? opts.id : null;
+    markEdit.page = opts && opts.page ? opts.page : pdfState.page;
+    var existing = markEdit.id ? bookMarks(pdfState.key).filter(function (m) { return m.id === markEdit.id; })[0] : null;
+    $('#mark-modal-title').textContent = existing ? 'تعديل الإشارة' : 'إشارة مرجعية جديدة';
+    $('#mark-page-label').textContent = 'صفحة ' + markEdit.page;
+    var inp = $('#mark-name');
+    inp.value = existing ? existing.name : '';
+    inp.placeholder = 'مثال: امتحان 2024 — السؤال 3';
+    $('#mark-save').textContent = existing ? 'حفظ التعديل' : 'حفظ الإشارة';
+    $('#mark-save').disabled = false;
+    var sug = $('#mark-suggest');
+    sug.innerHTML = '';
+    suggestLabels(markEdit.page).forEach(function (label) {
+      var b = el('button', null, label);
+      b.type = 'button';
+      b.addEventListener('click', function () {
+        inp.value = label;
+        inp.focus();
+      });
+      sug.appendChild(b);
+    });
+    $('#mark-modal').classList.add('open');
+    setTimeout(function () { inp.focus(); }, 260);
+  }
+  function closeMarkModal() { $('#mark-modal').classList.remove('open'); }
+
+  $('#mark-save').addEventListener('click', function () {
+    if (!pdfState.key) { closeMarkModal(); return; }
+    var name = ($('#mark-name').value || '').trim();
+    if (markEdit.id) {
+      renameMark(pdfState.key, markEdit.id, name);
+      toast('تم تعديل الإشارة');
+    } else {
+      saveMark(pdfState.key, markEdit.page, name);
+      toast('تمت إضافة الإشارة');
+      var btn = $('#btn-bookmark');
+      btn.classList.add('saved');
+      setTimeout(function () { btn.classList.remove('saved'); }, 400);
+    }
+    closeMarkModal();
+    paintMarksCount();
+    if ($('#toc-sheet').classList.contains('open')) renderMarks();
+  });
+  $('#mark-cancel').addEventListener('click', closeMarkModal);
+  $('#mark-modal').addEventListener('click', function (e) { if (e.target.id === 'mark-modal') closeMarkModal(); });
+  $('#mark-name').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') $('#mark-save').click();
+  });
+
+  /* ---------- header button: bookmark the current page ---------- */
+  $('#btn-bookmark').addEventListener('click', function () {
+    if (!pdfState.key) return;
+    var existing = markOnPage(pdfState.key, pdfState.page);
+    if (existing) {
+      // already bookmarked -> offer rename / open the list
+      openSheet('marks');
+      var row = $('#marks-view').querySelector('[data-id="' + existing.id + '"]');
+      if (row) { row.scrollIntoView({ block: 'center' }); }
+      toast('الصفحة دي عندها إشارة بالفعل');
+      return;
+    }
+    openMarkModal({ page: pdfState.page });
+  });
+
+  /* ---------- marks list ---------- */
+  function renderMarks() {
+    var view = $('#marks-view');
+    if (!pdfState.key) { view.innerHTML = ''; return; }
+    var marks = bookMarks(pdfState.key);
+    var current = markOnPage(pdfState.key, pdfState.page);
+    view.innerHTML = '';
+
+    var head = el('div', 'list-head');
+    head.innerHTML = '<span>' + (marks.length ? marks.length + ' إشارة في الكتاب ده' : 'لسه مفيش إشارات') + '</span>' +
+      (marks.length ? '<button id="clear-marks">حذف الكل</button>' : '');
+    view.appendChild(head);
+
+    marks.forEach(function (m) {
+      var row = el('div', 'mark-row');
+      row.setAttribute('data-id', m.id);
+      row.innerHTML =
+        '<span class="mark-icon"><svg viewBox="0 0 24 24"><path d="M7 4.5h10a1 1 0 0 1 1 1V21l-6-4.2L6 21V5.5a1 1 0 0 1 1-1z"/></svg></span>' +
+        '<div class="mark-body">' +
+          '<b>' + escapeHtml(m.name) + '</b>' +
+          '<span>صفحة ' + m.page + (m.page === pdfState.page ? ' · الصفحة الحالية' : '') +
+            ' · ' + dateLabel(m.at) + '</span>' +
+          '<div class="mark-open">' +
+            '<button class="chip-mini" data-act="go">افتح الصفحة</button>' +
+            '<button class="chip-mini" data-act="rename">تعديل الاسم</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="mark-actions">' +
+          '<button class="ibtn danger" data-act="del" aria-label="حذف"><svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>' +
+        '</div>';
+      row.addEventListener('click', function (e) {
+        var act = e.target.closest && e.target.closest('[data-act]');
+        var action = act ? act.getAttribute('data-act') : null;
+        if (action === 'del') {
+          deleteMark(pdfState.key, m.id);
+          paintMarksCount();
+          renderMarks();
+          toast('تم حذف الإشارة');
+          return;
+        }
+        if (action === 'rename') { openMarkModal({ id: m.id, page: m.page }); return; }
+        // anywhere else on the row: jump to the page
+        goToPage(m.page);
+        closeSheet();
+      });
+      view.appendChild(row);
+    });
+
+    var add = el('button', 'add-mark-btn');
+    add.type = 'button';
+    add.innerHTML = '<svg viewBox="0 0 24 24"><path d="M7 4.5h10a1 1 0 0 1 1 1V21l-6-4.2L6 21V5.5a1 1 0 0 1 1-1zM12 9v5M9.5 11.5h5"/></svg>' +
+      (current ? 'الصفحة دي متسجّلة — أضف كمان إشارة' : 'أضف إشارة على صفحة ' + pdfState.page);
+    add.disabled = !pdfState.doc;
+    add.addEventListener('click', function () { openMarkModal({ page: pdfState.page }); });
+    view.appendChild(add);
+
+    if (!marks.length) {
+      var empty = el('div', 'mark-empty');
+      empty.innerHTML = '<div class="big">🔖</div>' +
+        '<p>مفيش إشارات في الكتاب ده لسه</p>' +
+        '<span>اضغط على أيقونة الإشارة فوق وأنت واقف على أي صفحة،<br>سمّيها بأي اسم، وارجع لها في أي وقت.</span>';
+      view.insertBefore(empty, head.nextSibling);
+    }
+
+    var clear = view.querySelector('#clear-marks');
+    if (clear) {
+      clear.addEventListener('click', function () {
+        var all = allMarks();
+        all[pdfState.key] = [];
+        persistMarks(all);
+        renderMarks();
+        toast('تم حذف كل إشارات الكتاب');
+      });
+    }
+    return view;
+  }
+
+  function dateLabel(ts) {
+    if (!ts) return '';
+    var d = new Date(ts);
+    var today = new Date();
+    var same = d.toDateString() === today.toDateString();
+    if (same) {
+      return 'النهاردة ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+    }
+    return d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear();
+  }
+
+  function escapeHtml(str) {
+    return String(str == null ? '' : str).replace(/[&<>"']/g, function c(ch) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
+    });
+  }
+
+  /* ---------- sheet with two tabs ---------- */
+  function openSheet(tab) {
+    $('#toc-sheet').classList.add('open');
+    switchSheetTab(tab === 'marks' ? 'marks' : 'index');
+  }
+  function closeSheet() {
+    $('#toc-sheet').classList.remove('open');
+    closeMarkModal();
+  }
+  function switchSheetTab(tab) {
+    var marks = tab === 'marks';
+    $('#tab-index').classList.toggle('on', !marks);
+    $('#tab-marks').classList.toggle('on', marks);
+    $('#toc-list').classList.toggle('hidden', marks);
+    $('#marks-view').classList.toggle('hidden', !marks);
+    if (marks) { renderMarks(); } else { paintMarksCount(); }
+  }
+  $('#tab-index').addEventListener('click', function () { switchSheetTab('index'); });
+  $('#tab-marks').addEventListener('click', function () { switchSheetTab('marks'); });
+  $('#btn-contents').addEventListener('click', function () { openSheet('index'); });
   $('#toc-sheet').addEventListener('click', function (e) { if (e.target.id === 'toc-sheet') closeSheet(); });
 
   window.BacTaqBack = function () {
+    if ($('#mark-modal').classList.contains('open')) { closeMarkModal(); return true; }
     if ($('#toc-sheet').classList.contains('open')) { closeSheet(); return true; }
     if (current === 'reader' || current === 'library') { show('home'); return true; }
     if (current === 'about') { show('home'); return true; }
