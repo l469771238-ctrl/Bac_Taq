@@ -78,22 +78,10 @@ input{font-family:inherit;}
 .pw-eye svg{width:21px;height:21px;stroke-width:1.9;}
 .pw-eye.on{color:var(--navy-700);background:#e9eefb;}
 .pw-help{margin:0 0 14px;text-align:center;font-size:11.5px;color:var(--ink-3);font-weight:600;}
-.pw-field.small{height:50px;background:#fff;border-color:#e4e9f3;margin-bottom:10px;}
-.pw-field.small .pw{font-size:14px;}
-.lock-sep{display:flex;align-items:center;gap:10px;margin:14px 0 10px;}
-.lock-sep::before,.lock-sep::after{content:"";flex:1;height:1px;background:#eef1f8;}
-.lock-sep span{font-size:11px;color:var(--ink-3);font-weight:700;}
-.btn-device{width:100%;height:46px;border-radius:14px;background:#f1f4fb;color:var(--navy-800);font-size:13px;font-weight:800;}
-.btn-device:active{background:#e6ecf8;}
 .btn.mini{height:46px;font-size:13.5px;}
 @keyframes shake{10%,90%{transform:translateX(-2px)}30%,70%{transform:translateX(5px)}50%{transform:translateX(-7px)}}
 .pin-error{margin:6px 0 0;min-height:18px;text-align:center;font-size:12.5px;font-weight:700;color:#e5486b;}
 .pin-error.ok{color:#17936c;}
-.welcome-device{margin:0 0 16px;padding:10px 14px;border-radius:14px;background:#f4f6fb;display:flex;align-items:center;justify-content:space-between;}
-.welcome-device .tiny{font-size:11.5px;}
-.welcome-device bdi{font-weight:800;color:var(--navy-800);font-size:13px;letter-spacing:1px;}
-.device-box{margin-top:10px;padding:10px 14px;border-radius:14px;background:#f4f6fb;display:flex;align-items:center;justify-content:space-between;}
-.device-box bdi{font-weight:800;color:var(--navy-800);font-size:12.5px;letter-spacing:1px;}
 .lock-note{margin:6px 0 0;text-align:center;font-size:11.5px;color:var(--ink-3);font-weight:600;}
 .welcome-name{margin:14px 0 4px;text-align:center;font-size:23px;font-weight:800;color:var(--navy-800);}
 .welcome-text{margin:0 0 18px;text-align:center;color:var(--ink-2);font-size:13.5px;line-height:1.85;font-weight:600;}

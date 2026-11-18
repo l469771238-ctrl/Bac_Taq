@@ -19,27 +19,24 @@
     <p class="lock-sub">باك طق — بوابتك لكل الكتب في مكان واحد</p>
 
     <div id="lock-card" class="card lock-card">
-      <p class="lock-hint">اكتب كود التفعيل للدخول</p>
+      <p class="lock-hint">اكتب كلمة السر للدخول</p>
       <div class="pw-field" id="pw-field">
         <input id="pw" class="pw" type="password" inputmode="text" dir="ltr" autocomplete="off"
-               autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="كود التفعيل">
+               autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="كلمة السر">
         <button class="pw-eye" id="pw-eye" type="button" aria-label="إظهار">
           <svg viewBox="0 0 24 24"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/></svg>
         </button>
       </div>
-      <p class="pw-help">اكتب الكود زي ما وصلك بالظبط (حروف وأرقام)</p>
-      <button class="btn btn-primary" id="btn-unlock" type="button">تفعيل وفتح التطبيق</button>
+      <p class="pw-help">كلمة السر بتتطلب أول مرة بس، وبعد كده التطبيق بيفتح على طول.</p>
+      <button class="btn btn-primary" id="btn-unlock" type="button">دخول</button>
       <p class="pin-error" id="pin-error"></p>
-      <div class="lock-sep"><span>أو</span></div>
-      <button class="btn-device" id="btn-device-key" type="button">عندي كود جهاز مختلف؟</button>
-      <p class="lock-note">يتم التفعيل مرة واحدة فقط على هذا الجهاز</p>
+      <p class="lock-note">يتم السؤال مرة واحدة فقط بعد التثبيت</p>
     </div>
 
     <div id="welcome-card" class="card lock-card hidden">
       <div class="check-ring"><svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="24"/><path d="M14 27l8 8 16-17"/></svg></div>
       <h2 class="welcome-name">أهلاً بيك يا جاسر</h2>
-      <p class="welcome-text">تم تفعيل Bac-Taq على جهازك بنجاح.<br>الكود بيشتغل على جهاز واحد بس، ومش هيتطلب منك تاني.</p>
-      <div class="welcome-device" id="welcome-device"></div>
+      <p class="welcome-text">تم تفعيل Bac-Taq على جهازك بنجاح.<br>مش هيتطلب منك كلمة السر تاني.</p>
       <button class="btn btn-primary" id="btn-start">يلا نبدأ</button>
     </div>
   </div>
@@ -172,7 +169,7 @@
 <section id="screen-about" class="screen">
   <header class="lib-head">
     <button class="icon-btn" data-nav="home" aria-label="رجوع"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
-    <div class="lib-titles"><h2>عن التطبيق</h2><span class="tiny">Bac-Taq · إصدار 1.1</span></div>
+    <div class="lib-titles"><h2>عن التطبيق</h2><span class="tiny">Bac-Taq · إصدار 1.2</span></div>
   </header>
   <main class="about-body">
     <div class="about-card brand">
@@ -182,22 +179,8 @@
 
     <div class="about-card">
       <h4>التفعيل</h4>
-      <p>التطبيق بيتفعل بكود لمرة واحدة على الجهاز. بعد التفعيل هيفتح على طول في كل مرة.</p>
-      <div class="device-box">
-        <span class="tiny">كود الجهاز</span>
-        <bdi id="device-id">—</bdi>
-      </div>
-    </div>
-
-    <div class="about-card">
-      <h4>دخول بكود جهاز</h4>
-      <p>لو الكود اللي معاك من نوع «كود جهاز»، اكتبه هنا عشان يتفعّل على الموبايل ده.</p>
-      <div class="pw-field small">
-        <input id="invite" class="pw" type="text" dir="ltr" autocomplete="off" autocapitalize="off"
-               autocorrect="off" spellcheck="false" placeholder="مثال: abyc-v25-aum">
-      </div>
-      <button class="btn btn-primary mini" id="btn-invite" type="button">تفعيل الكود</button>
-      <p class="pin-error" id="invite-msg"></p>
+      <p>التطبيق بيتفعل بكلمة سر واحدة لمرة واحدة بس بعد التثبيت. بعد كده بيفتح على طول في كل مرة،
+      وكل إشاراتك وتقدّمك محفوظين على الجهاز.</p>
     </div>
 
     <div class="about-card">

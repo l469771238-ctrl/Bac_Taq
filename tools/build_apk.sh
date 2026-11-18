@@ -37,8 +37,10 @@ echo "==> link resources + manifest"
   "$WORK/compiled/res.zip"
 
 echo "==> add assets to apk"
-cd "$WORK/assets"
-zip -q -r "$WORK/base.apk" web
+# AssetManager resolves "web/index.html" only when the entry is "assets/web/index.html",
+# so the zip MUST be built from a folder that already contains assets/.
+cd "$WORK"
+zip -q -r "$WORK/base.apk" assets
 
 echo "==> compile java"
 mkdir -p "$WORK/classes"
@@ -72,4 +74,25 @@ KS="$ROOT/keystore/bactaq.jks"
   --out "$OUT/Bac-Taq-$version.apk" "$WORK/aligned.apk"
 
 "$JAVA" -jar "$BT/lib/apksigner.jar" verify --min-sdk-version 23 "$OUT/Bac-Taq-$version.apk"
+
+echo "==> verify packaging"
+python3 - "$OUT/Bac-Taq-$version.apk" <<'PYCHK'
+import sys, zipfile
+names = zipfile.ZipFile(sys.argv[1]).namelist()
+need = ['assets/web/index.html', 'assets/web/js/app.js', 'assets/web/js/security.js',
+        'assets/web/css/app.css', 'assets/web/books/meta.json',
+        'assets/web/books/arabic.pdf', 'assets/web/books/english.pdf',
+        'assets/web/books/history.pdf', 'assets/web/books/programming.pdf',
+        'classes.dex', 'resources.arsc', 'AndroidManifest.xml']
+missing = [n for n in need if n not in names]
+stray = [n for n in names if n.startswith('web/')]
+if missing or stray:
+    print('PACKAGING ERROR')
+    for n in missing:
+        print('  missing:', n)
+    for n in stray[:5]:
+        print('  misplaced (must be under assets/):', n)
+    sys.exit(1)
+print('packaging OK —', len(names), 'entries, web app under assets/web/')
+PYCHK
 ls -la "$OUT"

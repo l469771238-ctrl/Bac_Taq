@@ -31,7 +31,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const click = s => $(s).dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
 
   check('lock screen visible', $('#screen-lock').classList.contains('active'));
-  check('device code generated', /^"[a-z0-9]{10}"$/.test(w.localStorage.getItem('bactaq.device')));
+  check('no device-key UI', !w.document.querySelector('#invite') && !w.document.querySelector('#btn-device-key'));
+  check('password field present', !!$('#pw'));
   $('#pw').value = 'wrong-code';
   click('#btn-unlock');
   await sleep(250);
@@ -64,33 +65,35 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   click('[data-nav="about"]');
   await sleep(60);
   check('about screen', $('#screen-about').classList.contains('active'));
-  check('device id shown', $('#device-id').textContent.length > 6, $('#device-id').textContent);
+  check('no device id in about', !w.document.querySelector('#device-id'));
+  check('about explains one password', $('#screen-about').textContent.includes('كلمة سر'));
 
-  const { execSync } = require('child_process');
-  const token = execSync('python3 tools/make_keys.py 42', { cwd: path.join(__dirname, '..') }).toString().trim();
-  const w2 = makeDom();
-  w2.eval(fs.readFileSync(path.join(ROOT, 'js/security.js'), 'utf8'));
-  w2.eval(fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8'));
-  w2.document.dispatchEvent(new w2.Event('DOMContentLoaded'));
-  await sleep(200);
-  w2.document.querySelector('#invite').value = token;
-  w2.document.querySelector('#btn-invite').dispatchEvent(new w2.MouseEvent('click', { bubbles: true }));
-  for (let i = 0; i < 30; i++) { await sleep(100); if (/true/.test(String(w2.localStorage.getItem('bactaq.activated')))) break; }
-  check('device key accepted', /true/.test(String(w2.localStorage.getItem('bactaq.activated'))));
-  check('slot stored', w2.localStorage.getItem('bactaq.slot') === '42', w2.localStorage.getItem('bactaq.slot'));
+  // typing variants of the same shared password must all work
+  for (const variant of ['3mk.gasser.2026', '3mk-gasser-2026', '3MK_GASSER_2026', ' 3mk gasser 2026 ']) {
+    const wv = makeDom();
+    wv.eval(fs.readFileSync(path.join(ROOT, 'js/security.js'), 'utf8'));
+    wv.eval(fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8'));
+    wv.document.dispatchEvent(new wv.Event('DOMContentLoaded'));
+    await sleep(200);
+    wv.document.querySelector('#pw').value = variant;
+    wv.document.querySelector('#btn-unlock').dispatchEvent(new wv.MouseEvent('click', { bubbles: true }));
+    for (let i = 0; i < 25; i++) { await sleep(60); if (/true/.test(String(wv.localStorage.getItem('bactaq.activated')))) break; }
+    check('password variant accepted: ' + variant, /true/.test(String(wv.localStorage.getItem('bactaq.activated'))));
+  }
 
+  // wrong password must not activate, and must never reveal a per-device code path
   const w3 = makeDom();
   w3.eval(fs.readFileSync(path.join(ROOT, 'js/security.js'), 'utf8'));
   w3.eval(fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8'));
   w3.document.dispatchEvent(new w3.Event('DOMContentLoaded'));
   await sleep(200);
-  w3.document.querySelector('#invite').value = 'abcd-efg-hij';
-  w3.document.querySelector('#btn-invite').dispatchEvent(new w3.MouseEvent('click', { bubbles: true }));
-  await sleep(250);
-  check('fake device key rejected', w3.localStorage.getItem('bactaq.activated') === null);
-  check('fake key message', w3.document.querySelector('#invite-msg').textContent.includes('مش صحيح'));
+  w3.document.querySelector('#pw').value = 'abcde-fgh-ijk';
+  w3.document.querySelector('#btn-unlock').dispatchEvent(new w3.MouseEvent('click', { bubbles: true }));
+  await sleep(300);
+  check('wrong password rejected', w3.localStorage.getItem('bactaq.activated') === null);
+  check('wrong password message', w3.document.querySelector('#pin-error').textContent.includes('غلط'));
 
-  const w4 = makeDom({ 'bactaq.activated': '"true"', 'bactaq.device': '"abcdefghjk"',
+  const w4 = makeDom({ 'bactaq.activated': '"true"',
                        'bactaq.progress': JSON.stringify({ history: { page: 12, total: 131, at: 5 } }) });
   w4.eval(fs.readFileSync(path.join(ROOT, 'js/security.js'), 'utf8'));
   w4.eval(fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8'));

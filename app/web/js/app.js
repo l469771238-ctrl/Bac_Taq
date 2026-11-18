@@ -7,7 +7,6 @@
   /* ---------- constants ---------- */
   var STORE_KEY = 'bactaq.activated';
   var PROGRESS_KEY = 'bactaq.progress';
-  var DEVICE_KEY = 'bactaq.device';
   var MARKS_KEY = 'bactaq.bookmarks';
   var MAX_NAME = 60;
   var THEME = {
@@ -88,19 +87,6 @@
     }
     return v === true || v === 'true';
   }
-  function deviceId() {
-    var id = store(DEVICE_KEY);
-    if (!id) {
-      id = window.BacSecurity ? BacSecurity.newDeviceKey() : 'bactaq';
-      store(DEVICE_KEY, id);
-    }
-    return id;
-  }
-  function prettyDevice(id) {
-    id = String(id || '');
-    return (id.slice(0, 4) + '-' + id.slice(4, 7) + '-' + id.slice(7, 10)).toUpperCase();
-  }
-
   function unlockError(msg, isOk) {
     var e = $('#pin-error');
     e.textContent = msg;
@@ -110,77 +96,35 @@
     if (!isOk) { void f.offsetWidth; f.classList.add('error'); }
   }
 
-  function finishActivation(method) {
+  function finishActivation() {
     store(STORE_KEY, true);
-    store('bactaq.method', String(method));
+    store('bactaq.method', 'password');
     buzz();
     $('#lock-card').classList.add('hidden');
     $('#welcome-card').classList.remove('hidden');
-    $('#welcome-device').innerHTML =
-      '<span class="tiny">كود الجهاز</span><bdi>' + prettyDevice(deviceId()) + '</bdi>';
-    if (method === 'device-key') {
-      $('.welcome-name').textContent = 'أهلاً بيك في Bac-Taq';
-      $('.welcome-text').innerHTML = 'تم تفعيل كود الجهاز بنجاح.<br>الكود اتربط بالموبايل ده، وهيفتح على طول من دلوقتي.';
-    }
   }
 
   function tryPassword() {
     if (busy) return;
     var raw = ($('#pw').value || '').trim();
-    if (!raw) { unlockError('اكتب الكود الأول'); buzz(); return; }
+    if (!raw) { unlockError('اكتب كلمة السر الأول'); buzz(); return; }
     busy = true;
     $('#btn-unlock').textContent = 'جاري التحقق…';
     window.BacSecurity.checkPassword(raw).then(function (ok) {
       busy = false;
-      $('#btn-unlock').textContent = 'تفعيل وفتح التطبيق';
+      $('#btn-unlock').textContent = 'دخول';
       if (ok) {
         unlockError('', true);
-        finishActivation('password');
+        finishActivation();
       } else {
-        // maybe it is a device key typed in the main box
-        window.BacSecurity.verifyInvite(raw).then(function (inv) {
-          if (inv) { acceptInvite(inv, '#pin-error'); } else {
-            unlockError('الكود غلط، راجع الكود وجرّب تاني');
-            buzz();
-            $('#pw').select();
-          }
-        });
-      }
-    });
-  }
-
-  function acceptInvite(inv, msgSelector) {
-    var box = $(msgSelector);
-    box.classList.add('ok');
-    box.textContent = 'كود جهاز صحيح (خانة ' + inv.slot + ') · جاري التفعيل…';
-    store('bactaq.slot', inv.slot);
-    setTimeout(function () { finishActivation('device-key'); }, 550);
-  }
-
-  function tryDeviceKey() {
-    var raw = ($('#invite').value || '').trim();
-    var msg = $('#invite-msg');
-    msg.classList.remove('ok');
-    msg.textContent = '';
-    if (!raw) { msg.textContent = 'اكتب كود الجهاز الأول'; return; }
-    window.BacSecurity.verifyInvite(raw).then(function (inv) {
-      if (!inv) {
-        msg.textContent = 'الكود مش صحيح أو منتهي';
+        unlockError('كلمة السر غلط، جرّب تاني');
         buzz();
-        return;
+        $('#pw').select();
       }
-      var already = isActivated();
-      store('bactaq.slot', inv.slot);
-      msg.classList.add('ok');
-      msg.textContent = 'تم تفعيل كود الجهاز ✓';
-      if (already) {
-        buzz();
-        toast('تم تحديث كود الجهاز');
-        return;
-      }
-      finishActivation('device-key');
-      // the welcome card lives on the lock screen; show it after the success beat
-      setTimeout(function () { show('lock'); }, 650);
+    }).catch(function () {
+      busy = false;
+      $('#btn-unlock').textContent = 'دخول';
+      unlockError('حصلت مشكلة، جرّب تاني');
     });
   }
 
@@ -196,12 +140,6 @@
     $('#pin-error').textContent = '';
     $('#pw-field').classList.remove('error');
   });
-  $('#btn-device-key').addEventListener('click', function () {
-    show('about');
-    setTimeout(function () { $('#invite').focus(); }, 350);
-  });
-  $('#btn-invite').addEventListener('click', tryDeviceKey);
-  $('#invite').addEventListener('keydown', function (e) { if (e.key === 'Enter') tryDeviceKey(); });
   $('#btn-start').addEventListener('click', function () { show('home'); });
 
   /* ============================================================
@@ -803,12 +741,6 @@
   /* ============================================================
      ABOUT / SETTINGS
      ============================================================ */
-  function fillAbout() {
-    $('#device-id').textContent = prettyDevice(deviceId());
-    var slot = store('bactaq.slot');
-    if (slot) { $('#device-id').textContent += ' · خانة ' + slot; }
-  }
-
   $('#btn-reset').addEventListener('click', function () {
     if (!window.confirm('إعادة ضبط التفعيل هتخلي التطبيق يطلب الكود تاني. متأكد؟')) return;
     store(STORE_KEY, false);
@@ -818,10 +750,8 @@
 
   /* ---------- boot ---------- */
   function boot() {
-    deviceId();
     loadMeta().then(function () {
       renderHome();
-      fillAbout();
       if (isActivated()) {
         show('home');
       } else {

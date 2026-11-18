@@ -2,15 +2,14 @@
    Bac-Taq — local security helpers
    Activation is fully offline: the entered password is hashed with
    SHA-256 and compared against a fingerprint baked into the build.
-   The "device key" (invite) is an AES-CBC token that encodes a slot
-   number with a secret that only the developer side knows.
+   There is ONE shared password. It is asked on the first launch only and
+   then remembered on the device forever — no per-device codes at all.
    ============================================================ */
 (function (global) {
   'use strict';
 
   /* SHA-256 of "3mk.gasser.2026" (owner's master password, asked once).
      Dot separators keep the physical keyboard from inserting "_" oddly. */
-  /* DEV ONLY: BacSecurity.makeInvite(slot) mints keys; tools/make_keys.py does the same. */
   var MASTER_HASH = 'd0f50357e82ceffe696fd36ce08a835da33b3d81fa07dd82bacac3415b21381b';
 
   /* AES key + IV used to mint / verify per-device keys. */
@@ -80,71 +79,11 @@
     return Promise.resolve(sha256Fallback(str));
   }
 
-  /* ---------- device keys (invites) ----------
-     Token = 10 Base32 chars carrying 6 bytes:
-       [slot hi, slot lo, attempt-payload, mac0..mac2]  (mac = 3 bytes)
-     mac = first 3 bytes of SHA-256("BacTaq|" + slot + "|" + attempt + "|x7Kq-2026").
-     Offline verification only needs SHA-256, so no crypto library is required. */
-  var SLOT_BITS = 12;
-
-  function inviteMac(slot, attempt) {
-    return sha256('BacTaq|' + slot + '|' + attempt + '|x7Kq-2026');
-  }
-
-  function bytesToB32(bytes) {
-    var alpha = 'abcdefghijklmnopqrstuvwxyz234567', out = '', val = 0, bits = 0;
-    for (var i = 0; i < bytes.length; i++) {
-      val = (val << 8) | bytes[i]; bits += 8;
-      while (bits >= 5) { out += alpha.charAt((val >>> (bits - 5)) & 31); bits -= 5; }
-    }
-    if (bits > 0) out += alpha.charAt((val << (5 - bits)) & 31);
-    return out;
-  }
-
-  function b32ToBytes(str) {
-    var alpha = 'abcdefghijklmnopqrstuvwxyz234567', out = [], val = 0, bits = 0;
-    for (var i = 0; i < str.length; i++) {
-      var idx = alpha.indexOf(str.charAt(i));
-      if (idx < 0) return null;
-      val = (val << 5) | idx; bits += 5;
-      if (bits >= 8) { out.push((val >>> (bits - 8)) & 0xff); bits -= 8; }
-    }
-    return out;
-  }
-
-  function cleanToken(input) {
-    return (input || '').toLowerCase().replace(/[^a-z2-7]/g, '');
-  }
-
-  function verifyInvite(input) {
-    var token = cleanToken(input);
-    if (token.length !== 10) return Promise.resolve(null);
-    var bytes = b32ToBytes(token);
-    if (!bytes || bytes.length < 6) return Promise.resolve(null);
-    var slot = (bytes[0] << 4) | (bytes[1] >> 4);
-    var attempt = bytes[1] & 0x0f;
-    var macBytes = [bytes[2], bytes[3], bytes[4], bytes[5]];
-    if (slot < 1 || slot > (1 << SLOT_BITS) - 1 || attempt > 15) return Promise.resolve(null);
-    return inviteMac(slot, attempt).then(function (hex) {
-      var expect = [parseInt(hex.slice(0, 2), 16), parseInt(hex.slice(2, 4), 16),
-                    parseInt(hex.slice(4, 6), 16), parseInt(hex.slice(6, 8), 16)];
-      var ok = macBytes.every(function (b, i) { return b === expect[i]; });
-      return ok ? { slot: slot, attempt: attempt } : null;
-    });
-  }
-
-  function makeInvite(slot, attempt) {
-    return inviteMac(slot, attempt || 0).then(function (hex) {
-      var mac = [parseInt(hex.slice(0, 2), 16), parseInt(hex.slice(2, 4), 16),
-                 parseInt(hex.slice(4, 6), 16), parseInt(hex.slice(6, 8), 16)];
-      var a = attempt || 0;
-      return bytesToB32([(slot >> 4) & 0xff, ((slot & 0x0f) << 4) | (a & 0x0f)].concat(mac));
-    });
-  }
 
   /* ---------- public API ---------- */
-  // Accept the code however it is typed: dots, underscores, dashes or spaces
-  // between the parts, and any letter case. "3mk_gasser_2026" == "3mk.gasser.2026".
+  // One shared password for everybody, asked only once after installing.
+  // It is compared as a SHA-256 fingerprint, so the plain text never ships in the app.
+  // Typing is forgiving: 3mk.gasser.2026 = 3mk_gasser_2026 = 3mk-gasser-2026 = "3mk gasser 2026".
   function normalize(pw) {
     return String(pw || '')
       .trim()
@@ -157,20 +96,10 @@
     return sha256(normalize(input)).then(function (h) { return h === MASTER_HASH; });
   }
 
-  function newDeviceKey() {
-    // local, cosmetic id so the home screen can show "this device" info
-    var r = '';
-    var chars = 'abcdefghjkmnpqrstuvwxyz23456789';
-    for (var i = 0; i < 10; i++) r += chars.charAt(Math.floor(Math.random() * chars.length));
-    return r;
-  }
-
   global.BacSecurity = {
     checkPassword: checkPassword,
-    verifyInvite: verifyInvite,
-    makeInvite: makeInvite,
+    normalize: normalize,
     sha256: sha256,
-    newDeviceKey: newDeviceKey,
     MASTER_HASH: MASTER_HASH
   };
 })(window);
