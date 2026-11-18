@@ -1,0 +1,33 @@
+name: release-apk
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: verify apk
+        run: |
+          APK=$(ls dist/Bac-Taq-*.apk | head -1)
+          echo "APK=$APK" >> $GITHUB_ENV
+          ls -la dist/
+          sha256sum "$APK"
+
+      - name: publish release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0
+          name: Bac-Taq 1.0 — التطبيق
+          body_path: dist/release-notes.md
+          files: |
+            dist/Bac-Taq-1.0.apk
+            dist/Bac-Taq-Keys.html
+            dist/Bac-Taq-Keys.md
+          fail_on_unmatched_files: false

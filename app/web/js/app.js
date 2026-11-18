@@ -226,6 +226,9 @@
      HOME
      ============================================================ */
   function renderHome() {
+    var h = new Date().getHours();
+    var greet = h < 12 ? 'صباح الخير ☀️' : h < 17 ? 'نهارك سعيد 🌤️' : 'مساء الخير 🌙';
+    if ($('#greet')) $('#greet').textContent = greet;
     var grid = $('#subjects');
     grid.innerHTML = '';
     SUBJECTS.forEach(function (s, i) {

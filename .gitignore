@@ -1,3 +1,5 @@
-# build artefacts are committed on purpose (the channel between CI and the workspace)
 node_modules/
 *.log
+# tools/OWNER.md is committed on purpose: this repo is private and it is the owner's manual
+shots/
+probe_out/
