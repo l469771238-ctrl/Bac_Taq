@@ -139,8 +139,22 @@ const check = (name, cond, detail) => { results.push({ name, ok: !!cond, detail 
 
   // TOC
   await page.click('#btn-contents'); await sleep(700);
-  const tocRows = await page.evaluate(() => document.querySelectorAll('#toc-list .toc-row, #toc-list .toc-item, #toc-list button, #toc-list li').length);
-  check('table of contents has entries', tocRows > 0, 'rows=' + tocRows);
+  const toc = await page.evaluate(() => ({
+    rows: document.querySelectorAll('#toc-list .sheet-item').length,
+    chips: document.querySelectorAll('#toc-list .toc-chip').length,
+    jumpBox: !!document.querySelector('#toc-list #toc-q')
+  }));
+  // these books are scanned images: either a real outline or the page-jump fallback
+  check('contents tab is usable', toc.rows > 0 || (toc.chips > 0 && toc.jumpBox),
+        'outline=' + toc.rows + ' chips=' + toc.chips + ' jumpbox=' + toc.jumpBox);
+  // jumping by page number from the sheet fallback
+  await page.evaluate(() => {
+    const i = document.querySelector('#toc-list #toc-q');
+    if (i) { i.value = '40'; i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); }
+  });
+  await sleep(1400);
+  check('contents jump box moves the reader', await pageNo() === '40', await pageNo());
+  await page.click('#btn-contents'); await sleep(500);
   await shot('07-toc');
   await page.evaluate(() => document.querySelector('#tab-marks').click()); await sleep(500);
   check('marks tab reachable', await page.evaluate(() => !document.querySelector('#marks-view').classList.contains('hidden')));
@@ -211,7 +225,10 @@ const check = (name, cond, detail) => { results.push({ name, ok: !!cond, detail 
   // about + reset
   await page.evaluate(() => document.querySelector('[data-nav="about"]').click());
   await sleep(600);
+  pageErrors.length = 0;
   check('about screen opens', await active() === 'screen-about');
+  await sleep(400);
+  check('about screen raises no error', pageErrors.length === 0, pageErrors.join(' | '));
   check('about has no dead device-key UI', await page.evaluate(() => !document.querySelector('#invite') && !document.querySelector('#device-id')));
   await shot('13-about');
   page.on('dialog', d => d.accept());

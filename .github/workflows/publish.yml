@@ -2,7 +2,7 @@ name: publish-release
 on:
   workflow_dispatch:
   push:
-    tags: ['v1.1', 'v1.2', 'v1.3', 'v1.4']
+    tags: ['v1.1', 'v1.2', 'v1.3', 'v1.4', 'v1.5']
 
 permissions:
   contents: write
@@ -11,7 +11,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     env:
-      VERSION: '1.2'
+      VERSION: '1.4'
     steps:
       - uses: actions/checkout@v4
 
@@ -45,9 +45,9 @@ jobs:
       - name: publish to GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.2
-          name: Bac-Taq 1.2 — التطبيق
+          tag_name: v1.4
+          name: Bac-Taq 1.4 — التطبيق
           body_path: dist/release-notes.md
-          files: dist/Bac-Taq-1.2.apk
+          files: dist/Bac-Taq-1.4.apk
           fail_on_unmatched_files: true
           make_latest: true

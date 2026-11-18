@@ -66,7 +66,6 @@
     current = id;
     if (id === 'library') { renderLibrary(window.__activeSubject); }
     if (id === 'home') { renderHome(); }
-    if (id === 'about') { fillAbout(); }
     if (id !== 'reader') { closeSheet(); }
   }
   document.addEventListener('click', function (e) {
@@ -469,62 +468,33 @@
       return;
     }
     list.innerHTML =
-      '<p class="sheet-empty">الكتاب مش فيه فهرس مدمج.<br>دوّر على أي كلمة وروح للصفحة على طول:</p>';
+      '<p class="sheet-empty">الكتاب ده صفحاته صور ممسوحة، فمفيش فهرس مدمج أو نص للبحث.<br>' +
+      'روح لأي صفحة بسرعة من هنا:</p>';
     var box = el('div', 'toc-search');
-    box.innerHTML = '<input id="toc-q" type="search" placeholder="دوّر في الكتاب… (مثال: الوحدة الأولى)" autocomplete="off">';
+    box.innerHTML = '<input id="toc-q" type="number" inputmode="numeric" min="1" placeholder="اكتب رقم الصفحة" dir="ltr">';
     list.appendChild(box);
-    var results = el('div', 'toc-results');
-    list.appendChild(results);
-    var timer = null;
-    box.querySelector('input').addEventListener('input', function (e) {
-      var q = e.target.value.trim();
-      clearTimeout(timer);
-      if (q.length < 2) { results.innerHTML = ''; return; }
-      timer = setTimeout(function () { searchBook(q, results); }, 320);
+    var quick = el('div', 'toc-quick');
+    var marks = 0;
+    for (var pg = 1; pg <= (doc && doc.numPages ? doc.numPages : 1); pg += 20) {
+      (function (target) {
+        var b = el('button', 'toc-chip', 'ص ' + target);
+        b.type = 'button';
+        b.addEventListener('click', function () { goToPage(target); closeSheet(); });
+        quick.appendChild(b);
+        marks++;
+      })(pg);
+    }
+    list.appendChild(quick);
+    var inp = box.querySelector('input');
+    inp.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter') return;
+      var n = parseInt(inp.value, 10);
+      if (!n || n < 1) return;
+      goToPage(Math.min(n, doc && doc.numPages ? doc.numPages : n));
+      closeSheet();
     });
   }
 
-  function searchBook(q, results) {
-    var doc = pdfState.doc;
-    if (!doc) return;
-    results.innerHTML = '<p class="sheet-empty">بيدوّر…</p>';
-    var found = [];
-    var pageNo = 1;
-    var stop = false;
-    function next() {
-      if (stop || pageNo > doc.numPages || found.length >= 30) {
-        results.innerHTML = '';
-        if (!found.length) {
-          results.innerHTML = '<p class="sheet-empty">مفيش نتائج للكلمة دي</p>';
-          return;
-        }
-        found.forEach(function (f) {
-          var b = el('button', 'sheet-item');
-          b.appendChild(el('b', null, f.page));
-          b.appendChild(el('span', null, f.snippet));
-          b.addEventListener('click', function () { goToPage(f.page); closeSheet(); });
-          results.appendChild(b);
-        });
-        return;
-      }
-      doc.getPage(pageNo).then(function (page) {
-        return page.getTextContent().then(function (tc) {
-          var text = tc.items.map(function (it) { return it.str; }).join(' ');
-          var idx = text.indexOf(q);
-          if (idx >= 0) {
-            found.push({
-              page: pageNo,
-              snippet: '…' + text.slice(Math.max(0, idx - 22), idx + q.length + 36).replace(/\s+/g, ' ') + '…'
-            });
-          }
-        });
-      }).catch(function () {}).then(function () {
-        pageNo++;
-        setTimeout(next, 0);
-      });
-    }
-    next();
-  }
 
   /* ============================================================
      BOOKMARKS — unlimited, named, per book, stored on the device

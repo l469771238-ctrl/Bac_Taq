@@ -62,8 +62,11 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   await sleep(60);
   check('home after back', $('#screen-home').classList.contains('active'));
 
+  const errs = [];
+  w.addEventListener('error', e => errs.push(String(e.message)));
   click('[data-nav="about"]');
-  await sleep(60);
+  await sleep(120);
+  check('about navigation throws nothing', errs.length === 0, errs.join(' | '));
   check('about screen', $('#screen-about').classList.contains('active'));
   check('no device id in about', !w.document.querySelector('#device-id'));
   check('about explains one password', $('#screen-about').textContent.includes('كلمة سر'));
