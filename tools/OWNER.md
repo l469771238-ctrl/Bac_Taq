@@ -43,3 +43,9 @@ python3 -c "import hashlib;print(hashlib.sha256('الكود-الجديد'.encode
 bash tools/build_apk.sh 1.0 1     # النسخة والـ versionCode
 python3 tools/release.py          # build + نشر على GitHub Releases
 ```
+
+## الإشارات المرجعية (1.1)
+- بتتحفظ في `localStorage` تحت `bactaq.bookmarks` — مفتاح لكل كتاب، ومفيش حد أقصى للعدد.
+- شكل العنصر: `{id, page, name, at}` — الترتيب في القائمة حسب رقم الصفحة.
+- التفعيل مش بيتأثر بأي تحديث: `bactaq.activated` = `true` وبيتحافظ عليه.
+- لو غيّرت `appId`/الـ keystore، التحديثات الجديدة مش هتتثبت فوق القديمة — خليك على `keystore/bactaq.jks`.
