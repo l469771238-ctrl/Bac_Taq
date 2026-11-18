@@ -1,0 +1,33 @@
+name: fetch-books
+on:
+  workflow_dispatch:
+  push:
+    paths: ['tools/fetch_books.py']
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: arena/1b4871f2-bac-taq
+      - name: deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq poppler-utils ghostscript >/dev/null
+      - name: fetch
+        run: |
+          python3 tools/fetch_books.py
+          mkdir -p probe_out && cp /tmp/variant_*.jpg probe_out/ 2>/dev/null || true
+          ls -la app/web/books app/web/covers
+      - name: push
+        run: |
+          git config user.email ci@agents.local
+          git config user.name "Bac-Taq CI"
+          git add -A app/web/books app/web/covers probe_out
+          git commit -m "chore: add books, covers and metadata [skip ci]" || echo "no changes"
+          git pull --rebase origin arena/1b4871f2-bac-taq || true
+          git push origin HEAD:arena/1b4871f2-bac-taq
