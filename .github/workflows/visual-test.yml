@@ -33,6 +33,9 @@ jobs:
       - name: small-screen layout probe (320/360/412 px)
         run: node tools/small_screens.js || true
 
+      - name: page-by-page artefact scan (all four books)
+        run: node tools/page_verify.js || true
+
       - name: push screenshots
         run: |
           git config user.email ci@agents.local
