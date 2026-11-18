@@ -1,0 +1,42 @@
+{
+ "english": {
+  "title": "English",
+  "subtitle": "إجابات تقييمات الوزارة — الصف الثالث الثانوي",
+  "drive_name": "انجلش",
+  "drive_id": "14RYFKULJwttqP_3mumGN8jcxM_ZxGPrd",
+  "pages": 64,
+  "bytes": 2562936,
+  "original_bytes": 19631887,
+  "variant": "ebook"
+ },
+ "programming": {
+  "title": "البرمجة",
+  "subtitle": "الأداءات والتقييمات — الصف الثالث الثانوي",
+  "drive_name": "برمجة",
+  "drive_id": "1bvcyvueHH4BUgpfgT7pCCfxKPmtRMxbu",
+  "pages": 72,
+  "bytes": 1473139,
+  "original_bytes": 2155718,
+  "variant": "ebook"
+ },
+ "history": {
+  "title": "التاريخ",
+  "subtitle": "الامتحان — الدراسات الاجتماعية",
+  "drive_name": "تاريخ",
+  "drive_id": "1DtAvOj7APvVP92108DsiVKdHealYRcBQ",
+  "pages": 131,
+  "bytes": 2019834,
+  "original_bytes": 2530682,
+  "variant": "ebook"
+ },
+ "arabic": {
+  "title": "اللغة العربية",
+  "subtitle": "الأداءات والتقييمات — الصف الثالث الثانوي",
+  "drive_name": "عربي",
+  "drive_id": "1R219VGnQFAq8JLt74L8Xm7uGqmwzjQz2",
+  "pages": 148,
+  "bytes": 35844094,
+  "original_bytes": 41075041,
+  "variant": "ebook"
+ }
+}
