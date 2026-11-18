@@ -1,1 +1,117 @@
-# Bac_Taq
+<div align="center">
+
+<img src="app/web/img/icon-512.png" width="120" alt="Bac-Taq">
+
+# Bac-Taq · باك طق
+
+**تطبيق أندرويد مجاني يجمع كتب الثانوية العامة الأربعة في مكان واحد — ويشتغل بدون إنترنت.**
+
+[⬇️ تنزيل التطبيق (APK)](https://github.com/l469771238-ctrl/Bac_Taq/releases/latest) · [🔑 مفاتيح التفعيل](https://github.com/l469771238-ctrl/Bac_Taq/releases/latest)
+
+</div>
+
+---
+
+## المحتوى
+
+| المادة | الكتاب | الصفحات | الحجم داخل التطبيق |
+|---|---|---|---|
+| اللغة العربية | الأداءات والتقييمات — الصف الثالث الثانوي | 148 | 22 م.ب |
+| English | إجابات تقييمات الوزارة — الصف الثالث الثانوي | 64 | 2.4 م.ب |
+| التاريخ | الامتحان — الدراسات الاجتماعية | 131 | 1.9 م.ب |
+| البرمجة | الأداءات والتقييمات — الصف الثالث الثانوي | 72 | 1.4 م.ب |
+
+الكتب الأربعة منسوخة من [مجلد Google Drive](https://drive.google.com/drive/folders/1V7hPlrPv2AlmKeHMhkDYqjyQWbAytT5x)
+ومحفوظة **جوّا الـ APK** — يعني بتفتح بدون إنترنت، مجانًا، ومن أول مرة.
+
+## المميزات
+
+- 🔒 **تفعيل مرة واحدة:** باسورد الماستر أو كود جهاز (كل كود لجهاز واحد). بعد التفعيل التطبيق بيفتح على طول.
+- 📚 **صفحة الكتب:** أربع أزرار (عربي · إنجليزي · تاريخ · برمجة) كل واحد بيدخل على «مجلد» بشكل Google Drive جوّا التطبيق.
+- 📄 **قارئ PDF مدمج:** تنقّل بالسحب، تكبير، شريط صفحات، وحفظ آخر صفحة وصلت لها تلقائيًا.
+- 🔎 **بحث داخل الكتاب:** لو الكتاب مفيهوش فهرس مدمج، تقدر تدوّر على أي كلمة وتنطّ للصفحة.
+- 📴 **بدون إنترنت:** التطبيق مش طالب صلاحية `INTERNET` أصلًا — كل الأصول جوّاه.
+- 🌙 **واجهة عربية RTL** بتصميم كامل + أيقونة وسبلاش مخصصين.
+
+## التثبيت
+
+1. نزّل `Bac-Taq-1.0.apk` من صفحة [Releases](https://github.com/l469771238-ctrl/Bac_Taq/releases/latest).
+2. افتح الملف، واسمح بالتثبيت من مصدر غير معروف لو الجهاز طلب.
+3. اكتب كود التفعيل:
+   - **الماستر:** اللي معاك يا جاسر (موجود في `tools/OWNER.md`)
+   - **كود جهاز:** زي `aaioghhoce` — جدول الـ 32 كود في `Bac-Taq-Keys.html` المرفق بالـ release.
+
+> التطبيق موقّع (v1 + v2 + v3)، أندرويد 6.0+ (API 23)، targetSdk 34.
+> التحديثات المستقبلية لازم تتحسب بنفس الـ keystore (`keystore/bactaq.jks`) عشان تتثبّت فوق القديم.
+
+## تشغيل الويب فقط (للتجربة)
+
+`app/web` تطبيق ويب كامل مستقل — مش محتاج أندرويد:
+
+```bash
+cd app/web && python3 -m http.server 8080
+# افتح http://localhost:8080
+```
+
+## إعادة البناء من السورس
+
+```bash
+# 1) الـ JDK (بيتسطب من PyPI، أو استخدم أي JDK 17)
+pip install jdk4py            # أو فعّل JAVA_HOME بنفسك
+
+# 2) بناء الـ APK (أدوات الـ SDK مسجّلة في tools/ci — أوفلاين تمامًا)
+bash tools/build_apk.sh 1.0 1
+
+# 3) نشر النسخة على GitHub Releases
+python3 tools/publish_release.py
+```
+
+| الأداة | مكانها | وظيفتها |
+|---|---|---|
+| `tools/build_apk.sh` | root | aapt2 → javac → d8 → zipalign → apksigner |
+| `tools/make_keys.py` | root | توليد أكواد الأجهزة (نفس خوارزمية التطبيق) |
+| `tools/optimize_arabic.py` | root | ضغط كتاب العربي الممسوح من 36 م.ب لـ 22 م.ب بنفس الجودة |
+| `tools/make_icons.py` | root | أيقونات وسبلاش وبراند |
+| `tools/fetch_books.py` | root | تنزيل الكتب من Drive وتجهيز الأغلفة (يتطلب إنترنت) |
+| `tools/visual_test.js` | root | اختبار الواجهة في Chrome حقيقي + سكرين شوتس |
+| `tools/zipalign.py` | root | بديل zipalign الأصلي (بدون libc++) |
+
+## هيكل المشروع
+
+```
+app/
+├── web/                    ← التطبيق نفسه (HTML/CSS/JS + PDF.js + الكتب)
+│   ├── index.html
+│   ├── css/app.css
+│   ├── js/{app,security}.js
+│   ├── js/vendor/pdf.min.js + pdf.worker.min.js
+│   ├── js/cmaps/ + js/standard_fonts/   ← دعم الخطوط العربية/الآسيوية داخل PDF
+│   ├── books/*.pdf + meta.json
+│   ├── covers/*.jpg
+│   └── fonts/*.woff2       ← خط Cairo
+└── android/                ← الغلاف الأصلي
+    ├── AndroidManifest.xml
+    ├── res/                ← الأيقونات + السبلاش + الستايل
+    └── src/com/bactaq/app/MainActivity.java
+dist/                       ← الـ APK الموقّع + ملف المفاتيح + release notes
+keystore/bactaq.jks         ← مفتاح التوقيع (احتفظ بيه!)
+shots/                      ← سكرين شوتس من Chrome حقيقي
+```
+
+## كيف بيشتغل التطبيق داخليًا
+
+- **WebView واحدة** بتحمّل `app/web` من داخل الـ APK عبر أصل وهمي
+  `https://appassets.androidplatform.net/` (interceptor في `MainActivity`).
+  ده بيخلي `fetch` و Web Workers و `localStorage` يشتغلوا طبيعي **بدون صلاحية إنترنت**.
+- **التفعيل:** الباسورد بيتحوّل SHA-256 ويتقارن بـ fingerprint ثابت (مش النص).
+  أكواد الأجهزة = `Base32(slot, attempt, MAC)` مع تحقق SHA-256 محلي — بدون أي سيرفر.
+- **القراءة:** PDF.js (build legacy) بيرسم الصفحة على canvas بحجم الشاشة × DPR،
+  ومحفوظ «آخر صفحة» لكل كتاب في `localStorage`.
+
+## الترخيص والحقوق
+
+- الكود: MIT — استخدمه وطوّره براحتك.
+- الكتب: حقوقها لأصحابها (وزارة التربية والتعليم / إعداد أ. محمد شعبان وغيرهم).
+  التطبيق بيجمعها من المجلد العام اللي المستخدم وفّره، ومبيبيعش أي محتوى.
+
+<div align="center"><sub>صُنع بـ ❤️ لطلاب الثانوية العامة · 2026</sub></div>
