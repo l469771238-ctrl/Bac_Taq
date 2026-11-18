@@ -2,25 +2,28 @@
   "summary": [
     {
       "key": "arabic",
-      "avg": 0.101,
+      "avg": 0.084,
       "sampled": 13,
       "outliers": []
     },
     {
       "key": "english",
-      "avg": 0.122,
+      "avg": 0.102,
       "sampled": 13,
       "outliers": []
     },
     {
       "key": "history",
-      "avg": 0.44,
+      "avg": 0.129,
       "sampled": 14,
-      "outliers": []
+      "outliers": [
+        1,
+        131
+      ]
     },
     {
       "key": "programming",
-      "avg": 0.049,
+      "avg": 0.08,
       "sampled": 12,
       "outliers": []
     }
