@@ -65,7 +65,10 @@ function json(res) {
     res.on('data', (c) => chunks.push(c));
     res.on('end', () => {
       const t = Buffer.concat(chunks).toString('utf8');
-      try { resolve(JSON.parse(t)); } catch (e) { reject(new Error('رد غير مفهوم من جوجل: ' + t.slice(0, 160))); }
+      try { resolve(JSON.parse(t)); } catch (e) {
+        console.error('⚠️ رد غير مفهوم من جوجل: ' + t.slice(0, 160));
+        reject(new Error('الملفات مش متاحة دلوقتي — كلّم المس أسماء'));
+      }
     });
     res.on('error', reject);
   });
@@ -75,7 +78,8 @@ async function token() {
   if (cachedToken && Date.now() < tokenExp - 60000) return cachedToken;
   const miss = ready();
   if (miss.length) {
-    throw Object.assign(new Error('جوجل درايف مش مضبوط: ' + miss.join(', ')), { status: 503 });
+    console.error('⚠️ جوجل درايف مش مضبوط — ناقص: ' + miss.join(', '));
+    throw Object.assign(new Error('الملفات مش متاحة دلوقتي — كلّم المس أسماء'), { status: 503 });
   }
   const iat = Math.floor(Date.now() / 1000);
   const header = b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
@@ -99,7 +103,8 @@ async function token() {
   });
   const j = await json(res);
   if (!j.access_token) {
-    throw Object.assign(new Error('جوجل رفض المفتاح: ' + (j.error_description || j.error || 'مجهول')), { status: 502 });
+    console.error('⚠️ جوجل رفض المفتاح: ' + (j.error_description || j.error || 'مجهول'));
+    throw Object.assign(new Error('الملفات مش متاحة دلوقتي — كلّم المس أسماء'), { status: 502 });
   }
   cachedToken = j.access_token;
   tokenExp = Date.now() + (j.expires_in || 3600) * 1000;
@@ -133,7 +138,10 @@ async function put({ key, body, mime }) {
       }
     );
     const j = await json(res);
-    if (!j.id) throw Object.assign(new Error('جوجل رفض الملف'), { status: 502 });
+    if (!j.id) {
+      console.error('⚠️ جوجل رفض الملف');
+      throw Object.assign(new Error('الملف ما اترفعش — جرّب تاني'), { status: 502 });
+    }
     return j.id;
   }
 
@@ -149,7 +157,10 @@ async function get(key) {
     Authorization: 'Bearer ' + t,
   });
   if (res.statusCode === 404) throw Object.assign(new Error('الملف مش موجود'), { status: 404 });
-  if (res.statusCode >= 300) throw Object.assign(new Error('فشل تنزيل الملف من درايف: ' + res.statusCode), { status: 502 });
+  if (res.statusCode >= 300) {
+    console.error('⚠️ فشل التنزيل من درايف: ' + res.statusCode);
+    throw Object.assign(new Error('الملف ما نزلش — جرّب تاني'), { status: 502 });
+  }
   return res;
 }
 

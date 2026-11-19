@@ -735,7 +735,7 @@
               ${c.groups.length} مجموعة · ${c.groups.reduce((n, g) => n + g.members.reduce((k, m) => k + m.files.length, 0), 0)} ملف
             </small>
           </div>
-          <button class="chip blue" data-zipcls="${c.id}" style="z-index:2">ZIP</button>
+          <button class="chip blue" data-zipcls="${c.id}" style="z-index:2">⬇ تنزيل الكل</button>
         </div>
         <div class="cls-body">
           ${c.groups.map((g) => `
@@ -743,7 +743,7 @@
               <div class="grp-head">
                 <span class="chip ${g.gender === 'girls' ? 'gray' : 'blue'}">${g.gender === 'girls' ? 'بنات' : 'ولاد'}</span>
                 <span class="grp-name">${esc(g.name)}</span>
-                <button class="chip gold" data-zipgrp="${g.id}">ZIP</button>
+                <button class="chip gold" data-zipgrp="${g.id}">⬇ تنزيل</button>
               </div>
               ${g.members.map((m) => {
                 const missing = m.tasks.filter((t) => !t.done).length;
@@ -832,7 +832,7 @@
 
       <div class="sheet-acts" style="margin-top:16px">
         <button class="btn gold" id="p-addtask">＋ مطلوب جديد</button>
-        <button class="btn primary" id="p-zip">ZIP ملفاته</button>
+        <button class="btn primary" id="p-zip">⬇ تنزيل ملفاته</button>
       </div>`);
 
     $$('[data-pdl]').forEach((el) => (el.onclick = () => downloadFile(el.dataset.pdl)));
@@ -937,7 +937,7 @@
 
   async function downloadZip(qs) {
     try {
-      toast('بنضغط الملفات…', 30000);
+      toast('بنجهّز الملفات…', 30000);
       const r = await fetch(apiBase() + '/api/download/zip?' + qs, {
         headers: { Authorization: 'Bearer ' + token() },
       });
@@ -958,7 +958,7 @@
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 6000);
-      toast('اتنزّل ✅ ' + sizeTxt(blob.size));
+      toast('اتنزّل ✅');
     } catch (e) { toast(e.message); }
   }
 

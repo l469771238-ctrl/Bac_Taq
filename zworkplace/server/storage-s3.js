@@ -89,8 +89,9 @@ function sign(method, objPath, payloadHash, rawHeaders) {
 function request(method, objPath, { headers = {}, body, stream } = {}) {
   const miss = ready();
   if (miss.length) {
+    console.error('⚠️ التخزين الخارجي مش مضبوط — ناقص: ' + miss.join(', '));
     return Promise.reject(
-      Object.assign(new Error('التخزين الخارجي مش مضبوط: ' + miss.join(', ')), { status: 503 })
+      Object.assign(new Error('الملفات مش متاحة دلوقتي — كلّم المس أسماء'), { status: 503 })
     );
   }
   const u = new URL(ENDPOINT + objPath);
@@ -133,7 +134,8 @@ async function put({ key, body, mime }) {
   const res = await request('PUT', objPath, { headers, body, stream: Buffer.isBuffer(body) ? null : body });
   if (res.statusCode >= 300) {
     const err = await toBuffer(res);
-    throw Object.assign(new Error('فشل الرفع للتخزين: ' + res.statusCode + ' ' + err.toString().slice(0, 200)), { status: 502 });
+    console.error('⚠️ فشل الرفع: ' + res.statusCode + ' ' + err.toString().slice(0, 200));
+    throw Object.assign(new Error('الملف ما اترفعش — جرّب تاني'), { status: 502 });
   }
   return key;
 }
@@ -142,7 +144,10 @@ async function get(key) {
   const objPath = `/${BUCKET}/${encodeURIComponent(key)}`;
   const res = await request('GET', objPath);
   if (res.statusCode === 404) throw Object.assign(new Error('الملف مش موجود'), { status: 404 });
-  if (res.statusCode >= 300) throw Object.assign(new Error('فشل تنزيل الملف: ' + res.statusCode), { status: 502 });
+  if (res.statusCode >= 300) {
+    console.error('⚠️ فشل التنزيل: ' + res.statusCode);
+    throw Object.assign(new Error('الملف ما نزلش — جرّب تاني'), { status: 502 });
+  }
   return res;
 }
 
