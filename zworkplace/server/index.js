@@ -434,6 +434,12 @@ route('PUT', '/api/teacher/roster', async (req, res, body) => {
   let rows = body.rows || body.students || body.roster;
   if (!Array.isArray(rows) && typeof body.csv === 'string') rows = csvToRows(body.csv);
   if (!Array.isArray(rows)) return json(res, 400, { error: 'ابعت rows أو csv' });
+  // استبدال حقيقي: بنشيل الكشف القديم بس منسيبش حساب أي طالب مسجّل
+  db.exec('BEGIN');
+  try {
+    db.exec("DELETE FROM roster WHERE code NOT IN (SELECT code FROM students)");
+    db.exec('COMMIT');
+  } catch (e) { try { db.exec('ROLLBACK'); } catch (_) {} throw e; }
   const r = importRoster(req, rows);
   audit('teacher', 'roster.replace', { ok: r.ok });
   const total = db.prepare('SELECT COUNT(*) c FROM roster').get().c;

@@ -10,5 +10,5 @@ for t in api ui xlsx; do
   echo "$out" | grep -q "ALL PASSED" || fail=1
 done
 echo "=== seed ==="
-node server/seed.js 300 --reset 2>&1 | grep -vE "ExperimentalWarning|trace-warnings"
+ZDB=/tmp/zseed-$$.db node server/seed.js 300 --reset 2>&1 | grep -vE "ExperimentalWarning|trace-warnings"
 exit $fail

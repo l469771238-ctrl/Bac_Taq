@@ -9,3 +9,7 @@ zworkplace/data/
 *.db
 *.db-wal
 *.db-shm
+
+# ملفات مؤقتة من الأدوات
+*.whl
+zworkplace/data-import/crops/
