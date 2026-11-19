@@ -58,7 +58,7 @@ cp -r "$WEB"/. "$WORK/assets/web"/
 rm -rf "$WORK/assets/web/tests" "$WORK/assets/web/node_modules" "$WORK/assets/web/package.json" \
        "$WORK/assets/web/README.md" "$WORK/assets/web/.gitignore" "$WORK/assets/web/img/icon-1024.png" \
        "$WORK/assets/web/img/logo@2x.png" \
-       "$WORK/assets/web/server" "$WORK/assets/web/data" "$WORK/assets/web/samples" \
+       "$WORK/assets/web/server" "$WORK/assets/web/data" "$WORK/assets/web/samples" "$WORK/assets/web/data-import" \
        "$WORK/assets/web/.env"
 
 echo "==> compile resources"
