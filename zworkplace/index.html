@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0a1f4d">
+<title>Z-Project Workplace — ورك سبيس الفصل</title>
+<link rel="icon" href="assets/icon.svg">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<!-- ============ HOME ============ -->
+<section id="screen-home" class="screen active">
+  <header class="top">
+    <div class="top-row">
+      <div>
+        <h1 id="greet">أهلاً يا مستر</h1>
+        <span class="sub" id="today">—</span>
+      </div>
+      <div class="avatar" id="avatar">م</div>
+    </div>
+  </header>
+
+  <div class="scroller">
+    <div class="hero">
+      <span class="k">فصل 3/2 — رياضيات</span>
+      <h3 id="hero-title">الفصل مستني حضرتك 👋</h3>
+      <p id="hero-sub">—</p>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><b id="st-students">0</b><span>طالب</span></div>
+      <div class="stat gold"><b id="st-hw">0</b><span>واجب مفتوح</span></div>
+      <div class="stat green"><b id="st-rate">—</b><span>حضور النهاردة</span></div>
+    </div>
+
+    <div class="sec-head"><h3>اختصارات</h3></div>
+    <div class="card" data-go="attendance">
+      <div class="card-row">
+        <div class="card-ico ci-green"><svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg></div>
+        <div class="card-body"><b>تسجيل حضور النهاردة</b><span id="att-hint">اضغط لتسجيل الحضور</span></div>
+        <span class="card-go"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></span>
+      </div>
+    </div>
+    <div class="card" data-go="students">
+      <div class="card-row">
+        <div class="card-ico ci-blue"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg></div>
+        <div class="card-body"><b>قايمة الطلاب</b><span id="stu-hint">—</span></div>
+        <span class="card-go"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></span>
+      </div>
+    </div>
+    <div class="card" data-go="homework">
+      <div class="card-row">
+        <div class="card-ico ci-gold"><svg viewBox="0 0 24 24"><path d="M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1z"/></svg></div>
+        <div class="card-body"><b>الواجبات</b><span id="hw-hint">—</span></div>
+        <span class="card-go"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></span>
+      </div>
+    </div>
+
+    <div class="sec-head"><h3>آخر الواجبات</h3><span class="link" data-go="homework">الكل</span></div>
+    <div id="recent-hw"></div>
+
+    <div class="sec-head"><h3>إعلان سريع</h3></div>
+    <div class="card" id="quick-note">
+      <div class="field" style="margin:0">
+        <textarea id="note-text" placeholder="اكتب إعلان للفصل… (مثال: امتحان الأحد الجاي في الوحدة 4)"></textarea>
+      </div>
+      <button class="btn btn-gold sm" id="note-send" style="margin-top:10px">
+        <svg viewBox="0 0 24 24"><path d="M4 12l16-7-7 16-2-7-7-2z"/></svg>حط الإعلان في لوحة الفصل
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ STUDENTS ============ -->
+<section id="screen-students" class="screen">
+  <div class="sub-head">
+    <button class="icon-btn" data-back><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+    <div><h2>قايمة الطلاب</h2><span class="tiny" id="students-sub">—</span></div>
+  </div>
+  <div class="scroller">
+    <div class="search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input id="stu-search" placeholder="دوّر على طالب…">
+    </div>
+    <div class="sec-head" style="margin-top:6px">
+      <h3>الطلاب</h3>
+      <span class="link" id="add-student">+ ضيف طالب</span>
+    </div>
+    <div class="list" id="students-list"></div>
+  </div>
+</section>
+
+<!-- ============ ATTENDANCE ============ -->
+<section id="screen-attendance" class="screen">
+  <div class="sub-head">
+    <button class="icon-btn" data-back><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+    <div><h2>حضور النهاردة</h2><span class="tiny" id="att-sub">—</span></div>
+  </div>
+  <div class="scroller">
+    <div class="stats" style="margin-top:4px">
+      <div class="stat green"><b id="att-p">0</b><span>حاضر</span></div>
+      <div class="stat gold"><b id="att-l">0</b><span>متأخر</span></div>
+      <div class="stat" style="--x:0"><b id="att-a" style="color:var(--red)">0</b><span>غايب</span></div>
+    </div>
+    <div class="sec-head"><h3>سجّل لكل طالب</h3><span class="link" id="att-all">الكل حاضر</span></div>
+    <div class="list" id="attendance-list"></div>
+  </div>
+</section>
+
+<!-- ============ HOMEWORK ============ -->
+<section id="screen-homework" class="screen">
+  <div class="sub-head">
+    <button class="icon-btn" data-back><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+    <div><h2>الواجبات</h2><span class="tiny" id="hw-sub">—</span></div>
+  </div>
+  <div class="scroller">
+    <div style="padding:14px 16px 0">
+      <button class="btn btn-primary" id="new-hw">
+        <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>واجب جديد
+      </button>
+    </div>
+    <div class="sec-head"><h3>المفتوح</h3></div>
+    <div class="list" id="hw-list"></div>
+  </div>
+</section>
+
+<!-- ============ BOTTOM NAV ============ -->
+<nav class="nav">
+  <button class="tab on" data-go="home"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"/></svg><span>الرئيسية</span></button>
+  <button class="tab" data-go="students"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 5.5a3 3 0 0 1 0 5.6M17.5 20a6 6 0 0 0-2-4.2"/></svg><span>الطلاب</span></button>
+  <button class="tab" data-go="attendance"><svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg><span>الحضور</span></button>
+  <button class="tab" data-go="homework"><svg viewBox="0 0 24 24"><path d="M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1z"/></svg><span>الواجبات</span></button>
+</nav>
+
+<!-- ============ SHEETS ============ -->
+<div class="sheet" id="sheet">
+  <div class="sheet-card">
+    <div class="sheet-handle"></div>
+    <h3 class="sheet-title" id="sheet-title">—</h3>
+    <div class="field">
+      <label id="f1-label">الاسم</label>
+      <input id="f1" placeholder="">
+    </div>
+    <div class="field">
+      <label id="f2-label">ملاحظات</label>
+      <input id="f2" placeholder="اختياري">
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-ghost" id="sheet-cancel">إلغاء</button>
+      <button class="btn btn-primary" id="sheet-save">حفظ</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="js/app.js"></script>
+</body>
+</html>

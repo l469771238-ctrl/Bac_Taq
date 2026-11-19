@@ -6,7 +6,7 @@ const http = require('http');
 const path = require('path');
 const puppeteer = require('puppeteer');
 
-const ROOT = path.join(__dirname, '..', 'app', 'web');
+const ROOT = path.join(__dirname, '..', 'bactaq', 'web');
 const OUT = path.join(__dirname, '..', 'shots', 'deep');
 const PASSWORD = '3mk_gasser_2026';
 

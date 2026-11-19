@@ -9,7 +9,7 @@ import io, os, sys, time
 import pikepdf
 from PIL import Image, ImageEnhance
 
-SRC = sys.argv[1] if len(sys.argv) > 1 else 'app/web/books/arabic.pdf'
+SRC = sys.argv[1] if len(sys.argv) > 1 else 'bactaq/web/books/arabic.pdf'
 WIDTH = int(os.environ.get('AR_WIDTH', '1000'))
 QUALITY = int(os.environ.get('AR_QUALITY', '66'))
 OUT = sys.argv[2] if len(sys.argv) > 2 else SRC.replace('.pdf', '_opt.pdf')

@@ -1,6 +1,6 @@
 const fs = require('fs'), path = require('path');
 const { JSDOM } = require('jsdom');
-const ROOT = '/home/user/Bac_Taq/app/web';
+const ROOT = '/home/user/Bac_Taq/bactaq/web';
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 
 function makeDom(extra) {

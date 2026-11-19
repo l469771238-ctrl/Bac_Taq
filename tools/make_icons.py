@@ -5,7 +5,7 @@ from PIL import Image, ImageDraw, ImageFilter
 
 S = 512          # design space
 SS = 2           # supersampling (kept low for memory)
-OUT_WEB = 'app/web/img'
+OUT_WEB = 'bactaq/web/img'
 NAVY_A, NAVY_B = (26, 74, 158), (7, 26, 63)
 GOLD_A, GOLD_B = (255, 209, 102), (243, 160, 32)
 GREEN = (46, 211, 163)
@@ -111,7 +111,7 @@ def main():
     dpi = {'mdpi': 48, 'hdpi': 72, 'xhdpi': 96, 'xxhdpi': 144, 'xxxhdpi': 192}
     fg = {'mdpi': 108, 'hdpi': 162, 'xhdpi': 216, 'xxhdpi': 324, 'xxxhdpi': 432}
     for name, px in dpi.items():
-        d = f'app/android/res/mipmap-{name}'
+        d = f'bactaq/android/res/mipmap-{name}'
         os.makedirs(d, exist_ok=True)
         composed_icon(px).save(f'{d}/ic_launcher.png')
         round_icon(px).save(f'{d}/ic_launcher_round.png')

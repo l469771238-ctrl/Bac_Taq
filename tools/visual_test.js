@@ -5,7 +5,7 @@ const path = require('path');
 const http = require('http');
 const puppeteer = require('puppeteer');
 
-const ROOT = path.join(__dirname, '..', 'app', 'web');
+const ROOT = path.join(__dirname, '..', 'bactaq', 'web');
 const OUT = path.join(__dirname, '..', 'shots');
 fs.mkdirSync(OUT, { recursive: true });
 

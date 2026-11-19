@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Fetch Bac-Taq books from the shared Google Drive folder, optimise them and
-write them into app/web/books together with metadata and cover images."""
+write them into bactaq/web/books together with metadata and cover images."""
 import json, os, re, subprocess, sys
 
 FOLDER = "1V7hPlrPv2AlmKeHMhkDYqjyQWbAytT5x"
@@ -11,7 +11,7 @@ TARGETS = {
     "تاريخ":   ("history",     "التاريخ",       "الامتحان — الدراسات الاجتماعية"),
     "برمجة":   ("programming", "البرمجة",       "الأداءات والتقييمات — الصف الثالث الثانوي"),
 }
-OUT = "app/web"
+OUT = "bactaq/web"
 
 def sh(cmd, **kw):
     return subprocess.run(cmd, check=True, capture_output=True, text=True, **kw)

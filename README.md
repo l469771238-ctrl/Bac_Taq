@@ -1,148 +1,50 @@
-<div align="center">
+# Bac-Taq + Z-Project Workplace
 
-<img src="app/web/img/icon-512.png" width="120" alt="Bac-Taq">
+مستودع فيه **تطبيقين أندرويد** مستقلين بنفس الهوية البصرية، بيتبنوا من نفس الأدوات.
 
-# Bac-Taq · باك طق
-
-**تطبيق أندرويد مجاني يجمع كتب الثانوية العامة الأربعة في مكان واحد — ويشتغل بدون إنترنت.**
-
-[⬇️ تنزيل التطبيق 1.1 (APK)](https://github.com/l469771238-ctrl/Bac_Taq/releases/latest) · [🔑 مفاتيح التفعيل](https://github.com/l469771238-ctrl/Bac_Taq/releases/latest)
-
-</div>
-
----
-
-## المحتوى
-
-| المادة | الكتاب | الصفحات | الحجم داخل التطبيق |
+| التطبيق | الفكرة | الحزمة | حجم APK |
 |---|---|---|---|
-| اللغة العربية | الأداءات والتقييمات — الصف الثالث الثانوي | 148 | 22 م.ب |
-| English | إجابات تقييمات الوزارة — الصف الثالث الثانوي | 64 | 2.4 م.ب |
-| التاريخ | الامتحان — الدراسات الاجتماعية | 131 | 1.9 م.ب |
-| البرمجة | الأداءات والتقييمات — الصف الثالث الثانوي | 72 | 1.4 م.ب |
+| **Bac-Taq** | مكتبة كتب الثانوية العامة (4 مواد) + قارئ PDF + إشارات — أوفلاين 100% | `com.bactaq.app` | 51 م.ب |
+| **Z-Project Workplace** | ورك سبيس الفصل: طلاب، حضور، واجبات، إعلانات | `com.bactaq.zwork` | 0.35 م.ب |
 
-الكتب الأربعة منسوخة من [مجلد Google Drive](https://drive.google.com/drive/folders/1V7hPlrPv2AlmKeHMhkDYqjyQWbAytT5x)
-ومحفوظة **جوّا الـ APK** — يعني بتفتح بدون إنترنت، مجانًا، ومن أول مرة.
+## الهيكل
 
-## المميزات
+```
+bactaq/          web/ (html+css+js+books)  android/ (manifest, res, src)
+zworkplace/      index.html, css/, js/, android/, assets/
+dist/            Bac-Taq-1.8.apk + Z-Project-0.1.apk
+keystore/        bactaq.jks (Bac-Taq) + zwork.jks (Z-Project) — نفس كلمة السر
+tools/           build_apk.sh (المبني الموحّد) + فحوص + سكربتات
+tests/           اختبارات Bac-Taq (jsdom)
+```
 
-- 🔒 **كلمة سر واحدة للكل:** بتتطلب **أول مرة بس** بعد التثبيت. بعد كده التطبيق بيفتح على طول —
-  مفيش أكواد أجهزة ولا سيرفر، والتحقق كله محلي.
-- 📚 **صفحة الكتب:** أربع أزرار (عربي · إنجليزي · تاريخ · برمجة) كل واحد بيدخل على «مجلد» بشكل Google Drive جوّا التطبيق.
-- 📄 **قارئ PDF مدمج:** تنقّل بالسحب، تكبير، شريط صفحات، وحفظ آخر صفحة وصلت لها تلقائيًا.
-- 🔖 **إشارات مرجعية غير محدودة:** على أي صفحة اضغط أيقونة الإشارة، سمّيها بأي اسم، وارجع لها في أي وقت.
-  تبويب «إشاراتي» بيعرض كل إشارات الكتاب مرتبة بالصفحة، وتقدر **تعدّل الاسم** أو **تحذف** واحدة أو الكل.
-  كل الإشارات بتتحفظ على الجهاز وبتفضل بعد إغلاق التطبيق.
-- 🔎 **بحث داخل الكتاب:** لو الكتاب مفيهوش فهرس مدمج، تقدر تدوّر على أي كلمة وتنطّ للصفحة.
-- 📴 **بدون إنترنت:** التطبيق مش طالب صلاحية `INTERNET` أصلًا — كل الأصول جوّاه.
-- 🌙 **واجهة عربية RTL** بتصميم كامل + أيقونة وسبلاش مخصصين.
-
-## التثبيت
-
-1. نزّل `Bac-Taq-1.0.apk` من صفحة [Releases](https://github.com/l469771238-ctrl/Bac_Taq/releases/latest).
-2. افتح الملف، واسمح بالتثبيت من مصدر غير معروف لو الجهاز طلب.
-3. اكتب كود التفعيل:
-   - **الماستر:** اللي معاك يا جاسر (موجود في `tools/OWNER.md`)
-   - **كود جهاز:** زي `aaioghhoce` — جدول الـ 32 كود في `Bac-Taq-Keys.html` المرفق بالـ release.
-
-> التطبيق موقّع (v1 + v2 + v3)، أندرويد 6.0+ (API 23)، targetSdk 34.
-> التحديثات المستقبلية لازم تتحسب بنفس الـ keystore (`keystore/bactaq.jks`) عشان تتثبّت فوق القديم.
-
-## تشغيل الويب فقط (للتجربة)
-
-`app/web` تطبيق ويب كامل مستقل — مش محتاج أندرويد:
+## البناء
 
 ```bash
-cd app/web && python3 -m http.server 8080
-# افتح http://localhost:8080
+# أدوات مرة واحدة
+pip install jdk4py
+export JAVA=$(python3 -c "import jdk4py;print(jdk4py.JAVA_HOME)")/bin/java
+export JAVAC_JAR=/path/to/tools.jar
+
+bash tools/build_apk.sh 1.8 9 bactaq       # dist/Bac-Taq-1.8.apk
+bash tools/build_apk.sh 0.1 1 zworkplace   # dist/Z-Project-0.1.apk
 ```
 
-### الاختبارات
+## الفحص
 
 ```bash
-cd tests && npm install
-node app.test.js         # 24 فحص: التفعيل، المكتبة، القارئ، التقدّم
-node bookmarks.test.js   # 42 فحص: إضافة/تسمية/تعديل/حذف/فتح الصفحة/الحفظ
+python3 tools/check_assets.py dist/<any>.apk     # كل أصل لازم يتحل صح
+cd tests && npm test                             # Bac-Taq: 76 فحص
+cd zworkplace/tests && npm test                  # Z-Project: 37 فحص
+node tools/deep_test.js                          # جولة كاملة في Chrome حقيقي
 ```
 
-## إعادة البناء من السورس
+## التفعيل (Bac-Taq)
+كلمة سر واحدة: `3mk.gasser.2026` — أول مرة بس بعد التثبيت.
 
-```bash
-# 1) الـ JDK (بيتسطب من PyPI، أو استخدم أي JDK 17)
-pip install jdk4py            # أو فعّل JAVA_HOME بنفسك
+## التوقيع
+- Bac-Taq: `keystore/bactaq.jks` · alias `bactaq` · pass `bactaq2026` (**متغيّرش** لو عايز التحديثات تتثبت فوق بعضها)
+- Z-Project: `keystore/zwork.jks` · alias `zwork` · pass `bactaq2026`
 
-# 2) بناء الـ APK (أدوات الـ SDK مسجّلة في tools/ci — أوفلاين تمامًا)
-bash tools/build_apk.sh 1.0 1
-
-# 3) نشر النسخة على GitHub Releases
-python3 tools/publish_release.py
-```
-
-| الأداة | مكانها | وظيفتها |
-|---|---|---|
-| `tools/build_apk.sh` | root | aapt2 → javac → d8 → zipalign → apksigner |
-| `tools/optimize_arabic.py` | root | ضغط كتاب العربي الممسوح من 36 م.ب لـ 22 م.ب بنفس الجودة |
-| `tools/make_icons.py` | root | أيقونات وسبلاش وبراند |
-| `tools/fetch_books.py` | root | تنزيل الكتب من Drive وتجهيز الأغلفة (يتطلب إنترنت) |
-| `tools/check_assets.py` | root | يتأكد إن ملفات الويب جوّا الـ APK تحت `assets/web/` (يمنع خطأ «Not found») |
-| `tools/visual_test.js` | root | اختبار الواجهة في Chrome حقيقي + سكرين شوتس (بما فيها الإشارات) |
-| `tests/*.test.js` | root | اختبارات سلوكية بـ jsdom |
-| `tools/zipalign.py` | root | بديل zipalign الأصلي (بدون libc++) |
-
-## هيكل المشروع
-
-```
-app/
-├── web/                    ← التطبيق نفسه (HTML/CSS/JS + PDF.js + الكتب)
-│   ├── index.html
-│   ├── css/app.css
-│   ├── js/{app,security}.js
-│   ├── js/vendor/pdf.min.js + pdf.worker.min.js
-│   ├── js/cmaps/ + js/standard_fonts/   ← دعم الخطوط العربية/الآسيوية داخل PDF
-│   ├── books/*.pdf + meta.json
-│   ├── covers/*.jpg
-│   └── fonts/*.woff2       ← خط Cairo
-└── android/                ← الغلاف الأصلي
-    ├── AndroidManifest.xml
-    ├── res/                ← الأيقونات + السبلاش + الستايل
-    └── src/com/bactaq/app/MainActivity.java
-tests/                      ← اختبارات jsdom (app + bookmarks)
-dist/                       ← الـ APK الموقّع + ملف المفاتيح + release notes
-keystore/bactaq.jks         ← مفتاح التوقيع (احتفظ بيه!)
-shots/                      ← سكرين شوتس من Chrome حقيقي
-```
-
-## كيف بيشتغل التطبيق داخليًا
-
-- **WebView واحدة** بتحمّل `app/web` من داخل الـ APK عبر أصل وهمي
-  `https://appassets.androidplatform.net/` (interceptor في `MainActivity`).
-  ده بيخلي `fetch` و Web Workers و `localStorage` يشتغلوا طبيعي **بدون صلاحية إنترنت**.
-- **التفعيل:** الباسورد بيتحوّل SHA-256 ويتقارن بـ fingerprint ثابت (مش النص).
-  أكواد الأجهزة = `Base32(slot, attempt, MAC)` مع تحقق SHA-256 محلي — بدون أي سيرفر.
-- **القراءة:** PDF.js (build legacy) بيرسم الصفحة على canvas بحجم الشاشة × DPR،
-  ومحفوظ «آخر صفحة» لكل كتاب في `localStorage`.
-
-## الترخيص والحقوق
-
-- الكود: MIT — استخدمه وطوّره براحتك.
-- الكتب: حقوقها لأصحابها (وزارة التربية والتعليم / إعداد أ. محمد شعبان وغيرهم).
-  التطبيق بيجمعها من المجلد العام اللي المستخدم وفّره، ومبيبيعش أي محتوى.
-
-<div align="center"><sub>صُنع بـ ❤️ لطلاب الثانوية العامة · 2026</sub></div>
-
-## الكتب وإصلاح تداخل النص (1.7)
-
-المشكلة اللي كانت: تلات كتب (إنجليزي، تاريخ، برمجة) كان فيها طبقة نص مخزّنة بخطوط
-معطوبة — خط `AbdoLine` في البرمجة بترميز خاص غير قابل للفك (بيطلع حروف تحكّم بدل العربي)،
-وخط `Dubai` في التاريخ بجدول تحويل حروف (ToUnicode) تالف، فالحروف بتتقرأ غلط وتتراكب
-فوق بعضها. العربي كان سليم لأنه صور ممسوحة مفيش فيها نص خالص.
-
-الحل: `tools/flatten_books.py` بيرسم كل صفحة بمحرك MuPDF (مرجع في تحويل PDF لصور)
-ويحولها JPEG ويعيد بناء الـ PDF، فمفيش طبقة نص تتراكب تاني.
-
-```bash
-python3 tools/flatten_books.py in.pdf out.pdf --dpi 96 --quality 62
-```
-
-- المقارنة مع الأصل: نفس محرك التطبيق (pdf.js) — متوسط الفرق ≤ 9/255 وأقصى 4.4% (ضوضاء ضغط).
-- مسح آلي لكل صفحة: `node tools/page_verify.js` (بيشتغل في CI كمان).
+## الترخيص
+MIT — راجع `LICENSE`.

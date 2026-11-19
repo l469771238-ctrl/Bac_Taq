@@ -25,7 +25,7 @@ d0f50357e82ceffe696fd36ce08a835da33b3d81fa07dd82bacac3415b21381b
 ```bash
 python3 -c "import hashlib;print(hashlib.sha256('الكود-الجديد'.encode()).hexdigest())"
 ```
-حط الناتج مكان `MASTER_HASH` في `app/web/js/security.js`، واعمل build جديد بـ
+حط الناتج مكان `MASTER_HASH` في `bactaq/web/js/security.js`، واعمل build جديد بـ
 `bash tools/build_apk.sh`.
 
 ## مفاتيح الأجهزة (Device keys)
@@ -63,5 +63,5 @@ python3 tools/release.py          # build + نشر على GitHub Releases
 - السبب الحقيقي: `AbdoLine` (برمجة) بترميز مخصص مش قابل للفك، و`Dubai` (تاريخ) بـ ToUnicode تالف
   → المتصفحات بتفرّق الحروف وتطبقّها فوق بعض. العربي كان صور ممسوحة فسليم.
 - الحل: الصفحات اتحولت لصور عبر `tools/flatten_books.py` (MuPDF) → صفر طبقة نص.
-- لو حبيت ترجع لنسخة النص الأصلية: `git show v1.5:app/web/books/history.pdf > /tmp/h.pdf`.
+- لو حبيت ترجع لنسخة النص الأصلية: `git show v1.5:bactaq/web/books/history.pdf > /tmp/h.pdf`.
 - تأكد دائمًا قبل أي إصدار: `node tools/page_verify.js` و`python3 tools/check_assets.py dist/Bac-Taq-X.apk`.

@@ -1,7 +1,7 @@
 /* Look for overlapping / clipped UI text on small phones (320-360 px wide). */
 const fs = require('fs'), http = require('http'), path = require('path');
 const puppeteer = require('puppeteer');
-const ROOT = path.join(__dirname, '..', 'app', 'web');
+const ROOT = path.join(__dirname, '..', 'bactaq', 'web');
 const OUT = path.join(__dirname, '..', 'shots', 'small');
 const MIME = { '.html':'text/html; charset=utf-8','.js':'application/javascript','.css':'text/css','.json':'application/json',
   '.png':'image/png','.jpg':'image/jpeg','.webmanifest':'application/json','.woff2':'font/woff2','.pdf':'application/pdf',

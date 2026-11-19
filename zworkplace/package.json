@@ -1,0 +1,10 @@
+{
+  "name": "z-project-workplace",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Z-Project Workplace — ورك سبيس الفصل (نسخة ويب + معاينة)",
+  "scripts": {
+    "start": "python3 -m http.server 3000 --bind 0.0.0.0",
+    "test": "cd tests && npm test"
+  }
+}

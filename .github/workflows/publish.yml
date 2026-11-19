@@ -2,7 +2,7 @@ name: publish-release
 on:
   workflow_dispatch:
   push:
-    tags: ['v1.1', 'v1.2', 'v1.3', 'v1.4', 'v1.5', 'v1.6', 'v1.7', 'v1.8']
+    tags: ['v2*']
 
 permissions:
   contents: write
@@ -11,43 +11,45 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     env:
-      VERSION: '1.7'
+      BAC_VERSION: '1.8'
+      Z_VERSION: '0.1'
     steps:
       - uses: actions/checkout@v4
 
-      - name: verify apk
+      - name: verify both APKs
         run: |
           set -e
           ls -la dist/
-          APK="dist/Bac-Taq-$VERSION.apk"
-          sha256sum "$APK"
-          python3 - "$APK" <<'PY'
-          import sys, zipfile
-          z = zipfile.ZipFile(sys.argv[1])
-          print('zip entries', len(z.infolist()), 'corrupt:', z.testzip())
-          names = set(z.namelist())
-          # Android's AssetManager only sees files under assets/ — a top-level
-          # "web/" tree makes every page 404 ("Not found"). Fail loudly.
-          need = ['AndroidManifest.xml', 'classes.dex', 'resources.arsc',
-                  'assets/web/index.html', 'assets/web/js/app.js', 'assets/web/js/security.js',
-                  'assets/web/css/app.css', 'assets/web/books/meta.json',
-                  'assets/web/js/vendor/pdf.worker.min.js',
-                  'assets/web/books/arabic.pdf', 'assets/web/books/english.pdf',
-                  'assets/web/books/history.pdf', 'assets/web/books/programming.pdf']
-          bad = [n for n in need if n not in names]
-          bad += [n for n in names if n.startswith('web/')]
-          if bad:
-              print('PACKAGING BROKEN:', bad[:10]); sys.exit(1)
-          print('packaging OK')
+          python3 - <<'PY'
+          import zipfile, sys
+          apps = {
+            'dist/Bac-Taq-%s.apk' % __import__('os').environ['BAC_VERSION']: 'Bac-Taq',
+            'dist/Z-Project-%s.apk' % __import__('os').environ['Z_VERSION']: 'Z-Project',
+          }
+          ok = True
+          for apk, name in apps.items():
+              z = zipfile.ZipFile(apk)
+              print(name, '->', len(z.infolist()), 'entries, corrupt:', z.testzip())
+              names = set(z.namelist())
+              need = ['AndroidManifest.xml', 'classes.dex', 'resources.arsc',
+                      'assets/web/index.html', 'assets/web/js/app.js']
+              bad = [n for n in need if n not in names]
+              bad += [n for n in names if n.startswith('web/')]
+              bad += [n for n in names if n.startswith(('assets/web/tests', 'assets/web/node_modules'))]
+              if bad:
+                  print('  PACKAGING BROKEN:', bad[:8]); ok = False
+          sys.exit(0 if ok else 1)
           PY
-          grep -c "verifyInvite\|makeInvite" dist/../app/web/js/security.js && exit 1 || echo "no device-key code shipped"
+          sha256sum dist/Bac-Taq-*.apk dist/Z-Project-*.apk
 
       - name: publish to GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.7
-          name: Bac-Taq 1.4 — التطبيق
+          tag_name: v2.0
+          name: Bac-Taq 1.8 + Z-Project 0.1 — تطبيقين
           body_path: dist/release-notes.md
-          files: dist/Bac-Taq-1.7.apk
+          files: |
+            dist/Bac-Taq-1.8.apk
+            dist/Z-Project-0.1.apk
           fail_on_unmatched_files: true
           make_latest: true

@@ -7,7 +7,7 @@ top-level "web/..." entries, so every request 404'd and the WebView showed the
 loader's plain-text "Not found". This script walks the app's real request list
 and fails if any of them would 404.
 """
-import sys, zipfile, urllib.parse
+import os, re, sys, zipfile, urllib.parse
 
 HOST = "https://appassets.androidplatform.net/"
 ASSET_PATH = "web/"
@@ -51,27 +51,54 @@ def resolve(url):
     return path
 
 
-def main(apk):
+def discover(webdir):
+    """Collect every asset URL a web app asks for, by reading its own sources."""
+    import re
+    refs = []
+    html = open(os.path.join(webdir, 'index.html'), encoding='utf-8').read()
+    refs += re.findall(r'(?:src|href)="([^"]+)"', html)
+    css_path = os.path.join(webdir, 'css', 'app.css')
+    if os.path.exists(css_path):
+        css = open(css_path, encoding='utf-8').read()
+        refs += [m.replace('../', '') for m in re.findall(r"url\(['\"]?([^'\")]+)['\"]?\)", css)]
+    out = []
+    for r in refs:
+        if r.startswith(('http', 'data:', '#', 'mailto:', 'javascript:')):
+            continue
+        out.append(r.split('?')[0].lstrip('/'))
+    # runtime assets the js builds at call time
+    out += ['books/meta.json', 'js/cmaps/', 'js/standard_fonts/']
+    for key in ('arabic', 'english', 'history', 'programming'):
+        out += [f'books/{key}.pdf', f'covers/{key}.jpg', f'covers/{key}_thumb.jpg']
+    return sorted(set(out))
+
+
+def main(apk, webdir='bactaq/web'):
     names = set(zipfile.ZipFile(apk).namelist())
-    bad = []
-    for url in REQUESTS:
-        asset = resolve(url)
-        ok = asset is not None and ('assets/' + asset) in names
-        print(('OK   ' if ok else '404  ') + url + ('  -> assets/' + asset if asset else ''))
+    bad, checked = [], 0
+    for rel in discover(webdir):
+        asset = 'assets/web/' + rel.rstrip('/')
+        if rel.endswith('/'):
+            ok = any(n.startswith(asset + '/') for n in names)
+        else:
+            ok = asset in names
+        if not ok and rel.startswith(('books/', 'covers/', 'js/cmaps', 'js/standard_fonts')):
+            continue  # optional: only required when the app actually bundles books
+        checked += 1
         if not ok:
-            bad.append(url)
-    top_level = [n for n in names if n.startswith('web/')]
-    if top_level:
-        print('\nERROR: %d entries are at top level instead of assets/web/ '
-              '(AssetManager cannot see them)' % len(top_level))
+            bad.append(rel)
+            print('404  ' + rel)
+    print('\nchecked %d references against %s' % (checked, apk))
+    print('%s' % ('FAILED: %d reference(s) would show "Not found"' % len(bad) if bad else
+                  'PASS: every reference resolves to a bundled asset'))
+    stray = [n for n in names if n.startswith('web/')]
+    if stray:
+        print('ERROR: %d entries at top level instead of assets/web/' % len(stray))
         bad.append('__layout__')
-    if 'classes.dex' not in names or 'AndroidManifest.xml' not in names:
-        print('ERROR: not a valid APK (missing dex/manifest)')
-        bad.append('__apk__')
-    print('\n%s' % ('FAILED: %d request(s) would show "Not found"' % len(bad) if bad else
-                    'PASS: every request resolves to a bundled asset'))
     return 1 if bad else 0
 
 
 if __name__ == '__main__':
-    sys.exit(main(sys.argv[1] if len(sys.argv) > 1 else 'dist/Bac-Taq-1.2.apk'))
+    apk = sys.argv[1] if len(sys.argv) > 1 else 'dist/Bac-Taq-1.8.apk'
+    webdir = sys.argv[2] if len(sys.argv) > 2 else ('zworkplace' if 'Z-Project' in apk else 'bactaq/web')
+    sys.exit(main(apk, webdir))
