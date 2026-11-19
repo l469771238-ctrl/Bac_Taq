@@ -46,10 +46,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: Bac-Taq 1.8 + Z-Project 0.3 — تطبيقين
+          name: Bac-Taq 1.8 + Z-Project 0.4 — تطبيقين
           body_path: dist/release-notes.md
           files: |
             dist/Bac-Taq-1.8.apk
-            dist/Z-Project-0.3.apk
+            dist/Z-Project-0.4.apk
           fail_on_unmatched_files: true
           make_latest: true
