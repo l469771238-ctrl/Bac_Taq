@@ -1,0 +1,10 @@
+node_modules
+tests
+uploads
+backups
+
+*.db
+!data/students.csv
+*.db-wal
+*.db-shm
+.git

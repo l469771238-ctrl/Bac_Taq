@@ -17,3 +17,5 @@ zworkplace/data-import/crops/
 # ملفات مرفوعة من المستخدمين
 zworkplace/uploads/*
 !zworkplace/uploads/.gitkeep
+zworkplace/backups/
+zworkplace/data/*.db*

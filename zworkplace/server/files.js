@@ -13,7 +13,7 @@ const crypto = require('node:crypto');
 const zlib = require('node:zlib');
 
 const UPLOAD_DIR = path.join(__dirname, '..', 'uploads');
-const MAX_SIZE = 120 * 1024 * 1024; // ١٢٠ ميجا للملف الواحد
+const MAX_SIZE = Number(process.env.ZMAX_FILE || 120 * 1024 * 1024); // ١٢٠ ميجا افتراضيًا
 
 function ensureDir() {
   if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -26,48 +26,61 @@ function safeName(name) {
     .slice(0, 160) || 'ملف';
 }
 
-/** بيقرا جسم الطلب كملف ويخزنه. بيرجّع {storedName, size} */
-function receive(req, onLimit) {
-  ensureDir();
-  const stored = crypto.randomBytes(18).toString('hex');
-  const full = path.join(UPLOAD_DIR, stored);
-  const out = fs.createWriteStream(full);
+/**
+ * بيقرا جسم الطلب ويحطه في التخزين الخارجي.
+ * بيرجّع {storedName, size, remote}
+ *
+ * بنجمع في الرام لأن الحد ١٢٠ ميجا — مقبول لسيرفر ٥١٢ ميجا.
+ * لو رفعنا الحد بعدين، نغيّره لتدفق مباشر للتخزين.
+ */
+async function receive(req, meta = {}) {
+  const chunks = [];
   let size = 0;
   let aborted = false;
 
-  return new Promise((resolve, reject) => {
+  const buf = await new Promise((resolve, reject) => {
     req.on('data', (c) => {
       size += c.length;
       if (size > MAX_SIZE && !aborted) {
         aborted = true;
-        out.destroy();
-        fs.unlink(full, () => {});
-        if (onLimit) onLimit();
         reject(Object.assign(new Error('الملف أكبر من ١٢٠ ميجا'), { status: 413, big: true }));
         return;
       }
-      if (!aborted) out.write(c);
+      if (!aborted) chunks.push(c);
     });
-    req.on('end', () => {
-      if (aborted) return;
-      out.end(() => resolve({ storedName: stored, size }));
-    });
-    req.on('error', (e) => {
-      out.destroy();
-      fs.unlink(full, () => {});
-      reject(e);
-    });
+    req.on('end', () => { if (!aborted) resolve(Buffer.concat(chunks)); });
+    req.on('error', reject);
   });
+
+  const stored = crypto.randomBytes(18).toString('hex');
+  const driver = require('./storage').store;
+  const remoteId = (await driver.put({
+    key: stored,
+    body: buf,
+    mime: meta.mime || 'application/octet-stream',
+  })) || stored;
+
+  return { storedName: remoteId, size, remote: true };
 }
 
-function remove(storedName) {
+async function remove(storedName) {
   if (!storedName) return;
-  const p = path.join(UPLOAD_DIR, path.basename(storedName));
-  fs.unlink(p, () => {});
+  const driver = require('./storage').store;
+  try {
+    await driver.del(storedName);
+  } catch (e) {
+    // مش مشكلة لو الملف اختفى من التخزين قبل كده
+  }
 }
 
-function read(storedName) {
-  return fs.readFileSync(path.join(UPLOAD_DIR, path.basename(storedName)));
+/** بيجيب الملف من التخزين — بيرجّع Buffer */
+async function read(storedName) {
+  const driver = require('./storage').store;
+  const stream = await driver.get(storedName);
+  if (Buffer.isBuffer(stream)) return stream;
+  const chunks = [];
+  for await (const c of stream) chunks.push(c);
+  return Buffer.concat(chunks);
 }
 
 /* ---------------- ZIP ---------------- */
@@ -98,14 +111,14 @@ function dosTime(d = new Date()) {
  * بيبني ZIP من قائمة {name, data|storedName}.
  * بيستخدم deflate لو الملف كبير، وstore لو صغير (أسرع وأصغر في الهيدر).
  */
-function buildZip(entries) {
+async function buildZip(entries) {
   const chunks = [];
   const central = [];
   let offset = 0;
   const { time, date } = dosTime();
 
   for (const e of entries) {
-    const data = e.data || read(e.storedName);
+    const data = e.data || (await read(e.storedName));
     const nameBuf = Buffer.from(e.name, 'utf8');
     const crc = crc32(data);
 

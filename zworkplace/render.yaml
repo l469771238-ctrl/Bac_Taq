@@ -1,0 +1,19 @@
+# نشر Z-Project على Render — مجاني، من غير كارت
+# الاستخدام: اربط الريبو، و Render هيقرا الملف ده لوحده
+services:
+  - type: web
+    name: z-project-workplace
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    region: frankfurt
+    healthCheckPath: /api/health
+    envVars:
+      - key: ZSTORAGE
+        value: s3
+      - key: NODE_ENV
+        value: production
+      # باقي إعدادات التخزين تُضاف من لوحة Render (سرية)
+      # ZS3_ENDPOINT · ZS3_BUCKET · ZS3_KEY · ZS3_SECRET · ZS3_REGION
+      # ZTEACHER_PASS

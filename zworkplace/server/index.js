@@ -35,6 +35,45 @@ function ensureTeacher() {
 }
 const teacher = ensureTeacher();
 
+/**
+ * تحميل كشف الأسماء تلقائيًا.
+ * على استضافة جديدة القاعدة فاضية — لازم الكشف يبقى موجود من الأول
+ * عشان الطالب يكتب كوده ويلاقي اسمه.
+ *
+ * المصدر: ZROSTER (مسار ملف) أو data/students.csv جوه المشروع.
+ */
+function bootstrapRoster() {
+  const n = db.prepare('SELECT COUNT(*) n FROM roster').get().n;
+  if (n > 0) return;
+  const src = process.env.ZROSTER || path.join(ROOT, 'data', 'students.csv');
+  if (!fs.existsSync(src)) {
+    console.log('   ⚠️ مفيش كشف أسماء — ارفعه من لوحة المس');
+    return;
+  }
+  const A2 = A;
+  const lines = fs.readFileSync(src, 'utf8').replace(/^\uFEFF/, '').split(/\r?\n/).filter(Boolean);
+  const ins = db.prepare('INSERT OR REPLACE INTO roster (code, name, sort_no) VALUES (?,?,?)');
+  let added = 0;
+  db.exec('BEGIN');
+  try {
+    lines.slice(1).forEach((l, i) => {
+      const cells = l.split(',');
+      const code = A2.normalizeCode(cells[0]);
+      const name = (cells[1] || '').trim();
+      if (A2.validCode(code) && name) {
+        ins.run(code, name, i);
+        added++;
+      }
+    });
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    throw e;
+  }
+  if (added) console.log(`   ✅ كشف الأسماء: ${added} طالب اتحمّلوا`);
+}
+bootstrapRoster();
+
 /* ---------------- أدوات ---------------- */
 
 function json(res, code, obj) {
@@ -724,7 +763,7 @@ route('POST', '/api/files', async (req, res) => {
   if (!st.group_id) return json(res, 400, { error: 'لسه مش في مجموعة — كلّم المس أسماء' });
   const name = F.safeName(decodeURIComponent(req.headers['x-filename'] || 'ملف'));
   const mime = String(req.headers['content-type'] || 'application/octet-stream');
-  const meta = await F.receive(req);
+  const meta = await F.receive(req, { mime });
   const r = db
     .prepare(
       `INSERT INTO files (group_id, student_id, stored_name, orig_name, mime, size, created_at)
@@ -809,16 +848,20 @@ route('GET', '/api/files/:id', async (req, res, body, p) => {
       return json(res, 403, { error: 'الملف ده مش لمجموعتك' });
     }
   }
-  const full = path.join(F.UPLOAD_DIR, path.basename(f.stored_name));
-  if (!fs.existsSync(full)) return json(res, 404, { error: 'الملف اتمسح من السيرفر' });
-
-  const st = fs.statSync(full);
+  const driver = require('./storage').store;
+  let stream;
+  try {
+    stream = await driver.get(f.stored_name);
+  } catch (e) {
+    return json(res, e.status || 404, { error: e.message || 'الملف مش موجود' });
+  }
   res.writeHead(200, {
     'Content-Type': f.mime || 'application/octet-stream',
-    'Content-Length': st.size,
+    'Content-Length': f.size,
     'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(f.orig_name)}`,
   });
-  fs.createReadStream(full).pipe(res);
+  if (Buffer.isBuffer(stream)) res.end(stream);
+  else stream.pipe(res);
 });
 
 /** مسح ملف — صاحبه أو المس */
@@ -832,7 +875,7 @@ route('DELETE', '/api/files/:id', async (req, res, body, p) => {
   }
   db.prepare('DELETE FROM submissions WHERE file_id = ?').run(f.id);
   db.prepare('DELETE FROM files WHERE id = ?').run(f.id);
-  F.remove(f.stored_name);
+  await F.remove(f.stored_name);
   json(res, 200, { ok: true });
 });
 
@@ -1036,8 +1079,8 @@ function pushMember(entries, base, member) {
   });
 }
 
-function sendZip(res, entries, name) {
-  const zip = F.buildZip(entries);
+async function sendZip(res, entries, name) {
+  const zip = await F.buildZip(entries);
   res.writeHead(200, {
     'Content-Type': 'application/zip',
     'Content-Length': zip.length,
@@ -1056,7 +1099,7 @@ route('POST', '/api/teacher/files', async (req, res) => {
   if (!st || !st.group_id) return json(res, 400, { error: 'الطالب مش في مجموعة' });
   const name = F.safeName(decodeURIComponent(req.headers['x-filename'] || 'ملف'));
   const mime = String(req.headers['content-type'] || 'application/octet-stream');
-  const meta = await F.receive(req);
+  const meta = await F.receive(req, { mime });
   const r = db
     .prepare(
       `INSERT INTO files (group_id, student_id, stored_name, orig_name, mime, size, created_at)
@@ -1251,7 +1294,9 @@ route('GET', '/api/student/notifications', async (req, res) => {
   });
 });
 
-/* ====== الصحة ====== */
+/* ====== الصحة والتخزين ====== */
+
+const STORAGE = require('./storage');
 
 route('GET', '/api/health', async (req, res) => {
   json(res, 200, {
@@ -1261,6 +1306,26 @@ route('GET', '/api/health', async (req, res) => {
     roster: db.prepare('SELECT COUNT(*) n FROM roster').get().n,
     students: db.prepare('SELECT COUNT(*) n FROM students').get().n,
     classes: db.prepare('SELECT COUNT(*) n FROM classes').get().n,
+    files: db.prepare('SELECT COUNT(*) n FROM files').get().n,
+    storage: STORAGE.kind,
+  });
+});
+
+/** المس: حالة التخزين — كام مستخدم، إيه المتاح، فيه مشكلة؟ */
+route('GET', '/api/teacher/storage', async (req, res) => {
+  if (!needTeacher(req, res)) return;
+  let h;
+  try { h = await STORAGE.store.health(); } catch (e) { h = { ok: false, used: 0, note: e.message }; }
+  const dbSize = db.prepare('SELECT COALESCE(SUM(size),0) n FROM files').get().n;
+  const count = db.prepare('SELECT COUNT(*) n FROM files').get().n;
+  json(res, 200, {
+    kind: STORAGE.kind,
+    ok: !!h.ok,
+    note: h.note || '',
+    used: h.used || 0,
+    limit: h.limit || 0,
+    files: count,
+    onServer: dbSize,
   });
 });
 

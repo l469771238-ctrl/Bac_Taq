@@ -1,0 +1,16 @@
+{
+  "name": "z-project-workplace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Z-Project Workplace — مساحة فصل للمس أسماء",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "seed": "node server/seed.js",
+    "backup": "node server/backup.js",
+    "test": "node tests/ui.test.js"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
