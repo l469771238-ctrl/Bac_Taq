@@ -39,11 +39,11 @@ import java.util.Map;
  * from the virtual https origin https://appassets.androidplatform.net/web/* so the
  * app opens instantly and survives flaky connections.
  *
- * Everything that matters lives on the school server: accounts, the student roster,
- * registration requests and the teacher's approvals. The web layer talks to that
- * server over HTTPS; the base URL is injected into the page as window.ZAPI at load
- * time (never baked into the JS bundle), so one APK can point at staging or
- * production. INTERNET permission is therefore required.
+ * Everything that matters lives on the school server: student codes, accounts, the roster,
+ * and the teacher's dashboard. A student signs up once with the code the teacher gave
+ * him; the account stays on the server after that. The base URL is injected as
+ * window.ZAPI at load time (never baked into the JS bundle), so one APK can point
+ * at staging or production. INTERNET permission is therefore required.
  */
 public class MainActivity extends Activity {
 

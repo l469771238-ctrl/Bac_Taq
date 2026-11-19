@@ -58,7 +58,8 @@ cp -r "$WEB"/. "$WORK/assets/web"/
 rm -rf "$WORK/assets/web/tests" "$WORK/assets/web/node_modules" "$WORK/assets/web/package.json" \
        "$WORK/assets/web/README.md" "$WORK/assets/web/.gitignore" "$WORK/assets/web/img/icon-1024.png" \
        "$WORK/assets/web/img/logo@2x.png" \
-       "$WORK/assets/web/server" "$WORK/assets/web/data" "$WORK/assets/web/.env"
+       "$WORK/assets/web/server" "$WORK/assets/web/data" "$WORK/assets/web/samples" \
+       "$WORK/assets/web/.env"
 
 echo "==> compile resources"
 "$BT/aapt2" compile --dir "${APP_RES:-$APP/res}" -o "$WORK/compiled/res.zip"
@@ -128,7 +129,8 @@ if os.environ.get('NEED_PDF') == '1':
 missing = [n for n in need if n not in names]
 stray = [n for n in names if n.startswith('web/')]
 junk = [n for n in names if n.startswith(('assets/web/tests', 'assets/web/node_modules',
-                                            'assets/web/server', 'assets/web/data'))]
+                                            'assets/web/server', 'assets/web/data',
+                                            'assets/web/samples'))]
 if missing or stray or junk:
     print('PACKAGING ERROR')
     for n in missing: print('  missing:', n)

@@ -39,10 +39,23 @@
     clearTimeout(toastTimer);
     toastTimer = setTimeout(function () { t.classList.remove('show'); }, 2600);
   }
-  function digitsOnly(el) {
+  var K_LAST = 'zwork.last';
+
+  /** الكود زي ما الطالب كتبه، من غير مسافات */
+  function codeOf(el) { return String(el.value || '').trim().replace(/\s+/g, ''); }
+  /** آخر كود دخل بيه — بنحطه جاهز عشان مايكتبهوش كل مرة */
+  function rememberLast(code) {
+    try { if (code) localStorage.setItem(K_LAST, code); } catch (e) {}
+  }
+  function lastCode() {
+    try { return localStorage.getItem(K_LAST) || ''; } catch (e) { return ''; }
+  }
+  /** الكود بيتكتب بحروف إنجليزي كبيرة تلقائيًا (الأرقام زي ما هي) */
+  function upperCode(el) {
     el.addEventListener('input', function () {
-      var v = el.value.replace(/\D/g, '').slice(0, 9);
-      if (v !== el.value) el.value = v;
+      var at = el.selectionStart, v = el.value;
+      var up = v.replace(/[A-Za-z]/g, function (ch) { return ch.toUpperCase(); });
+      if (up !== v) { el.value = up; try { el.setSelectionRange(at, at); } catch (e) {} }
     });
   }
 
@@ -170,18 +183,19 @@
   /* ============================================================
      1) الدخول
      ============================================================ */
-  digitsOnly($('#login-seat'));
+  upperCode($('#code-login'));
   $('#login-btn').addEventListener('click', function () {
     var btn = this;
-    var seat = $('#login-seat').value.trim();
+    var code = codeOf($('#code-login'));
     var pass = $('#login-pass').value;
     err($('#login-err'), '');
-    if (!/^\d{9}$/.test(seat)) return err($('#login-err'), 'رقم الجلوس لازم 9 أرقام');
+    if (!code) return err($('#login-err'), 'اكتب كودك');
     if (!pass) return err($('#login-err'), 'اكتب كلمة المرور');
     btnBusy(btn, true);
-    api('POST', '/api/login', { seat: seat, password: pass })
+    api('POST', '/api/login', { code: code, password: pass })
       .then(function (r) {
         setToken(r.token);
+        rememberLast(r.user.code);
         state.role = r.user.role;
         state.user = r.user;
         if (r.user.role === 'teacher') return enterTeacher(r.user);
@@ -193,47 +207,48 @@
   $('#login-pass').addEventListener('keydown', function (e) {
     if (e.key === 'Enter') $('#login-btn').click();
   });
+  $('#code-login').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') $('#login-pass').focus();
+  });
 
   /* ============================================================
      2) إنشاء حساب
      ============================================================ */
-  digitsOnly($('#su-seat'));
-  var suSeat = '';
+  upperCode($('#code-signup'));
+  var suCode = '';
   $('#su-next').addEventListener('click', function () {
     var btn = this;
-    var seat = $('#su-seat').value.trim();
+    var code = codeOf($('#code-signup'));
     err($('#su-err1'), '');
-    if (!/^\d{9}$/.test(seat)) return err($('#su-err1'), 'رقم الجلوس لازم 9 أرقام');
+    if (!code) return err($('#su-err1'), 'اكتب كودك');
     btnBusy(btn, true);
-    api('POST', '/api/lookup', { seat: seat })
+    api('POST', '/api/lookup', { code: code })
       .then(function (r) {
-        if (r.hasAccount) {
-          err($('#su-err1'), 'الرقم ده عنده حساب بالفعل — سجّل الدخول');
-          return;
-        }
         if (r.status === 'pending') {
-          err($('#su-err1'), 'عندك طلب مستني موافقة المدرس');
+          err($('#su-err1'), 'تسجيلك مستني — استنى المدرس يراجعه');
           return;
         }
         if (r.status === 'rejected') {
-          err($('#su-err1'), 'طلبك السابق اترفض — كلّم المدرس');
+          err($('#su-err1'), 'تسجيلك السابق اترفض — كلّم المدرس');
           return;
         }
-        suSeat = seat;
+        suCode = code;
+        state.pendingName = r.name;
         $('#su-name').textContent = r.name;
-        $('#su-seat-view').textContent = seat;
+        $('#su-code-view').textContent = code;
         $('#su-avatar').textContent = initials(r.name);
         $('#signup-step1').classList.add('hidden');
         $('#signup-step2').classList.remove('hidden');
         $('#signup-step-label').textContent = 'الخطوة 2 من 2';
+        $('#su-btn-label').textContent = r.hasAccount ? 'ادخل على حسابي' : 'سجّل وابدأ';
         $('.scroller', $('#screen-signup')).scrollTop = 0;
       })
       .catch(function (e) {
-        err($('#su-err1'), e.status === 404 ? 'رقم الجلوس مش موجود في كشف الفصل — راجع المدرس' : e.message);
+        err($('#su-err1'), e.status === 404 ? 'الكود ده مش موجود — راجع الكود اللي معاك أو كلّم المدرس' : e.message);
       })
       .then(function () { btnBusy(btn, false); });
   });
-  $('#su-seat').addEventListener('keydown', function (e) {
+  $('#code-signup').addEventListener('keydown', function (e) {
     if (e.key === 'Enter') $('#su-next').click();
   });
 
@@ -247,12 +262,25 @@
     if (q.length < 4) return err($('#su-err2'), 'اكتب سؤال سري واضح');
     if (a.length < 3) return err($('#su-err2'), 'اكتب إجابة السؤال السري');
     btnBusy(btn, true);
-    api('POST', '/api/request', { seat: suSeat, password: p1, secretQ: q, secretA: a })
+    api('POST', '/api/register', { code: suCode, password: p1, secretQ: q, secretA: a })
       .then(function (r) {
-        $('#pending-name').textContent = r.name || $('#su-name').textContent;
-        $('#pending-seat').textContent = suSeat;
         $('#su-pass').value = ''; $('#su-pass2').value = '';
         $('#su-q').value = ''; $('#su-a').value = '';
+        // التسجيل اتحفظ وجات جلسة -> فتح الحساب على طول
+        if (r.token && r.status === 'active') {
+          setToken(r.token);
+          state.role = 'student';
+          state.user = r.user;
+          rememberLast(r.user.code);
+          toast('تسجيلك اتحفظ ✅');
+          return enterStudent(r.user);
+        }
+        // محتاج مراجعة
+        state.pendingCode = suCode;
+        $('#pending-title').textContent = 'تسجيلك اتحفظ';
+        $('#pending-name').textContent = (r.user && r.user.name) || $('#su-name').textContent;
+        $('#pending-code').textContent = suCode;
+        $('#pending-txt').textContent = 'التسجيل محفوظ ومستني مراجعة المدرس. أول ما يراجعه تقدر تدخل بكودك.';
         show('pending');
       })
       .catch(function (e) { err($('#su-err2'), e.message); })
@@ -269,17 +297,19 @@
   $('#pending-check').addEventListener('click', function () {
     var btn = this;
     btnBusy(btn, true);
-    api('POST', '/api/lookup', { seat: $('#pending-seat').textContent })
+    api('POST', '/api/lookup', { code: state.pendingCode || $('#pending-code').textContent })
       .then(function (r) {
-        if (r.hasAccount) {
-          toast('حسابك اتفعّل 🎉 سجّل الدخول');
+        if (r.status === 'active') {
+          toast('تسجيلك اتفعّل 🎉');
           go('login');
-          $('#login-seat').value = $('#pending-seat').textContent;
+          $('#code-login').value = r.code;
           $('#login-pass').focus();
         } else if (r.status === 'rejected') {
-          toast('طلبك اترفض — كلّم المدرس');
+          toast('تسجيلك اترفض — كلّم المدرس');
+        } else if (r.hasAccount) {
+          toast('لسه مستني مراجعة المدرس');
         } else {
-          toast('لسه مستني موافقة المدرس');
+          toast('مفيش حساب بالكود ده لسه');
         }
       })
       .catch(function (e) { toast(e.message); })
@@ -289,17 +319,17 @@
   /* ============================================================
      3) استرجاع كلمة المرور
      ============================================================ */
-  digitsOnly($('#rc-seat'));
-  var rcSeat = '';
+  upperCode($('#code-recover'));
+  var rcCode = '';
   $('#rc-next').addEventListener('click', function () {
     var btn = this;
-    var seat = $('#rc-seat').value.trim();
+    var code = codeOf($('#code-recover'));
     err($('#rc-err1'), '');
-    if (!/^\d{9}$/.test(seat)) return err($('#rc-err1'), 'رقم الجلوس لازم 9 أرقام');
+    if (!code) return err($('#rc-err1'), 'اكتب كودك');
     btnBusy(btn, true);
-    api('POST', '/api/recover/question', { seat: seat })
+    api('POST', '/api/recover/question', { code: code })
       .then(function (r) {
-        rcSeat = seat;
+        rcCode = code;
         $('#rc-question').textContent = r.question;
         $('#rc-step2').classList.remove('hidden');
       })
@@ -314,12 +344,12 @@
     if (!ans) return err($('#rc-err2'), 'اكتب الإجابة');
     if (np.length < 6) return err($('#rc-err2'), 'كلمة المرور لازم 6 حروف على الأقل');
     btnBusy(btn, true);
-    api('POST', '/api/recover/reset', { seat: rcSeat, answer: ans, password: np })
+    api('POST', '/api/recover/reset', { code: rcCode, answer: ans, password: np })
       .then(function () {
         toast('اتغيّرت ✅ سجّل الدخول بكلمة المرور الجديدة');
         $('#rc-answer').value = ''; $('#rc-pass').value = '';
         $('#rc-step2').classList.add('hidden');
-        $('#login-seat').value = rcSeat;
+        $('#code-login').value = rcCode;
         go('login');
       })
       .catch(function (e) { err($('#rc-err2'), e.status === 401 ? 'الإجابة غلط' : e.message); })
@@ -335,7 +365,7 @@
     $('#st-greet').textContent = 'أهلاً يا ' + (u.name || '').split(' ')[0] + ' 👋';
     $('#st-sub').textContent = u.className ? ('فصل ' + u.className + (u.groupName ? ' — ' + u.groupName : '')) : 'حسابك مفعّل';
     $('#st-avatar').textContent = initials(u.name);
-    $('#st-seat').textContent = u.seat || '—';
+    $('#st-code').textContent = u.code || '—';
     $('#st-group').textContent = u.groupName || '—';
     $('#st-class-tag').textContent = u.className ? ('فصل ' + u.className) : 'مفعّل';
     show('student');
@@ -367,7 +397,7 @@
     $('#th-name').textContent = u.name || 'لوحة المدرس';
     $('#th-sub').textContent = 'مستر جاسر — ورك سبيس الفصل';
     show('teacher');
-    switchTab('requests');
+    loadSettings().then(function () { switchTab('requests'); });
     loadStats();
     loadRequests();
     loadClasses();
@@ -397,7 +427,7 @@
     return api('GET', '/api/teacher/stats').then(function (s) {
       $('#stat-roster').textContent = s.roster;
       $('#stat-pending').textContent = s.pending;
-      $('#stat-students').textContent = s.students;
+      $('#stat-students').textContent = s.registered;
       var b = $('#badge-req');
       if (s.pending > 0) { b.textContent = s.pending; b.classList.remove('hidden'); }
       else b.classList.add('hidden');
@@ -405,13 +435,34 @@
   }
 
   /* ---------- الطلبات ---------- */
+  var approvalOn = false;
+  function approvalBtnLabel() {
+    return approvalOn ? '⏸ اقفل مراجعة التسجيلات (يبقى فوري)' : '🔒 فعّل مراجعة التسجيلات';
+  }
+  function loadSettings() {
+    return api('GET', '/api/teacher/settings').then(function (r) {
+      approvalOn = !!r.approvalRequired;
+    }).catch(function () {});
+  }
+  function toggleApproval() {
+    return api('POST', '/api/teacher/settings', { approvalRequired: !approvalOn })
+      .then(function (r) {
+        approvalOn = !!r.approvalRequired;
+        toast(approvalOn ? 'المراجعة اتفعّلت — التسجيلات الجديدة هتستنى' : 'المراجعة اتقفلت — التسجيل فوري');
+        loadRequests();
+      })
+      .catch(function (e) { toast(e.message); });
+  }
+
   function loadRequests() {
     var list = $('#req-list');
     return api('GET', '/api/teacher/requests')
       .then(function (r) {
         if (!r.rows.length) {
-          list.innerHTML = '<div class="empty"><div class="big">✅</div><b>مفيش طلبات مستنية</b>' +
-            '<span>أي طالب يعمل حساب هيظهر هنا لحد ما توافق عليه.</span></div>';
+          list.innerHTML = '<div class="empty"><div class="big">✅</div><b>مفيش تسجيلات مستنية</b>' +
+            '<span>التسجيل شغال فوري — الطالب بيدخل على طول بعد ما يكتب كوده.<br>' +
+            'لو عايز تراجع كل تسجيل قبل ما يدخل، فعّل «مراجعة التسجيلات» من تحت.</span></div>' +
+            '<button class="btn btn-ghost" id="approval-toggle">' + approvalBtnLabel() + '</button>';
           return;
         }
         list.innerHTML = r.rows.map(function (q) {
@@ -419,7 +470,7 @@
             '<div class="req-top">' +
               '<div class="req-av">' + esc(initials(q.full_name)) + '</div>' +
               '<div class="req-main"><b>' + esc(q.full_name) + '</b>' +
-                '<span>رقم الجلوس ' + esc(q.seat_id) + '</span></div>' +
+                '<span>كود ' + esc(q.code) + '</span></div>' +
               '<div class="req-time">' + esc(relTime(q.created_at)) + '</div>' +
             '</div>' +
             '<div class="req-actions">' +
@@ -439,34 +490,44 @@
     if (ap) return openApprove(ap.getAttribute('data-approve'));
     var rj = e.target.closest('[data-reject]');
     if (rj) return rejectRequest(rj.getAttribute('data-reject'));
+    var tg = e.target.closest('#approval-toggle');
+    if (tg) return toggleApproval();
   });
 
   function openApprove(reqId) {
     var card = $('[data-req="' + reqId + '"]');
     var name = card ? $('.req-main b', card).textContent : '';
     loadClasses().then(function () {
-      var body = '<p class="form-note">' + esc(name) + ' — لازم تحدد الفصل والمجموعة قبل القبول.</p>';
+      var body = '<p class="form-note">' + esc(name) + ' — تقدر تقبله كده على طول، أو تحطه في فصل ومجموعة (اختياري).</p>';
       if (!state.classes.length) {
-        body += '<div class="empty"><b>مفيش فصول لسه</b><span>اعمل فصل الأول من تبويب «الفصول».</span></div>' +
-          '<button class="btn btn-primary" id="ap-create">اعمل فصل دلوقتي</button>';
+        body += '<div class="empty"><b>مفيش فصول لسه</b><span>تقدر تقبله من غير فصل، أو تعمل فصل من تبويب «الفصول».</span></div>' +
+          '<p class="form-err" id="ap-err"></p>' +
+          '<button class="btn btn-primary" id="ap-do">قبول الطالب</button>';
         openSheet('قبول طالب', body);
-        $('#ap-create').addEventListener('click', function () { closeSheet(); switchTab('classes'); openNewClass(); });
+        $('#ap-do').addEventListener('click', function () {
+          var b = this; btnBusy(b, true);
+          api('POST', '/api/teacher/requests/' + reqId + '/approve', {})
+            .then(function () { closeSheet(); toast('اتقبل ✅'); loadRequests(); loadStats(); })
+            .catch(function (e) { err($('#ap-err'), e.message); })
+            .then(function () { btnBusy(b, false); });
+        });
         return;
       }
-      body += '<p class="sheet-sub">الفصل</p><div id="ap-classes">' +
+      body += '<p class="sheet-sub">الفصل (اختياري)</p><div id="ap-classes">' +
         state.classes.map(function (c) {
           return '<div class="pick" data-c="' + esc(c.id) + '"><span class="nm">فصل ' + esc(c.name) + '</span>' +
             '<span class="cap">' + c.groups.length + ' مجموعات</span><span class="rd"></span></div>';
         }).join('') + '</div>' +
-        '<div id="ap-groups-wrap" class="hidden"><p class="sheet-sub">المجموعة</p><div id="ap-groups"></div></div>' +
+        '<div id="ap-groups-wrap" class="hidden"><p class="sheet-sub">المجموعة (اختياري)</p><div id="ap-groups"></div></div>' +
         '<p class="form-err" id="ap-err"></p>' +
-        '<button class="btn btn-primary" id="ap-do" disabled style="opacity:.5">قبول الطالب</button>';
+        '<button class="btn btn-primary" id="ap-do">قبول الطالب</button>';
       openSheet('قبول طالب', body);
 
       var chosenClass = null, chosenGroup = null;
       function syncBtn() {
         var b = $('#ap-do');
-        var ok = chosenClass && chosenGroup;
+        if (!b) return;
+        var ok = !chosenGroup || (chosenClass && chosenGroup);
         b.disabled = !ok;
         b.style.opacity = ok ? '' : '.5';
       }
@@ -553,7 +614,7 @@
             return '<div class="list-row">' +
               '<div class="chip-mini">' + esc(s.grade || '—') + '</div>' +
               '<div style="flex:1;min-width:0"><div class="name">' + esc(s.full_name) + '</div>' +
-              '<div class="meta">' + esc(s.seat_id) + (s.phone ? ' — ' + esc(s.phone) : '') + '</div></div>' +
+              '<div class="meta">' + esc(s.code) + (s.phone ? ' — ' + esc(s.phone) : '') + '</div></div>' +
               '</div>';
           }).join('');
         })
@@ -565,35 +626,199 @@
   $('#roster-q').addEventListener('input', function () { loadRoster(); });
   $('#roster-import').addEventListener('click', openImport);
 
+  /**
+   * استيراد قاعدة بيانات الأكواد.
+   * بيقبل: CSV · JSON (مصفوفة كائنات) · TSV · ملف نصي · Excel (.xlsx) لو المتصفح
+   * قدر يقراه. الأعمدة بأي أسماء معقولة — السيرفر بيدوّر على code/name أو الكود/الاسم.
+   */
   function openImport() {
-    openSheet('تحميل كشف الطلاب',
-      '<p class="form-note">الأعمدة بالترتيب: <b>رقم الجلوس، الاسم، الرقم القومي، الموبايل، ولي الأمر، الصف</b><br>' +
-      'الملف CSV أو الصق السطور هنا.</p>' +
-      '<div class="field"><label for="imp-csv">سطور الكشف</label>' +
-      '<textarea id="imp-csv" placeholder="100000001,أحمد محمد علي,30001011234567,01001234567,محمد علي,3"></textarea></div>' +
-      '<div class="field"><label for="imp-file">أو اختار ملف CSV</label>' +
-      '<input id="imp-file" type="file" accept=".csv,text/csv,text/plain"></div>' +
+    openSheet('رفع قاعدة بيانات الأكواد',
+      '<p class="form-note">كل صف لازم يكون فيه <b>الكود</b> و<b>الاسم</b>.<br>' +
+      'الأعمدة الاختيارية: الرقم القومي، الموبايل، ولي الأمر، الصف.<br>' +
+      'المدعوم: <b>CSV</b> · <b>TSV</b> · <b>JSON</b> · <b>Excel (.xlsx)</b></p>' +
+      '<div class="field"><label for="imp-file">ملف قاعدة البيانات</label>' +
+      '<input id="imp-file" type="file" accept=".csv,.tsv,.txt,.json,.xlsx,text/csv,application/json"></div>' +
+      '<div class="field"><label for="imp-csv">أو الصق الصفوف هنا</label>' +
+      '<textarea id="imp-csv" placeholder="code,name,grade&#10;100000001,أحمد محمد علي,3/1&#10;100000002,سارة حسن إبراهيم,3/1"></textarea></div>' +
+      '<div class="field"><label for="imp-mode">لو الكود موجود بالفعل</label>' +
+      '<select id="imp-mode">' +
+      '<option value="merge">حدّث الاسم وسيب الباقي</option>' +
+      '<option value="replace">استبدل القاعدة بالكامل</option>' +
+      '</select></div>' +
       '<p class="form-err" id="imp-err"></p>' +
-      '<button class="btn btn-primary" id="imp-go">تحميل الكشف</button>');
+      '<button class="btn btn-primary" id="imp-go">رفع القاعدة</button>' +
+      '<div id="imp-preview" class="imp-preview"></div>');
 
+    var picked = null;      // { rows: [...] } جاهزة للإرسال
+    var pickedLabel = '';
+
+    // ---- قراءة الملفات ----
     $('#imp-file').addEventListener('change', function () {
       var f = this.files && this.files[0];
       if (!f) return;
+      err($('#imp-err'), '');
+      pickedLabel = f.name;
+      var name = f.name.toLowerCase();
+      if (name.endsWith('.xlsx')) return readXlsx(f);
+      if (name.endsWith('.json')) return readJson(f);
       var fr = new FileReader();
-      fr.onload = function () { $('#imp-csv').value = String(fr.result || ''); };
+      fr.onload = function () { $('#imp-csv').value = String(fr.result || ''); previewRows(); };
       fr.readAsText(f, 'utf-8');
     });
 
+    function readJson(f) {
+      var fr = new FileReader();
+      fr.onload = function () {
+        var txt = String(fr.result || '').trim();
+        try {
+          var data = JSON.parse(txt);
+          if (data && !Array.isArray(data)) {
+            data = data.students || data.rows || data.roster || data.data || null;
+          }
+          if (!Array.isArray(data)) throw new Error('مفيش مصفوفة في الملف');
+          picked = data;
+          showPreview(data.length + ' صف من ' + pickedLabel);
+        } catch (e) { err($('#imp-err'), 'ملف JSON مش مفهوم: ' + e.message); }
+      };
+      fr.readAsText(f, 'utf-8');
+    }
+
+    function readXlsx(f) {
+      var fr = new FileReader();
+      fr.onload = function () {
+        xlsxRows(new Uint8Array(fr.result)).then(function (rows) {
+          if (!rows.length) throw new Error('الملف فاضي');
+          picked = rows;
+          showPreview(rows.length + ' صف من ' + pickedLabel);
+        }).catch(function (e) {
+          err($('#imp-err'), 'مش قادر أقرا ملف Excel (' + e.message + ') — صدّره CSV وجرّب');
+        });
+      };
+      fr.readAsArrayBuffer(f);
+    }
+
+    /**
+     * قارئ .xlsx مصغّر: بيقرا الـ workbook من zip وبيستخرج أول ورقة شغل
+     * (sharedStrings + sheet1). كافي لجداول الأسماء — مش محرك Excel كامل.
+     */
+    async function xlsxRows(bytes) {
+      var files = await unzip(bytes);
+      var sst = [];
+      if (files['xl/sharedStrings.xml']) {
+        var ss = utf8(files['xl/sharedStrings.xml']);
+        var items = ss.match(/<si[\s\S]*?<\/si>/g) || [];
+        sst = items.map(function (si) {
+          return (si.match(/<t[^>]*>([\s\S]*?)<\/t>/g) || [])
+            .map(function (t) { return xmlText(t.replace(/<[^>]+>/g, '')); }).join('');
+        });
+      }
+      var sheetName = Object.keys(files).filter(function (n) { return /^xl\/worksheets\/sheet\d+\.xml$/.test(n); })[0];
+      if (!sheetName) throw new Error('مفيش ورقة عمل');
+      var sheet = utf8(files[sheetName]);
+      var rowsX = sheet.match(/<row[\s\S]*?<\/row>/g) || [];
+      return rowsX.map(function (r) {
+        var cells = [];
+        var cs = r.match(/<c[^>]*>[\s\S]*?<\/c>/g) || [];
+        cs.forEach(function (c) {
+          var ref = (c.match(/r="([A-Z]+)\d+"/) || [])[1] || '';
+          var col = ref ? colIndex(ref) : cells.length;
+          var t = (c.match(/t="([^"]+)"/) || [])[1];
+          var v = (c.match(/<v>([\s\S]*?)<\/v>/) || [])[1];
+          var inline = (c.match(/<is>[\s\S]*?<t[^>]*>([\s\S]*?)<\/t>[\s\S]*?<\/is>/) || [])[1];
+          var val = inline !== undefined ? xmlText(inline)
+            : (t === 's' && v !== undefined) ? (sst[+v] || '')
+            : (v !== undefined ? xmlText(v) : '');
+          cells[col] = val;
+        });
+        return cells;
+      }).filter(function (row) { return row.some(function (c) { return String(c || '').trim(); }); });
+    }
+
+    function colIndex(ref) {
+      var n = 0;
+      for (var i = 0; i < ref.length; i++) n = n * 26 + (ref.charCodeAt(i) - 64);
+      return n - 1;
+    }
+    function xmlText(t) {
+      return String(t).replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
+    }
+    function utf8(buf) { return new TextDecoder('utf-8').decode(buf); }
+
+    /** فك ضغط zip (deflate-raw) عن طريق DecompressionStream */
+    async function inflateRaw(raw) {
+      if (typeof DecompressionStream !== 'function') {
+        throw new Error('المتصفح مش بيدعم فك ضغط Excel — صدّر CSV');
+      }
+      var stream = new Blob([raw]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+      return new Uint8Array(await new Response(stream).arrayBuffer());
+    }
+
+    async function unzip(bytes) {
+      var out = {}, dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      var eocd = -1;
+      for (var i = bytes.length - 22; i >= 0 && i > bytes.length - 65558; i--) {
+        if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+      }
+      if (eocd < 0) throw new Error('الملف مش zip صالح');
+      var n = dv.getUint16(eocd + 10, true), off = dv.getUint32(eocd + 16, true);
+      for (var k = 0; k < n; k++) {
+        if (off + 46 > bytes.length || dv.getUint32(off, true) !== 0x02014b50) break;
+        var method = dv.getUint16(off + 10, true);
+        var csize = dv.getUint32(off + 20, true);
+        var nlen = dv.getUint16(off + 28, true);
+        var elen = dv.getUint16(off + 30, true);
+        var clen = dv.getUint16(off + 32, true);
+        var lho = dv.getUint32(off + 42, true);
+        var name = utf8(bytes.subarray(off + 46, off + 46 + nlen));
+        var lnlen = dv.getUint16(lho + 26, true);
+        var lelen = dv.getUint16(lho + 28, true);
+        var dataStart = lho + 30 + lnlen + lelen;
+        var raw = bytes.subarray(dataStart, dataStart + csize);
+        if (!/^xl\/(worksheets|sharedStrings)/.test(name)) {
+          off += 46 + nlen + elen + clen;
+          continue;
+        }
+        out[name] = method === 0 ? raw : await inflateRaw(raw);
+        off += 46 + nlen + elen + clen;
+      }
+      return out;
+    }
+
+    function showPreview(count) {
+      $('#imp-preview').innerHTML = '<div class="imp-ok">✅ ' + esc(count) + '</div>';
+      err($('#imp-err'), '');
+    }
+
+    function previewRows() {
+      var txt = $('#imp-csv').value.trim();
+      if (!txt) { picked = null; $('#imp-preview').innerHTML = ''; return; }
+      picked = { csv: txt };
+      var lines = txt.split(/\r?\n/).filter(function (l) { return l.trim(); });
+      // صف العناوين مش طالب
+      var HEAD = /(^|[,;\t])\s*(code|name|الكود|كود|الاسم|اسم|full_name)\s*($|[,;\t])/i;
+      var dataRows = lines.filter(function (l) { return !HEAD.test(l); });
+      showPreview(dataRows.length + ' صف جاهز للرفع');
+    }
+    $('#imp-csv').addEventListener('input', previewRows);
+
     $('#imp-go').addEventListener('click', function () {
       var b = this;
-      var csv = $('#imp-csv').value.trim();
       err($('#imp-err'), '');
-      if (!csv) return err($('#imp-err'), 'الصق سطور الكشف أو اختار ملف');
+      var payload = null, path = '/api/teacher/roster', method = 'POST';
+      if (picked && picked.csv) payload = { csv: picked.csv };
+      else if (Array.isArray(picked)) payload = { rows: picked };
+      else if ($('#imp-csv').value.trim()) payload = { csv: $('#imp-csv').value.trim() };
+      if (!payload) return err($('#imp-err'), 'اختار ملف أو الصق الصفوف');
+      if ($('#imp-mode').value === 'replace') { path = '/api/teacher/roster'; method = 'PUT'; }
+
       btnBusy(b, true);
-      api('POST', '/api/teacher/roster', { csv: csv })
+      api(method, path, payload)
         .then(function (r) {
           closeSheet();
-          toast('اتحمّل ' + r.ok + ' طالب' + (r.skipped ? ' — و' + r.skipped + ' سطر مرفوض' : ''));
+          toast('القاعدة اترفعت: ' + r.ok + ' كود' +
+                (r.skipped ? ' — و' + r.skipped + ' صف مرفوض' : '') +
+                ' · الإجمالي ' + r.total);
           loadStats(); loadRoster();
         })
         .catch(function (e) { err($('#imp-err'), e.message); })
@@ -697,7 +922,7 @@
           return '<div class="stu">' +
             '<div class="av">' + esc(initials(s.full_name)) + '</div>' +
             '<div class="in"><b>' + esc(s.full_name) + '</b>' +
-            '<span>' + esc(s.seat_id) + ' · ' + esc(s.class_name || '—') + ' · ' + esc(s.group_name || '—') + '</span></div>' +
+            '<span>' + esc(s.code) + ' · ' + esc(s.class_name || '—') + ' · ' + esc(s.group_name || '—') + '</span></div>' +
             '<span class="tag ok">مفعّل</span></div>';
         }).join('');
       })
@@ -715,12 +940,15 @@
     setToken('');
     state.role = null; state.user = null;
     resetSignup();
-    $('#login-seat').value = ''; $('#login-pass').value = '';
+    $('#login-pass').value = '';
     history = [];
     show('entry');
+    if (lastCode()) { $('#code-login').value = lastCode(); }
   }
 
   function resume() {
+    var lc = lastCode();
+    if (lc) { $('#code-login').value = lc; $('#code-signup').value = lc; }
     if (!token()) { show('entry'); return; }
     api('GET', '/api/me')
       .then(function (r) {

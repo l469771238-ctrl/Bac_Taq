@@ -47,13 +47,14 @@
 <section id="screen-login" class="screen">
   <header class="sub-head">
     <button class="icon-btn" data-back><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
-    <div><h2>تسجيل الدخول</h2><span class="tiny">برقم الجلوس وكلمة المرور</span></div>
+    <div><h2>تسجيل الدخول</h2><span class="tiny">بالكود وكلمة المرور</span></div>
   </header>
   <div class="scroller">
     <div class="form-wrap">
       <div class="field">
-        <label for="login-seat">رقم الجلوس (9 أرقام)</label>
-        <input id="login-seat" inputmode="numeric" maxlength="9" placeholder="000000000" autocomplete="username">
+        <label for="code-login">الكود</label>
+        <input id="code-login" placeholder="اكتب كودك" autocomplete="username"
+               autocapitalize="characters" spellcheck="false">
       </div>
       <div class="field">
         <label for="login-pass">كلمة المرور</label>
@@ -62,7 +63,7 @@
       <p class="form-err" id="login-err"></p>
       <button class="btn btn-primary" id="login-btn">دخول</button>
       <button class="btn-link" data-go="recover">نسيت كلمة المرور؟</button>
-      <button class="btn-link" data-go="signup">معنديش حساب — أنشئ واحد</button>
+      <button class="btn-link" data-go="signup">أول مرة أدخل — سجّل بكودي</button>
     </div>
   </div>
 </section>
@@ -71,7 +72,7 @@
 <section id="screen-signup" class="screen">
   <header class="sub-head">
     <button class="icon-btn" data-back><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
-    <div><h2>إنشاء حساب</h2><span class="tiny" id="signup-step-label">الخطوة 1 من 2</span></div>
+    <div><h2>التسجيل</h2><span class="tiny" id="signup-step-label">الخطوة 1 من 2</span></div>
   </header>
   <div class="scroller">
 
@@ -79,10 +80,10 @@
     <div id="signup-step1">
       <div class="steps"><i class="on"></i><i></i></div>
       <div class="form-wrap">
-        <p class="form-note">اكتب رقم الجلوس بس — الاسم هيظهر لوحده من كشف الفصل.</p>
+        <p class="form-note">اكتب الكود اللي المدرس إدهولك — اسمك هيظهر لوحده.</p>
         <div class="field">
-          <label for="su-seat">رقم الجلوس</label>
-          <input id="su-seat" inputmode="numeric" maxlength="9" placeholder="000000000">
+          <label for="code-signup">الكود</label>
+          <input id="code-signup" placeholder="اكتب كودك" autocapitalize="characters" spellcheck="false">
         </div>
         <p class="form-err" id="su-err1"></p>
         <button class="btn btn-primary" id="su-next">التالي</button>
@@ -97,7 +98,7 @@
         <div class="nc-body">
           <span>الاسم المسجّل في الكشف</span>
           <b id="su-name">—</b>
-          <em id="su-seat-view">—</em>
+          <em id="su-code-view">—</em>
         </div>
         <svg class="nc-tick" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 9.5"/></svg>
       </div>
@@ -120,24 +121,24 @@
           <input id="su-a" placeholder="الإجابة" maxlength="60">
         </div>
         <p class="form-err" id="su-err2"></p>
-        <button class="btn btn-primary" id="su-submit">ابعت طلب التسجيل</button>
-        <p class="form-note center">طلبك هيفضل مستني لحد ما المدرس يقبله ويحطك في فصل ومجموعة.</p>
+        <button class="btn btn-primary" id="su-submit"><span id="su-btn-label">سجّل وابدأ</span></button>
+        <p class="form-note center">تسجيلك بيتحفظ على طول. بعد كده كل ما تفتح التطبيق هتلاقي حسابك مفتوح.</p>
       </div>
     </div>
 
   </div>
 </section>
 
-<!-- ==================== 4) طلب مستني الموافقة ==================== -->
+<!-- ==================== 4) التسجيل اتم (أو مستني مراجعة) ==================== -->
 <section id="screen-pending" class="screen">
   <div class="result-wrap">
-    <div class="result-ico gold">
+    <div class="result-ico gold" id="pending-ico">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
     </div>
-    <h2>طلبك وصل ✅</h2>
+    <h2 id="pending-title">تسجيلك اتحفظ ✅</h2>
     <p class="result-name" id="pending-name">—</p>
-    <p class="result-sub" id="pending-seat">—</p>
-    <p class="result-txt">حسابك مستني موافقة المدرس. أول ما يقبلك ويحدد لك الفصل والمجموعة، تقدر تدخل برقم الجلوس وكلمة المرور.</p>
+    <p class="result-sub" id="pending-code">—</p>
+    <p class="result-txt" id="pending-txt">—</p>
     <button class="btn btn-primary" id="pending-check">اتأكد من الحالة</button>
     <button class="btn btn-ghost" data-go="entry">رجوع للبداية</button>
   </div>
@@ -152,8 +153,8 @@
   <div class="scroller">
     <div class="form-wrap">
       <div class="field">
-        <label for="rc-seat">رقم الجلوس</label>
-        <input id="rc-seat" inputmode="numeric" maxlength="9" placeholder="000000000">
+        <label for="code-recover">الكود</label>
+        <input id="code-recover" placeholder="اكتب كودك" autocapitalize="characters" spellcheck="false">
       </div>
       <p class="form-err" id="rc-err1"></p>
       <button class="btn btn-primary" id="rc-next">هات السؤال السري</button>
@@ -217,10 +218,10 @@
     <div class="hero">
       <span class="k" id="st-class-tag">—</span>
       <h3>أهلاً بيك في ورك سبيس الفصل</h3>
-      <p>حسابك اتفعّل. الحاجات الجديدة هتظهر هنا أول ما تتنزّل.</p>
+      <p>حسابك محفوظ — هتلاقيه زي ما هو كل ما تفتح التطبيق.</p>
     </div>
     <div class="stats">
-      <div class="stat"><b id="st-seat">—</b><span>رقم الجلوس</span></div>
+      <div class="stat"><b id="st-code">—</b><span>كودك</span></div>
       <div class="stat gold"><b id="st-group">—</b><span>المجموعة</span></div>
       <div class="stat green"><b>مفعّل</b><span>الحساب</span></div>
     </div>
@@ -257,31 +258,31 @@
   </header>
 
   <div class="dash-tabs" id="dash-tabs">
-    <button class="on" data-tab="requests">الطلبات <i id="badge-req" class="pill-badge hidden">0</i></button>
-    <button data-tab="roster">الكشف</button>
+    <button class="on" data-tab="requests">المراجعة <i id="badge-req" class="pill-badge hidden">0</i></button>
+    <button data-tab="roster">قاعدة البيانات</button>
     <button data-tab="classes">الفصول</button>
     <button data-tab="students">الطلاب</button>
   </div>
 
   <div class="scroller">
     <div class="stats" id="dash-stats">
-      <div class="stat"><b id="stat-roster">—</b><span>في الكشف</span></div>
-      <div class="stat gold"><b id="stat-pending">—</b><span>طلبات مستنية</span></div>
-      <div class="stat green"><b id="stat-students">—</b><span>حسابات مفعّلة</span></div>
+      <div class="stat"><b id="stat-roster">—</b><span>أكواد في القاعدة</span></div>
+      <div class="stat gold"><b id="stat-pending">—</b><span>مستني مراجعة</span></div>
+      <div class="stat green"><b id="stat-students">—</b><span>مسجلين</span></div>
     </div>
 
     <!-- الطلبات -->
     <div id="tab-requests" class="tabpane">
-      <div class="sec-head"><h3>طلبات التسجيل</h3><span class="link" id="req-refresh">تحديث</span></div>
+      <div class="sec-head"><h3>تسجيلات مستنية</h3><span class="link" id="req-refresh">تحديث</span></div>
       <div class="list" id="req-list"></div>
     </div>
 
     <!-- الكشف -->
     <div id="tab-roster" class="tabpane hidden">
-      <div class="sec-head"><h3>كشف الفصل</h3><span class="link" id="roster-import">تحميل كشف</span></div>
+      <div class="sec-head"><h3>قاعدة بيانات الأكواد</h3><span class="link" id="roster-import">رفع ملف</span></div>
       <div class="search">
         <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
-        <input id="roster-q" placeholder="دوّر بالاسم أو رقم الجلوس">
+        <input id="roster-q" placeholder="دوّر بالاسم أو الكود">
       </div>
       <div class="list" id="roster-list"></div>
     </div>
@@ -294,7 +295,7 @@
 
     <!-- الطلاب -->
     <div id="tab-students" class="tabpane hidden">
-      <div class="sec-head"><h3>الطلاب المفعّلين</h3><span class="link" id="students-refresh">تحديث</span></div>
+      <div class="sec-head"><h3>الطلاب المسجلين</h3><span class="link" id="students-refresh">تحديث</span></div>
       <div class="list" id="students-list"></div>
     </div>
   </div>

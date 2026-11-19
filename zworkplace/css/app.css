@@ -355,3 +355,25 @@ button{cursor:pointer;border:0;background:none;color:inherit;}
 @media (min-width:640px){
   .entry{max-width:520px;margin:0 auto;width:100%;}
 }
+
+/* ---------- v0.3: استيراد قاعدة البيانات ---------- */
+.imp-preview{margin-top:12px;}
+.imp-ok{background:#E4F8F1;color:var(--green-deep);font-size:12px;font-weight:800;
+  padding:11px 13px;border-radius:12px;text-align:center;line-height:1.6;}
+.field select{width:100%;border:2px solid var(--line);background:#F7F9FE;border-radius:13px;
+  padding:12px 14px;font-size:13.5px;font-weight:700;color:var(--ink);outline:0;
+  appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237A8AA5' stroke-width='2.4' stroke-linecap='round'><path d='M7 10l5 5 5-5'/></svg>");
+  background-repeat:no-repeat;background-position:left 14px center;background-size:17px;}
+.field select:focus{border-color:var(--navy-600);background-color:#fff;}
+.field input[type=file]{font-size:12px;font-weight:700;padding:11px 12px;background:#fff;
+  border-style:dashed;border-color:#C3CEDF;}
+.field input[type=file]::file-selector-button{
+  background:#EDF2FC;color:var(--navy-600);border:0;border-radius:9px;
+  padding:7px 12px;font-family:inherit;font-weight:800;font-size:12px;margin-inline-end:10px;cursor:pointer;}
+/* كارت الكود في شاشة التسجيل — أوسع من رقم */
+.name-card em{letter-spacing:.2px;font-size:12.5px;}
+@media (max-width:360px){
+  .stats{grid-template-columns:repeat(2,1fr);}
+  .stats .stat:last-child{grid-column:1 / -1;}
+}

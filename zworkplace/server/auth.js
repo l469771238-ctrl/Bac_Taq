@@ -65,11 +65,29 @@ function tooMany(key, limit = 8, windowMs = 10 * 60000) {
 function clearTries(key) { tries.delete(key); }
 
 /* ---- تحقق المدخلات ---- */
-const SEAT_RE = /^[0-9]{9}$/;
-const NAME_RE = /^[\u0600-\u06FFa-zA-Z\s.'\-]{6,80}$/;
 
-function validSeat(v) { return SEAT_RE.test(String(v || '')); }
-function validName(v) { return NAME_RE.test(String(v || '').trim()) && String(v).trim().split(/\s+/).length >= 3; }
+/**
+ * كود الطالب: اللي المدرس بيديه له. مرن عن قصد لأن كل مدرسة بتحط كودها بشكل،
+ * بس بنرفض المسافات والرموز الغريبة عشان ما نتعبش في الروابط والبحث.
+ *   أمثلة مقبولة: 100000001 · A12 · stu_7 · 3/2-15 · S-2026-004
+ */
+const CODE_RE = /^[0-9A-Za-z\u0600-\u06FF][0-9A-Za-z\u0600-\u06FF._\/-]{2,39}$/;
+
+function normalizeCode(v) {
+  return String(v == null ? '' : v).trim().replace(/\s+/g, '');
+}
+function validCode(v) { return CODE_RE.test(normalizeCode(v)); }
+function codeProblem(v) {
+  const c = normalizeCode(v);
+  if (!c) return 'اكتب كودك';
+  if (c.length < 3) return 'الكود قصير أوي';
+  if (c.length > 40) return 'الكود طويل أوي';
+  if (!CODE_RE.test(c)) return 'الكود فيه رموز مش مسموحة';
+  return null;
+}
+
+const NAME_RE = /^[\u0600-\u06FFa-zA-Z\s.'\-]{3,80}$/;
+function validName(v) { return NAME_RE.test(String(v || '').trim()); }
 function passProblem(p) {
   const s = String(p || '');
   if (s.length < 6) return 'كلمة المرور لازم 6 حروف أو أرقام على الأقل';
@@ -80,5 +98,6 @@ function passProblem(p) {
 
 module.exports = {
   hashPassword, verifyPassword, createSession, readSession, destroySession,
-  tooMany, clearTries, validSeat, validName, passProblem, SESSION_DAYS
+  tooMany, clearTries, validCode, codeProblem, normalizeCode, validName, passProblem,
+  SESSION_DAYS
 };
