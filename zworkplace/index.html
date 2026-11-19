@@ -200,23 +200,77 @@
   <div class="scroll" id="files-body"></div>
 </section>
 
-<!-- ═══════════ الطالب ═══════════ -->
+<!-- ═══════════ الطالب: الرئيسية ═══════════ -->
 <section id="screen-student" class="screen">
   <header class="th-top">
     <div>
       <span class="th-hello" id="st-hello">أهلاً</span>
       <h2 id="st-name">—</h2>
     </div>
-    <button class="icon-btn" id="st-logout" title="خروج">⏻</button>
+    <div style="display:flex;gap:8px">
+      <button class="icon-btn" id="st-bell" title="الإشعارات" style="position:relative">
+        🔔<span class="badge" id="st-badge" hidden>0</span>
+      </button>
+      <button class="icon-btn" id="st-logout" title="خروج">⏻</button>
+    </div>
   </header>
   <div class="scroll">
     <div class="my-card" id="st-card"></div>
-    <div class="sec-head"><h3>الإعلانات</h3></div>
-    <div id="st-ann"></div>
-    <div class="sec-head"><h3>رسايل المس</h3></div>
-    <div id="st-chat"></div>
+    <div class="sec-head"><h3>مساحاتي</h3></div>
+    <div class="tiles" id="st-tiles">
+      <button class="tile t-blue" data-snav="chat">
+        <span class="t-ico">💬</span><b>مساحة الدردشة</b><i>مجموعتك · فصلك</i></button>
+      <button class="tile t-gold" data-snav="submit">
+        <span class="t-ico">📤</span><b>مساحة التسليم</b><i>المطلوب منك</i>
+        <span class="badge" id="st-task-badge" hidden>0</span></button>
+      <button class="tile t-green" data-snav="files">
+        <span class="t-ico">📁</span><b>ملفات مجموعتي</b><i>شغلنا كله</i></button>
+      <button class="tile t-navy" data-snav="notify">
+        <span class="t-ico">📢</span><b>الإشعارات</b><i>إعلانات المس</i>
+        <span class="badge" id="st-notif-badge" hidden>0</span></button>
+    </div>
   </div>
 </section>
+
+<!-- ═══════════ الطالب: الإشعارات ═══════════ -->
+<section id="screen-stnotify" class="screen sub">
+  <header class="top">
+    <button class="back" data-snav="home">‹</button>
+    <h2>مركز الإشعارات</h2>
+  </header>
+  <div class="scroll" id="stn-body"></div>
+</section>
+
+<!-- ═══════════ الطالب: الدردشة ═══════════ -->
+<section id="screen-stchat" class="screen sub">
+  <header class="top">
+    <button class="back" data-snav="home">‹</button>
+    <h2 id="stc-title">الدردشة</h2>
+  </header>
+  <div class="tabs" id="stc-tabs"></div>
+  <div class="scroll" id="stc-body"></div>
+</section>
+
+<!-- ═══════════ الطالب: التسليم ═══════════ -->
+<section id="screen-stsubmit" class="screen sub">
+  <header class="top">
+    <button class="back" data-snav="home">‹</button>
+    <h2>مساحة التسليم</h2>
+  </header>
+  <div class="scroll" id="sts-body"></div>
+</section>
+
+<!-- ═══════════ الطالب: ملفات المجموعة ═══════════ -->
+<section id="screen-stfiles" class="screen sub">
+  <header class="top">
+    <button class="back" data-snav="home">‹</button>
+    <h2>ملفات مجموعتي</h2>
+    <button class="icon-btn" id="stf-up" title="رفع">⤒</button>
+  </header>
+  <div class="scroll" id="stf-body"></div>
+</section>
+
+<input type="file" id="pick-file" hidden>
 
 <div class="toast" id="toast"></div>
 <script src="js/app.js"></script>

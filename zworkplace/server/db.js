@@ -104,6 +104,46 @@ function migrate(db) {
       expires_at  INTEGER NOT NULL
     );
 
+
+    /* ---- المرحلة ٢: المهمات والتسليم والدردشة ---- */
+
+    /* مطلوب: إما لكل مجموعة أو لعضو معين — الاتنين مربوطين بالفصل */
+    CREATE TABLE IF NOT EXISTS tasks (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      class_id    INTEGER NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+      group_id    INTEGER REFERENCES groups(id) ON DELETE CASCADE,
+      student_id  INTEGER REFERENCES students(id) ON DELETE CASCADE,
+      title       TEXT NOT NULL,
+      body        TEXT NOT NULL DEFAULT '',
+      created_at  INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS submissions (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      task_id     INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      student_id  INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      file_id     INTEGER REFERENCES files(id) ON DELETE SET NULL,
+      link        TEXT NOT NULL DEFAULT '',
+      created_at  INTEGER NOT NULL,
+      UNIQUE (task_id, student_id)
+    );
+
+    /* دردشة: مجموعة أو فصل بس — مفيش فرد لفرد */
+    CREATE TABLE IF NOT EXISTS chat_msgs (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      scope       TEXT NOT NULL CHECK (scope IN ('group','class')),
+      target_id   INTEGER NOT NULL,
+      student_id  INTEGER REFERENCES students(id) ON DELETE SET NULL,
+      from_teacher INTEGER NOT NULL DEFAULT 0,
+      body        TEXT NOT NULL,
+      created_at  INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS ix_tasks_class   ON tasks(class_id, group_id);
+    CREATE INDEX IF NOT EXISTS ix_tasks_student ON tasks(student_id);
+    CREATE INDEX IF NOT EXISTS ix_sub_task      ON submissions(task_id);
+    CREATE INDEX IF NOT EXISTS ix_chat_target   ON chat_msgs(scope, target_id, id);
+
     CREATE INDEX IF NOT EXISTS ix_students_group  ON students(group_id);
     CREATE INDEX IF NOT EXISTS ix_students_status ON students(status);
     CREATE INDEX IF NOT EXISTS ix_groups_class    ON groups(class_id);

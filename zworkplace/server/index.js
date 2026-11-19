@@ -702,11 +702,553 @@ route('POST', '/api/student/chat', async (req, res, body) => {
   json(res, 201, { id: Number(r.lastInsertRowid) });
 });
 
-/* ====== الملفات — المرحلة القادمة ====== */
+/* ====== الملفات ====== */
+
+const F = require('./files');
+
+/** هل المدرس/الطالب مسموح له يشوف ملف ده؟ */
+function canSeeFile(student, file) {
+  if (!student.group_id) return false;
+  if (file.student_id) {
+    // ملف عضو — كل المجموعة تشوفه
+    const owner = db.prepare('SELECT group_id FROM students WHERE id = ?').get(file.student_id);
+    return !!owner && owner.group_id === student.group_id;
+  }
+  return file.group_id === student.group_id;
+}
+
+/** رفع ملف — للطالب */
+route('POST', '/api/files', async (req, res) => {
+  const st = needStudent(req, res);
+  if (!st) return;
+  if (!st.group_id) return json(res, 400, { error: 'لسه مش في مجموعة — كلّم المس أسماء' });
+  const name = F.safeName(decodeURIComponent(req.headers['x-filename'] || 'ملف'));
+  const mime = String(req.headers['content-type'] || 'application/octet-stream');
+  const meta = await F.receive(req);
+  const r = db
+    .prepare(
+      `INSERT INTO files (group_id, student_id, stored_name, orig_name, mime, size, created_at)
+       VALUES (?,?,?,?,?,?,?)`
+    )
+    .run(st.group_id, st.id, meta.storedName, name, mime, meta.size, Date.now());
+  json(res, 201, {
+    id: Number(r.lastInsertRowid),
+    name,
+    size: meta.size,
+  });
+});
+
+/** ملفات مجموعتي — الطالب بيشوف شغل كل مجموعته (ومحدش غيرهم) */
+route('GET', '/api/student/files', async (req, res) => {
+  const st = needStudent(req, res);
+  if (!st) return;
+  if (!st.group_id) return json(res, 200, { files: [], tasks: [] });
+
+  const files = db
+    .prepare(
+      `SELECT f.*, s.full_name, s.code
+         FROM files f JOIN students s ON s.id = f.student_id
+        WHERE f.group_id = ? ORDER BY f.id DESC`
+    )
+    .all(st.group_id);
+
+  const tasks = tasksFor(st);
+  const subs = db
+    .prepare('SELECT task_id, file_id, link FROM submissions WHERE student_id = ?')
+    .all(st.id);
+  const subByTask = {};
+  subs.forEach((s) => (subByTask[s.task_id] = s));
+
+  json(res, 200, {
+    files: files.map((f) => ({
+      id: f.id,
+      name: f.orig_name,
+      size: f.size,
+      mime: f.mime,
+      at: f.created_at,
+      owner: { id: f.student_id, name: f.full_name, code: f.code, mine: f.student_id === st.id },
+    })),
+    tasks: tasks.map((t) => {
+      const sub = subByTask[t.id];
+      return {
+        id: t.id,
+        title: t.title,
+        body: t.body,
+        scope: t.student_id ? 'me' : 'group',
+        done: !!sub,
+        link: sub ? sub.link : '',
+        fileId: sub ? sub.file_id : null,
+      };
+    }),
+  });
+});
+
+/** المهمات اللي تخص الطالب: لمجموعته + له شخصيًا */
+function tasksFor(st) {
+  if (!st.group_id) return [];
+  return db
+    .prepare(
+      `SELECT * FROM tasks
+        WHERE (group_id = ? AND student_id IS NULL)
+           OR (student_id = ?)
+        ORDER BY id DESC`
+    )
+    .all(st.group_id, st.id);
+}
+
+/** تحميل ملف — بيتأكد إنه من مجموعته قبل ما يبعت أي بايت */
+route('GET', '/api/files/:id', async (req, res, body, p) => {
+  const w = who(req);
+  if (!w) return json(res, 401, { error: 'سجّل دخول الأول' });
+  const f = db.prepare('SELECT * FROM files WHERE id = ?').get(Number(p.id));
+  if (!f) return json(res, 404, { error: 'الملف مش موجود' });
+
+  if (w.role === 'student') {
+    const st = db.prepare('SELECT * FROM students WHERE id = ?').get(w.uid);
+    if (!st || st.status !== 'active' || !canSeeFile(st, f)) {
+      return json(res, 403, { error: 'الملف ده مش لمجموعتك' });
+    }
+  }
+  const full = path.join(F.UPLOAD_DIR, path.basename(f.stored_name));
+  if (!fs.existsSync(full)) return json(res, 404, { error: 'الملف اتمسح من السيرفر' });
+
+  const st = fs.statSync(full);
+  res.writeHead(200, {
+    'Content-Type': f.mime || 'application/octet-stream',
+    'Content-Length': st.size,
+    'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(f.orig_name)}`,
+  });
+  fs.createReadStream(full).pipe(res);
+});
+
+/** مسح ملف — صاحبه أو المس */
+route('DELETE', '/api/files/:id', async (req, res, body, p) => {
+  const w = who(req);
+  if (!w) return json(res, 401, { error: 'سجّل دخول الأول' });
+  const f = db.prepare('SELECT * FROM files WHERE id = ?').get(Number(p.id));
+  if (!f) return json(res, 404, { error: 'الملف مش موجود' });
+  if (w.role === 'student' && f.student_id !== w.uid) {
+    return json(res, 403, { error: 'مش ملفك' });
+  }
+  db.prepare('DELETE FROM submissions WHERE file_id = ?').run(f.id);
+  db.prepare('DELETE FROM files WHERE id = ?').run(f.id);
+  F.remove(f.stored_name);
+  json(res, 200, { ok: true });
+});
+
+/* ====== المهمات (المس) ====== */
+
+/** الشجرة الكاملة: فصل → مجموعة → أعضاء → ملفات + مطلوبات */
 route('GET', '/api/teacher/files/tree', async (req, res) => {
   if (!needTeacher(req, res)) return;
-  const classes = classTree();
-  json(res, 200, { classes, note: 'رفع الملفات هيتفتح في المرحلة الجاية' });
+  const tree = classTree();
+  const allFiles = db
+    .prepare('SELECT * FROM files WHERE student_id IS NOT NULL ORDER BY id DESC')
+    .all();
+  const allTasks = db.prepare('SELECT * FROM tasks ORDER BY id DESC').all();
+  const subs = db.prepare('SELECT * FROM submissions').all();
+
+  const classes = tree.map((c) => ({
+    ...c,
+    groups: c.groups.map((g) => ({
+      ...g,
+      members: g.members.map((m) => {
+        const mine = allFiles.filter((f) => f.student_id === m.id);
+        const myTasks = allTasks.filter((t) => t.student_id === m.id);
+        return {
+          ...m,
+          files: mine.map((f) => ({ id: f.id, name: f.orig_name, size: f.size, at: f.created_at })),
+          tasks: myTasks.map((t) => taskState(t, subs, m.id)),
+        };
+      }),
+      tasks: allTasks
+        .filter((t) => t.group_id === g.id && !t.student_id)
+        .map((t) => ({
+          ...taskState(t, subs, null),
+          doneCount: g.members.filter((m) =>
+            subs.some((s) => s.task_id === t.id && s.student_id === m.id)
+          ).length,
+          total: g.members.length,
+          pending: g.members
+            .filter((m) => !subs.some((s) => s.task_id === t.id && s.student_id === m.id))
+            .map((m) => ({ id: m.id, name: m.name })),
+        })),
+    })),
+  }));
+
+  json(res, 200, { classes });
+});
+
+function taskState(t, subs, sid) {
+  if (sid == null) return { id: t.id, title: t.title, body: t.body };
+  const s = subs.find((x) => x.task_id === t.id && x.student_id === sid);
+  return { id: t.id, title: t.title, body: t.body, done: !!s, link: s ? s.link : '' };
+}
+
+/** إنشاء مطلوب — لمجموعة أو لعضو */
+route('POST', '/api/teacher/tasks', async (req, res, body) => {
+  if (!needTeacher(req, res)) return;
+  const title = clean(body.title, 120);
+  if (!title) return json(res, 400, { error: 'اكتب اسم المطلوب' });
+  const bodyText = clean(body.body, 600);
+  const groupId = body.groupId ? Number(body.groupId) : null;
+  const studentId = body.studentId ? Number(body.studentId) : null;
+
+  let classId = null;
+  if (studentId) {
+    const st = db.prepare('SELECT * FROM students WHERE id = ?').get(studentId);
+    if (!st) return json(res, 404, { error: 'الطالب مش موجود' });
+    if (!st.group_id) return json(res, 400, { error: 'الطالب مش في مجموعة' });
+    const g = db.prepare('SELECT * FROM groups WHERE id = ?').get(st.group_id);
+    classId = g.class_id;
+    // لو المطلوب لعضو، بنربطه بمجموعته كمان عشان يظهر صح
+  } else if (groupId) {
+    const g = db.prepare('SELECT * FROM groups WHERE id = ?').get(groupId);
+    if (!g) return json(res, 404, { error: 'المجموعة مش موجودة' });
+    classId = g.class_id;
+  } else {
+    return json(res, 400, { error: 'اختار مجموعة أو عضو' });
+  }
+
+  const r = db
+    .prepare(
+      'INSERT INTO tasks (class_id, group_id, student_id, title, body, created_at) VALUES (?,?,?,?,?,?)'
+    )
+    .run(classId, groupId, studentId, title, bodyText, Date.now());
+  json(res, 201, { id: Number(r.lastInsertRowid), title });
+});
+
+route('DELETE', '/api/teacher/tasks/:id', async (req, res, body, p) => {
+  if (!needTeacher(req, res)) return;
+  db.prepare('DELETE FROM tasks WHERE id = ?').run(Number(p.id));
+  json(res, 200, { ok: true });
+});
+
+/* ====== التسليم ====== */
+
+/** الطالب بيسلّم: ملف مرفوع أو لينك درايف */
+route('POST', '/api/student/submit/:taskId', async (req, res, body, p) => {
+  const st = needStudent(req, res);
+  if (!st) return;
+  const taskId = Number(p.taskId);
+  const t = db.prepare('SELECT * FROM tasks WHERE id = ?').get(taskId);
+  if (!t) return json(res, 404, { error: 'المطلوب مش موجود' });
+  const mine = tasksFor(st).some((x) => x.id === taskId);
+  if (!mine) return json(res, 403, { error: 'المطلوب ده مش ليك' });
+
+  const link = clean(body.link, 500);
+  const fileId = body.fileId ? Number(body.fileId) : null;
+  if (!link && !fileId) return json(res, 400, { error: 'ارفع ملف أو حط لينك' });
+  if (link && !/^https?:\/\//i.test(link)) {
+    return json(res, 400, { error: 'اللينك لازم يبدأ بـ http أو https' });
+  }
+  if (fileId) {
+    const f = db.prepare('SELECT * FROM files WHERE id = ?').get(fileId);
+    if (!f || f.student_id !== st.id) return json(res, 403, { error: 'الملف ده مش ملفك' });
+  }
+
+  db.prepare(
+    `INSERT INTO submissions (task_id, student_id, file_id, link, created_at)
+     VALUES (?,?,?,?,?)
+     ON CONFLICT(task_id, student_id) DO UPDATE SET
+       file_id = excluded.file_id, link = excluded.link, created_at = excluded.created_at`
+  ).run(taskId, st.id, fileId, link, Date.now());
+
+  json(res, 200, { ok: true, done: true });
+});
+
+route('DELETE', '/api/student/submit/:taskId', async (req, res, body, p) => {
+  const st = needStudent(req, res);
+  if (!st) return;
+  db.prepare('DELETE FROM submissions WHERE task_id = ? AND student_id = ?')
+    .run(Number(p.taskId), st.id);
+  json(res, 200, { ok: true });
+});
+
+/* ====== ZIP منظم ====== */
+
+/**
+ * بيبني ZIP للمجموعة أو الفصل أو عضو، بفولدر لكل حاجة.
+ * الهيكل: الفصل/المجموعة/العضو/اسم الملف
+ */
+route('GET', '/api/download/zip', async (req, res, body, p, u) => {
+  const w = who(req);
+  if (!w) return json(res, 401, { error: 'سجّل دخول الأول' });
+
+  const groupId = Number(u.searchParams.get('groupId') || 0);
+  const classId = Number(u.searchParams.get('classId') || 0);
+  const studentId = Number(u.searchParams.get('studentId') || 0);
+
+  if (w.role === 'student') {
+    const st = db.prepare('SELECT * FROM students WHERE id = ?').get(w.uid);
+    if (!st || !st.group_id) return json(res, 403, { error: 'مفيش ملفات' });
+    if (groupId !== st.group_id) return json(res, 403, { error: 'ده مش مجلد مجموعتك' });
+  }
+
+  const entries = [];
+  const base = [];
+
+  if (studentId) {
+    const st = db.prepare('SELECT * FROM students WHERE id = ?').get(studentId);
+    if (!st) return json(res, 404, { error: 'الطالب مش موجود' });
+    const g = db.prepare('SELECT g.*, c.name AS cname FROM groups g JOIN classes c ON c.id=g.class_id WHERE g.id=?').get(st.group_id);
+    base.push(g ? g.cname : 'فصل', g ? g.name : 'مجموعة');
+    pushMember(entries, base, st);
+    return sendZip(res, entries, `${st.full_name}`);
+  }
+
+  if (groupId) {
+    const g = db
+      .prepare('SELECT g.*, c.name AS cname FROM groups g JOIN classes c ON c.id=g.class_id WHERE g.id=?')
+      .get(groupId);
+    if (!g) return json(res, 404, { error: 'المجموعة مش موجودة' });
+    base.push(g.cname, g.name);
+    const members = db
+      .prepare('SELECT * FROM students WHERE group_id = ? ORDER BY is_leader DESC, full_name')
+      .all(groupId);
+    members.forEach((m) => pushMember(entries, base, m));
+    return sendZip(res, entries, `${g.cname} - ${g.name}`);
+  }
+
+  if (classId) {
+    const c = db.prepare('SELECT * FROM classes WHERE id = ?').get(classId);
+    if (!c) return json(res, 404, { error: 'الفصل مش موجود' });
+    base.push(c.name);
+    const groups = db.prepare('SELECT * FROM groups WHERE class_id = ?').all(classId);
+    groups.forEach((g) => {
+      const members = db
+        .prepare('SELECT * FROM students WHERE group_id = ? ORDER BY is_leader DESC, full_name')
+        .all(g.id);
+      members.forEach((m) => pushMember(entries, [...base, g.name], m));
+    });
+    return sendZip(res, entries, c.name);
+  }
+
+  return json(res, 400, { error: 'اختار فصل أو مجموعة أو عضو' });
+});
+
+function pushMember(entries, base, member) {
+  const files = db.prepare('SELECT * FROM files WHERE student_id = ? ORDER BY id').all(member.id);
+  // فولدر العضو موجود حتى لو فاضي — عشان التنظيم يبان
+  entries.push({ name: [...base, member.full_name, '.gitkeep'].join('/'), data: Buffer.alloc(0) });
+  files.forEach((f) => {
+    entries.push({ name: [...base, member.full_name, F.safeName(f.orig_name)].join('/'), storedName: f.stored_name });
+  });
+}
+
+function sendZip(res, entries, name) {
+  const zip = F.buildZip(entries);
+  res.writeHead(200, {
+    'Content-Type': 'application/zip',
+    'Content-Length': zip.length,
+    'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(F.safeName(name) + '.zip')}`,
+  });
+  res.end(zip);
+}
+
+/* ====== رفع بإرسال خام (للملفات الكبيرة) ====== */
+// نفس مسار الرفع بس للمدرس
+route('POST', '/api/teacher/files', async (req, res) => {
+  if (!needTeacher(req, res)) return;
+  const studentId = Number(req.headers['x-student-id'] || 0);
+  if (!studentId) return json(res, 400, { error: 'اختار الطالب' });
+  const st = db.prepare('SELECT * FROM students WHERE id = ?').get(studentId);
+  if (!st || !st.group_id) return json(res, 400, { error: 'الطالب مش في مجموعة' });
+  const name = F.safeName(decodeURIComponent(req.headers['x-filename'] || 'ملف'));
+  const mime = String(req.headers['content-type'] || 'application/octet-stream');
+  const meta = await F.receive(req);
+  const r = db
+    .prepare(
+      `INSERT INTO files (group_id, student_id, stored_name, orig_name, mime, size, created_at)
+       VALUES (?,?,?,?,?,?,?)`
+    )
+    .run(st.group_id, st.id, meta.storedName, name, mime, meta.size, Date.now());
+  json(res, 201, { id: Number(r.lastInsertRowid), name, size: meta.size });
+});
+
+/* ====== دردشة المجموعة والفصل ====== */
+/*
+ * قواعد صارمة:
+ *   - الطالب بيبعت في دردشة مجموعته أو دردشة فصله بس. مفيش فرد لفرد.
+ *   - مفيش مسار يخلي طالب يختار مجموعة أو فصل تاني.
+ *   - أي محاولة تتقفل بـ403.
+ */
+
+/** قنوات الطالب المسموحة له */
+route('GET', '/api/student/channels', async (req, res) => {
+  const st = needStudent(req, res);
+  if (!st) return;
+  if (!st.group_id) {
+    return json(res, 200, {
+      channels: [],
+      note: 'لسه مش في مجموعة — كلّم المس أسماء',
+    });
+  }
+  const g = db
+    .prepare('SELECT g.*, c.id AS cid, c.name AS cname FROM groups g JOIN classes c ON c.id = g.class_id WHERE g.id = ?')
+    .get(st.group_id);
+  json(res, 200, {
+    channels: [
+      { scope: 'group', id: g.id, name: g.name, kind: 'مجموعتك', gender: g.gender },
+      { scope: 'class', id: g.cid, name: g.cname, kind: 'الفصل' },
+    ],
+    note: '',
+  });
+});
+
+/** رسايل قناة — الطالب بياخد قنواته هو بس */
+route('GET', '/api/student/chat/:scope/:id', async (req, res, body, p) => {
+  const st = needStudent(req, res);
+  if (!st) return;
+  const scope = p.scope === 'class' ? 'class' : 'group';
+  const id = Number(p.id);
+  if (!st.group_id) return json(res, 403, { error: 'لسه مش في مجموعة' });
+
+  const g = db.prepare('SELECT * FROM groups WHERE id = ?').get(st.group_id);
+  if (scope === 'group' && id !== g.id) return json(res, 403, { error: 'ده مش مجلد مجموعتك' });
+  if (scope === 'class' && id !== g.class_id) return json(res, 403, { error: 'ده مش فصلك' });
+
+  const rows = db
+    .prepare(
+      `SELECT m.*, s.full_name, s.code, s.is_leader
+         FROM chat_msgs m LEFT JOIN students s ON s.id = m.student_id
+        WHERE m.scope = ? AND m.target_id = ? ORDER BY m.id`
+    )
+    .all(scope, id);
+
+  json(res, 200, {
+    scope,
+    id,
+    msgs: rows.map((m) => ({
+      id: m.id,
+      body: m.body,
+      at: m.created_at,
+      from: m.from_teacher ? 'teacher' : 'student',
+      name: m.from_teacher ? 'مس أسماء' : m.full_name,
+      code: m.code || '',
+      leader: !!m.is_leader,
+      mine: !m.from_teacher && m.student_id === st.id,
+    })),
+  });
+});
+
+/** إرسال — الطالب في قناته بس */
+route('POST', '/api/student/chat/:scope/:id', async (req, res, body, p) => {
+  const st = needStudent(req, res);
+  if (!st) return;
+  const scope = p.scope === 'class' ? 'class' : 'group';
+  const id = Number(p.id);
+  if (!st.group_id) return json(res, 403, { error: 'لسه مش في مجموعة' });
+
+  const g = db.prepare('SELECT * FROM groups WHERE id = ?').get(st.group_id);
+  if (scope === 'group' && id !== g.id) return json(res, 403, { error: 'ده مش مجلد مجموعتك' });
+  if (scope === 'class' && id !== g.class_id) return json(res, 403, { error: 'ده مش فصلك' });
+
+  const text = clean(body.body, 2000);
+  if (!text) return json(res, 400, { error: 'اكتب رسالة' });
+  const r = db
+    .prepare(
+      'INSERT INTO chat_msgs (scope, target_id, student_id, from_teacher, body, created_at) VALUES (?,?,?,0,?,?)'
+    )
+    .run(scope, id, st.id, text, Date.now());
+  json(res, 201, { id: Number(r.lastInsertRowid) });
+});
+
+/** المس: بتشوف كل قنوات الفصل (بس القنوات، مش خاص) */
+route('GET', '/api/teacher/channels', async (req, res) => {
+  if (!needTeacher(req, res)) return;
+  const tree = classTree();
+  const out = [];
+  for (const c of tree) {
+    const classMsgs = db
+      .prepare("SELECT COUNT(*) n FROM chat_msgs WHERE scope='class' AND target_id = ?")
+      .get(c.id).n;
+    out.push({ scope: 'class', id: c.id, name: c.name, kind: 'دردشة الفصل', count: classMsgs, gender: null });
+    c.groups.forEach((g) => {
+      const n = db
+        .prepare("SELECT COUNT(*) n FROM chat_msgs WHERE scope='group' AND target_id = ?")
+        .get(g.id).n;
+      out.push({ scope: 'group', id: g.id, name: `${c.name} · ${g.name}`, kind: 'دردشة المجموعة', count: n, gender: g.gender });
+    });
+  }
+  json(res, 200, { channels: out });
+});
+
+/** المس: قراءة قناة */
+route('GET', '/api/teacher/chatroom/:scope/:id', async (req, res, body, p) => {
+  if (!needTeacher(req, res)) return;
+  const scope = p.scope === 'class' ? 'class' : 'group';
+  const id = Number(p.id);
+  const rows = db
+    .prepare(
+      `SELECT m.*, s.full_name, s.code, s.is_leader
+         FROM chat_msgs m LEFT JOIN students s ON s.id = m.student_id
+        WHERE m.scope = ? AND m.target_id = ? ORDER BY m.id`
+    )
+    .all(scope, id);
+  let title = '';
+  if (scope === 'class') {
+    const c = db.prepare('SELECT name FROM classes WHERE id = ?').get(id);
+    title = c ? c.name : '';
+  } else {
+    const g = db.prepare('SELECT g.name, c.name AS cname FROM groups g JOIN classes c ON c.id=g.class_id WHERE g.id=?').get(id);
+    title = g ? `${g.cname} · ${g.name}` : '';
+  }
+  json(res, 200, {
+    scope, id, title,
+    msgs: rows.map((m) => ({
+      id: m.id, body: m.body, at: m.created_at,
+      from: m.from_teacher ? 'teacher' : 'student',
+      name: m.from_teacher ? 'مس أسماء' : m.full_name,
+      leader: !!m.is_leader,
+    })),
+  });
+});
+
+/** المس: تكتب في قناة */
+route('POST', '/api/teacher/chatroom/:scope/:id', async (req, res, body, p) => {
+  if (!needTeacher(req, res)) return;
+  const scope = p.scope === 'class' ? 'class' : 'group';
+  const id = Number(p.id);
+  const text = clean(body.body, 2000);
+  if (!text) return json(res, 400, { error: 'اكتب رسالة' });
+  const r = db
+    .prepare(
+      'INSERT INTO chat_msgs (scope, target_id, student_id, from_teacher, body, created_at) VALUES (?,?,NULL,1,?,?)'
+    )
+    .run(scope, id, text, Date.now());
+  json(res, 201, { id: Number(r.lastInsertRowid) });
+});
+
+/** المس: تمسح رسالة */
+route('DELETE', '/api/teacher/chatroom/:id', async (req, res, body, p) => {
+  if (!needTeacher(req, res)) return;
+  db.prepare('DELETE FROM chat_msgs WHERE id = ?').run(Number(p.id));
+  json(res, 200, { ok: true });
+});
+
+/** مركز إشعارات الطالب */
+route('GET', '/api/student/notifications', async (req, res) => {
+  const st = needStudent(req, res);
+  if (!st) return;
+  const ann = db
+    .prepare("SELECT * FROM messages WHERE kind='announce' ORDER BY id DESC LIMIT 60")
+    .all()
+    .filter((m) => m.scope === 'all' || (m.scope === 'leaders' && st.is_leader));
+  const tasks = tasksFor(st);
+  const subs = db.prepare('SELECT task_id FROM submissions WHERE student_id = ?').all(st.id);
+  const doneSet = new Set(subs.map((s) => s.task_id));
+  json(res, 200, {
+    items: ann.map((a) => ({
+      kind: 'announce',
+      id: a.id,
+      body: a.body,
+      scope: a.scope,
+      at: a.created_at,
+    })),
+    pendingTasks: tasks.filter((t) => !doneSet.has(t.id)).length,
+    totalTasks: tasks.length,
+  });
 });
 
 /* ====== الصحة ====== */
@@ -797,7 +1339,10 @@ const server = http.createServer(async (req, res) => {
     const p = match(r.pattern, pathname);
     if (!p) continue;
     try {
-      const body = ['POST', 'PUT', 'PATCH'].includes(req.method) ? await readBody(req) : {};
+      const rawUpload = pathname === '/api/files' || pathname === '/api/teacher/files';
+      const body = !rawUpload && ['POST', 'PUT', 'PATCH'].includes(req.method)
+        ? await readBody(req)
+        : {};
       await r.fn(req, res, body, p, u);
     } catch (e) {
       if (!res.headersSent) {

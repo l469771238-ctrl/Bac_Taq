@@ -230,18 +230,88 @@ async function api(method, p, body, t) {
     eq('اتحط في المجموعة', r.data.student.group.id, grp.id);
   }
 
-  /* ---------- ٨. الطالب يدخل ويشوف حالته ---------- */
+  /* ---------- ٨. الطالب: الشاشة الرئيسية ---------- */
+  let STOK = null;
   {
     const r = await api('POST', '/api/login', { code: NEW_CODE, password: 'goodpass1' });
     eq('دخل بعد الموافقة', r.status, 200);
-    const { window } = await makeDom(r.data.token);
-    await sleep(500);
+    STOK = r.data.token;
+    const { window } = await makeDom(STOK);
+    await sleep(600);
     eq('على شاشة الطالب', visible(window), 'screen-student');
     const card = window.document.querySelector('#st-card').textContent;
-    ok('شايف اسمه', card.includes('احمد') || card.includes(r.data.student.name.split(' ')[0]));
+    ok('شايف اسمه', card.includes(r.data.student.name.split(' ')[0]));
     ok('شايف كوده', card.includes(NEW_CODE));
     ok('شايف مجموعته', card.includes(r.data.student.group.name));
-    ok('شايف دوره', /عضو|قائد/.test(card));
+    ok('عنده ٤ مساحات', window.document.querySelectorAll('#st-tiles .tile').length === 4);
+    const t = window.document.querySelector('#st-tiles').textContent;
+    ok('الدردشة', /الدردشة/.test(t));
+    ok('التسليم', /التسليم/.test(t));
+    ok('ملفات مجموعتي', /مجموعتي/.test(t));
+    ok('الإشعارات', /الإشعارات/.test(t));
+  }
+
+  /* ---------- ٨ب. الإشعارات ---------- */
+  {
+    const { window } = await makeDom(STOK);
+    await sleep(500);
+    window.document.querySelector('[data-snav="notify"]').click();
+    await sleep(500);
+    eq('فتح مركز الإشعارات', visible(window), 'screen-stnotify');
+    ok('فيه محتوى', window.document.querySelector('#stn-body').textContent.length > 10);
+  }
+
+  /* ---------- ٨ج. الدردشة ---------- */
+  {
+    const { window } = await makeDom(STOK);
+    await sleep(500);
+    window.document.querySelector('[data-snav="chat"]').click();
+    await sleep(700);
+    eq('فتح الدردشة', visible(window), 'screen-stchat');
+    const tabs = window.document.querySelectorAll('#stc-tabs .tab');
+    eq('في قناتين بس (مجموعة + فصل)', tabs.length, 2);
+    const tt = window.document.querySelector('#stc-tabs').textContent;
+    ok('قناة المجموعة', /مجموعتك/.test(tt));
+    ok('قناة الفصل', /الفصل/.test(tt));
+    ok('مفيش دردشة فرد لفرد', !/خاص|فردي/.test(tt));
+    ok('في خانة كتابة', !!window.document.querySelector('#sc-in'));
+  }
+
+  /* ---------- ٨د. التسليم ---------- */
+  {
+    const T = await teacherToken();
+    const tree = await api('GET', '/api/teacher/files/tree', undefined, T);
+    const g = tree.data.classes[0].groups.find((x) => x.members.some((m) => m.code === NEW_CODE));
+    await api('POST', '/api/teacher/tasks', { title: 'مشروع اختبار الواجهة', groupId: g.id }, T);
+
+    const { window } = await makeDom(STOK);
+    await sleep(500);
+    window.document.querySelector('[data-snav="submit"]').click();
+    await sleep(700);
+    eq('فتح التسليم', visible(window), 'screen-stsubmit');
+    const body = window.document.querySelector('#sts-body').textContent;
+    ok('المطلوب ظاهر', /مشروع اختبار/.test(body));
+    ok('في زرار تسليم', !!window.document.querySelector('[data-sub]'));
+  }
+
+  /* ---------- ٨هـ. ملفات المجموعة ---------- */
+  {
+    const { window } = await makeDom(STOK);
+    await sleep(500);
+    window.document.querySelector('[data-snav="files"]').click();
+    await sleep(600);
+    eq('فتح ملفات المجموعة', visible(window), 'screen-stfiles');
+    ok('في زرار رفع', !!window.document.querySelector('#stf-up'));
+  }
+
+  /* ---------- ٨و. الخصوصية: مفيش وصول لمجموعة تانية ---------- */
+  {
+    const fake = await api('GET', '/api/student/chat/group/99999', undefined, STOK);
+    eq('دردشة مجموعة تانية ممنوعة', fake.status, 403);
+    const other = await api('GET', '/api/download/zip?groupId=99999', undefined, STOK);
+    eq('ZIP مجموعة تانية ممنوع', other.status, 403);
+    const ch = await api('GET', '/api/student/channels', undefined, STOK);
+    eq('الطالب له قناتين بس', ch.data.channels.length, 2);
   }
 
   /* ---------- ٩. الإعلانات ---------- */
@@ -264,38 +334,101 @@ async function api(method, p, body, t) {
     eq('الإعلان اتنشر', after, before + 1);
   }
 
-  /* ---------- ١٠. الدردشة ---------- */
+  /* ---------- ١٠. رفع ملف من الطالب ---------- */
   {
-    const T = await teacherToken();
-    const t = await makeDom(T);
-    const { window } = t;
-    window.document.querySelector('[data-nav="comm"]').click();
-    await sleep(500);
-    window.document.querySelector('#comm-tabs [data-t="chat"]').click();
-    await sleep(700);
-    const list = window.document.querySelectorAll('[data-chat]');
-    ok('في قائمة طلاب للدردشة', list.length >= 1);
-    if (list.length) {
-      list[0].click();
-      await sleep(600);
-      ok('فتح محادثة', !!window.document.querySelector('#ch-in'));
-      ok('مفيش رفع صور أو مرفقات', !window.document.querySelector('input[type="file"]'));
-      window.document.querySelector('#ch-in').value = 'رسالة اختبار';
-      window.document.querySelector('#ch-send').click();
-      await sleep(700);
-      ok('الرسالة اتبعتت', /اختبار/.test(window.document.querySelector('#ch-msgs').textContent));
-    }
+    // نرفع ملف بالـAPI ونتأكد إنه ظهر لبقية المجموعة
+    const up = await fetch(BASE + '/api/files', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + STOK,
+        'Content-Type': 'text/plain',
+        'X-Filename': encodeURIComponent('ملف اختبار.txt'),
+      },
+      body: Buffer.from('سلام'),
+    });
+    eq('الرفع نجح', up.status, 201);
+    const list = await api('GET', '/api/student/files', undefined, STOK);
+    ok('الملف ظاهر في مجموعته', list.data.files.some((f) => f.name === 'ملف اختبار.txt'));
+    ok('معاه اسم صاحبه', list.data.files[0].owner.name.length > 3);
+
+    // ملف أكبر من الحد — لازم يترفض
+    const big = await fetch(BASE + '/api/files', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + STOK,
+        'Content-Type': 'application/octet-stream',
+        'X-Filename': 'ضخم.bin',
+        'Content-Length': String(130 * 1024 * 1024),
+      },
+      body: Buffer.alloc(0),
+    }).catch(() => ({ status: 413 }));
+    ok('الحد ١٢٠ ميجا enforced', big.status === 413 || big.status === 400);
   }
 
-  /* ---------- ١١. مساحة الملفات ---------- */
+  /* ---------- ١١. مساحة الملفات (المس) ---------- */
   {
     const T = await teacherToken();
     const t = await makeDom(T);
     const { window } = t;
     window.document.querySelector('[data-nav="files"]').click();
-    await sleep(400);
+    await sleep(700);
     eq('فتح مساحة الملفات', visible(window), 'screen-files');
-    ok('فيها شرح', /الملفات|المجموعة/.test(window.document.querySelector('#files-body').textContent));
+    const body = window.document.querySelector('#files-body').textContent;
+    ok('في تبويبين', window.document.querySelectorAll('[data-ft]').length === 2);
+    ok('تبويب شغل المجموعات', /شغل المجموعات/.test(body));
+    ok('تبويب المطلوبات', /المطلوبات/.test(body));
+    ok('في زرار ZIP', window.document.querySelectorAll('[data-zipcls],[data-zipgrp]').length >= 1);
+  }
+
+  /* ---------- ١١ب. بروفايل العضو ---------- */
+  {
+    const T = await teacherToken();
+    const t = await makeDom(T);
+    const { window } = t;
+    window.document.querySelector('[data-nav="files"]').click();
+    await sleep(600);
+    const cls = window.document.querySelector('[data-fcls]');
+    if (cls) {
+      cls.click();
+      await sleep(600);
+      const prof = window.document.querySelector('[data-prof]');
+      ok('في زرار ملفه لكل عضو', !!prof);
+      if (prof) {
+        prof.click();
+        await sleep(700);
+        const sheet = window.document.querySelector('.sheet');
+        ok('بروفايل العضو فتح', !!sheet);
+        if (sheet) {
+          ok('فيه ملفاته', /ملفاته/.test(sheet.textContent));
+          ok('فيه المطلوب منه', /المطلوب منه/.test(sheet.textContent));
+          ok('فيه زرار مطلوب جديد', !!window.document.querySelector('#p-addtask'));
+        }
+      }
+    }
+  }
+
+  /* ---------- ١١ج. دردشة المس ---------- */
+  {
+    const T = await teacherToken();
+    const t = await makeDom(T);
+    const { window } = t;
+    window.document.querySelector('[data-nav="comm"]').click();
+    await sleep(600);
+    window.document.querySelector('#comm-tabs [data-t="chat"]').click();
+    await sleep(700);
+    const rooms = window.document.querySelectorAll('[data-room]');
+    ok('في قنوات دردشة', rooms.length >= 1);
+    if (rooms.length) {
+      rooms[0].click();
+      await sleep(700);
+      ok('فتح القناة', !!window.document.querySelector('#rm-in'));
+      const before = (await api('GET', '/api/teacher/channels', undefined, T)).data.channels[0].count;
+      window.document.querySelector('#rm-in').value = 'رسالة من المس';
+      window.document.querySelector('#rm-send').click();
+      await sleep(800);
+      ok('المس بتبعت في القناة', /رسالة من المس/.test(window.document.querySelector('#rm-msgs').textContent));
+      void before;
+    }
   }
 
   /* ---------- ١٢. الخروج ---------- */

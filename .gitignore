@@ -13,3 +13,7 @@ zworkplace/data/
 # ملفات مؤقتة من الأدوات
 *.whl
 zworkplace/data-import/crops/
+
+# ملفات مرفوعة من المستخدمين
+zworkplace/uploads/*
+!zworkplace/uploads/.gitkeep

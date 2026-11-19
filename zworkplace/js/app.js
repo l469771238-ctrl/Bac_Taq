@@ -18,6 +18,9 @@
     chatWith: null,
     openClasses: new Set(),
     openChat: null,
+    channels: [],
+    chatScope: null,
+    lastNotif: 0,
   };
 
   /* ---------------- أدوات ---------------- */
@@ -27,12 +30,12 @@
       { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
     ));
   }
-  function toast(msg) {
+  function toast(msg, ms) {
     const t = $('#toast');
     t.textContent = msg;
     t.classList.add('on');
     clearTimeout(toast._t);
-    toast._t = setTimeout(() => t.classList.remove('on'), 2400);
+    toast._t = setTimeout(() => t.classList.remove('on'), ms || 2400);
   }
   function token() { try { return localStorage.getItem(TOK) || ''; } catch (e) { return ''; } }
   function setToken(v) {
@@ -572,6 +575,7 @@
   $$('#comm-tabs .tab').forEach((t) => (t.onclick = () => {
     st.commTab = t.dataset.t;
     st.chatWith = null;
+    roomWith = null;
     $$('#comm-tabs .tab').forEach((x) => x.classList.toggle('on', x === t));
     renderComm();
   }));
@@ -579,7 +583,7 @@
   async function renderComm() {
     const box = $('#comm-body');
     if (st.commTab === 'ann') return renderAnnounce(box);
-    return renderChatList(box);
+    return renderChatRooms(box);
   }
 
   async function renderAnnounce(box) {
@@ -686,22 +690,369 @@
     if (box2 && box2.scrollIntoView) box2.scrollIntoView({ block: 'end' });
   }
 
-  /* ---------------- الملفات ---------------- */
+  /* ---------------- الملفات (المس) ---------------- */
+
+  let filesTab = 'tree';
 
   async function renderFiles() {
     const box = $('#files-body');
+    box.innerHTML = '<p style="text-align:center;color:#6b7a94;padding:30px">بنحمّل…</p>';
+    let d;
+    try { d = await api('GET', '/api/teacher/files/tree'); } catch (e) {
+      box.innerHTML = `<div class="empty"><p>${esc(e.message)}</p></div>`; return;
+    }
+    if (!d.classes.length) {
+      box.innerHTML = `<div class="empty"><div class="e-ico">📁</div>
+        <p>مفيش فصول لسه<br><small>اعملي فصل ومجموعات من لوحة التنظيم الأول</small></p></div>`;
+      return;
+    }
+
     box.innerHTML = `
-      <div class="empty">
-        <div class="e-ico">📁</div>
-        <p><b>مساحة الملفات — المرحلة الجاية</b></p>
-        <p style="margin-top:10px;font-size:12.5px">
-          هتشوفي كل فصل ← المجموعة ← كل عضو وملفاته.<br>
-          رفع أي نوع ملف وبأي حجم، ومجلد لكل عضو.
-        </p>
+      <div class="tabs" style="padding:0 0 12px;background:none;border:0">
+        <button class="tab ${filesTab === 'tree' ? 'on' : ''}" data-ft="tree">شغل المجموعات</button>
+        <button class="tab ${filesTab === 'tasks' ? 'on' : ''}" data-ft="tasks">المطلوبات</button>
+      </div>
+      <div id="ft-body"></div>`;
+
+    $$('[data-ft]', box).forEach((b) => (b.onclick = () => {
+      filesTab = b.dataset.ft;
+      renderFiles();
+    }));
+
+    if (filesTab === 'tree') renderFilesTree(d);
+    else renderTasksPanel(d);
+  }
+
+  function renderFilesTree(d) {
+    const box = $('#ft-body');
+    box.innerHTML = d.classes.map((c) => `
+      <div class="cls ${st.openClasses.has('f' + c.id) ? 'open' : ''}">
+        <div class="cls-head" data-fcls="${c.id}">
+          <div class="cls-ico">🏫</div>
+          <div style="flex:1;min-width:0">
+            <b style="font-size:15px">${esc(c.name)}</b>
+            <small style="font-size:11.5px;color:#6b7a94;display:block">
+              ${c.groups.length} مجموعة · ${c.groups.reduce((n, g) => n + g.members.reduce((k, m) => k + m.files.length, 0), 0)} ملف
+            </small>
+          </div>
+          <button class="chip blue" data-zipcls="${c.id}" style="z-index:2">ZIP</button>
+        </div>
+        <div class="cls-body">
+          ${c.groups.map((g) => `
+            <div class="grp">
+              <div class="grp-head">
+                <span class="chip ${g.gender === 'girls' ? 'gray' : 'blue'}">${g.gender === 'girls' ? 'بنات' : 'ولاد'}</span>
+                <span class="grp-name">${esc(g.name)}</span>
+                <button class="chip gold" data-zipgrp="${g.id}">ZIP</button>
+              </div>
+              ${g.members.map((m) => {
+                const missing = m.tasks.filter((t) => !t.done).length;
+                return `
+                <div style="padding:9px 0;border-top:1px dashed #e6ecf5">
+                  <div class="row" style="gap:9px">
+                    <div class="avatar ${m.isLeader ? 'lead' : ''}" style="width:30px;height:30px;font-size:12px;border-radius:9px">
+                      ${m.isLeader ? '★' : esc(initials(m.name))}</div>
+                    <div style="flex:1;min-width:0">
+                      <b style="font-size:12.5px">${esc(m.name)}</b>
+                      <small style="font-size:10.5px;color:#6b7a94">
+                        ${m.files.length} ملف · ${m.tasks.length ? (missing ? missing + ' ناقص' : 'كل المطلوب ✓') : 'مفيش مطلوب'}
+                      </small>
+                    </div>
+                    <button class="chip gray" data-prof="${m.id}">ملفه</button>
+                  </div>
+                </div>`;
+              }).join('') || '<p style="font-size:12px;color:#6b7a94;margin:6px 0">مفيش أعضاء</p>'}
+            </div>`).join('')}
+        </div>
+      </div>`).join('');
+
+    $$('[data-fcls]', box).forEach((el) => (el.onclick = (e) => {
+      if (e.target.dataset.zipcls) return;
+      const k = 'f' + el.dataset.fcls;
+      if (st.openClasses.has(k)) st.openClasses.delete(k); else st.openClasses.add(k);
+      renderFiles();
+    }));
+    $$('[data-zipcls]', box).forEach((el) => (el.onclick = (e) => {
+      e.stopPropagation();
+      downloadZip('classId=' + el.dataset.zipcls);
+    }));
+    $$('[data-zipgrp]', box).forEach((el) => (el.onclick = (e) => {
+      e.stopPropagation();
+      downloadZip('groupId=' + el.dataset.zipgrp);
+    }));
+    $$('[data-prof]', box).forEach((el) => (el.onclick = (e) => {
+      e.stopPropagation();
+      openProfile(Number(el.dataset.prof));
+    }));
+  }
+
+  async function openProfile(sid) {
+    let d;
+    try { d = await api('GET', '/api/teacher/files/tree'); } catch (e) { return toast(e.message); }
+    let m = null, grp = null, cls = null;
+    for (const c of d.classes) {
+      for (const g of c.groups) {
+        const found = g.members.find((x) => x.id === sid);
+        if (found) { m = found; grp = g; cls = c; break; }
+      }
+      if (m) break;
+    }
+    if (!m) return toast('الطالب مش موجود');
+
+    sheet(`
+      <div class="row" style="margin-bottom:14px">
+        <div class="avatar ${m.isLeader ? 'lead' : ''}">${m.isLeader ? '★' : esc(initials(m.name))}</div>
+        <div style="flex:1;min-width:0">
+          <b style="font-size:16px">${esc(m.name)}</b>
+          <small style="font-size:11.5px;color:#6b7a94;display:block">${esc(m.code)} · ${esc(cls.name)} · ${esc(grp.name)}</small>
+        </div>
+      </div>
+
+      <div class="sec-head"><h3>ملفاته (${m.files.length})</h3></div>
+      ${m.files.length ? m.files.map((f) => `
+        <div class="mem" style="border:0;padding:7px 0">
+          <div style="width:30px;text-align:center">📄</div>
+          <div style="flex:1;min-width:0">
+            <b style="font-size:12.5px;word-break:break-all">${esc(f.name)}</b>
+            <small style="font-size:10.5px;color:#6b7a94">${sizeTxt(f.size)} · ${when(f.at)}</small>
+          </div>
+          <button class="chip blue" data-pdl="${f.id}">تحميل</button>
+          <button class="chip red" data-pdel="${f.id}">مسح</button>
+        </div>`).join('') : '<p style="font-size:12.5px;color:#6b7a94">مفيش ملفات</p>'}
+
+      <div class="sec-head" style="margin-top:16px"><h3>المطلوب منه (${m.tasks.length})</h3></div>
+      ${m.tasks.length ? m.tasks.map((t) => `
+        <div class="mem" style="border:0;padding:7px 0">
+          <div style="width:22px;text-align:center;color:${t.done ? '#2fa36b' : '#d94141'}">${t.done ? '✓' : '✕'}</div>
+          <div style="flex:1;min-width:0"><b style="font-size:12.5px">${esc(t.title)}</b>
+            ${t.link ? `<small style="font-size:10px;color:#3b6fd4;display:block;word-break:break-all">${esc(t.link)}</small>` : ''}
+          </div>
+          <button class="chip red" data-tdel="${t.id}">مسح</button>
+        </div>`).join('') : '<p style="font-size:12.5px;color:#6b7a94">مفيش مطلوبات</p>'}
+
+      <div class="sheet-acts" style="margin-top:16px">
+        <button class="btn gold" id="p-addtask">＋ مطلوب جديد</button>
+        <button class="btn primary" id="p-zip">ZIP ملفاته</button>
+      </div>`);
+
+    $$('[data-pdl]').forEach((el) => (el.onclick = () => downloadFile(el.dataset.pdl)));
+    $$('[data-pdel]').forEach((el) => (el.onclick = async () => {
+      try {
+        await api('DELETE', '/api/files/' + el.dataset.pdel);
+        closeSheet();
+        toast('اتمسح');
+        renderFiles();
+      } catch (e) { toast(e.message); }
+    }));
+    $$('[data-tdel]').forEach((el) => (el.onclick = async () => {
+      try {
+        await api('DELETE', '/api/teacher/tasks/' + el.dataset.tdel);
+        closeSheet();
+        toast('المطلوب اتمسح');
+        renderFiles();
+      } catch (e) { toast(e.message); }
+    }));
+    $('#p-zip').onclick = () => downloadZip('studentId=' + sid);
+    $('#p-addtask').onclick = () => taskSheet({ studentId: sid, name: m.name });
+  }
+
+  function renderTasksPanel(d) {
+    const box = $('#ft-body');
+    box.innerHTML = d.classes.map((c) => `
+      <div class="cls open">
+        <div class="cls-head" style="cursor:default">
+          <div class="cls-ico">🏫</div>
+          <div style="flex:1"><b style="font-size:14.5px">${esc(c.name)}</b></div>
+        </div>
+        <div class="cls-body">
+          ${c.groups.map((g) => `
+            <div class="grp">
+              <div class="grp-head">
+                <span class="chip ${g.gender === 'girls' ? 'gray' : 'blue'}">${g.gender === 'girls' ? 'بنات' : 'ولاد'}</span>
+                <span class="grp-name">${esc(g.name)}</span>
+                <button class="chip gold" data-newtask="${g.id}">＋ مطلوب</button>
+              </div>
+              ${g.tasks.length ? g.tasks.map((t) => `
+                <div style="padding:9px 0;border-top:1px dashed #e6ecf5">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <div style="flex:1;min-width:0">
+                      <b style="font-size:12.5px">${esc(t.title)}</b>
+                      <div style="font-size:10.5px;color:#6b7a94;margin-top:2px">
+                        ${t.doneCount}/${t.total} سلّموا
+                        ${t.pending.length ? ' · ناقص: ' + t.pending.map((x) => esc(x.name.split(' ')[0])).join('، ') : ' · الكل سلّم ✓'}
+                      </div>
+                    </div>
+                    <button class="chip red" data-deltask="${t.id}">مسح</button>
+                  </div>
+                </div>`).join('') : '<p style="font-size:12px;color:#6b7a94;margin:4px 0">مفيش مطلوبات للمجموعة</p>'}
+            </div>`).join('')}
+        </div>
+      </div>`).join('');
+
+    $$('[data-newtask]', box).forEach((el) => (el.onclick = () => {
+      const gid = Number(el.dataset.newtask);
+      let gname = '';
+      d.classes.forEach((c) => c.groups.forEach((g) => { if (g.id === gid) gname = g.name; }));
+      taskSheet({ groupId: gid, name: gname });
+    }));
+    $$('[data-deltask]', box).forEach((el) => (el.onclick = async () => {
+      try {
+        await api('DELETE', '/api/teacher/tasks/' + el.dataset.deltask);
+        toast('اتمسح');
+        renderFiles();
+      } catch (e) { toast(e.message); }
+    }));
+  }
+
+  function taskSheet(target) {
+    sheet(`
+      <h3>مطلوب جديد</h3>
+      <p class="sub">${target.studentId ? 'لـ ' + esc(target.name) + ' شخصيًا' : 'لكل أعضاء ' + esc(target.name)}</p>
+      <label class="field"><span>اسم المطلوب</span>
+        <input id="tk-title" placeholder="مثال: تسليم مشروع البايثون" maxlength="120"></label>
+      <label class="field"><span>تفاصيل (اختياري)</span>
+        <textarea id="tk-body" placeholder="المطلوب إيه بالظبط…" style="min-height:70px" maxlength="600"></textarea></label>
+      <div class="sheet-acts">
+        <button class="btn ghost" data-close>إلغاء</button>
+        <button class="btn primary" id="tk-ok">إضافة</button>
+      </div>`, () => {
+      $('#tk-title').focus();
+      $('#tk-ok').onclick = async () => {
+        const title = $('#tk-title').value.trim();
+        if (!title) return toast('اكتب اسم المطلوب');
+        try {
+          await api('POST', '/api/teacher/tasks', {
+            title,
+            body: $('#tk-body').value.trim(),
+            groupId: target.groupId || undefined,
+            studentId: target.studentId || undefined,
+          });
+          closeSheet();
+          toast('المطلوب اتضاف ✅');
+          renderFiles();
+        } catch (e) { toast(e.message); }
+      };
+    });
+  }
+
+  async function downloadZip(qs) {
+    try {
+      toast('بنضغط الملفات…', 30000);
+      const r = await fetch(apiBase() + '/api/download/zip?' + qs, {
+        headers: { Authorization: 'Bearer ' + token() },
+      });
+      document.querySelector('#toast').classList.remove('on');
+      if (!r.ok) {
+        const j = await r.json().catch(() => ({}));
+        throw new Error(j.error || 'فشل الضغط');
+      }
+      const blob = await r.blob();
+      const cd = r.headers.get('content-disposition') || '';
+      const m = /filename\*=UTF-8''([^;]+)/.exec(cd);
+      const name = m ? decodeURIComponent(m[1]) : 'ملفات.zip';
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 6000);
+      toast('اتنزّل ✅ ' + sizeTxt(blob.size));
+    } catch (e) { toast(e.message); }
+  }
+
+  /* ---------------- الدردشة (المس) ---------------- */
+
+  let roomWith = null;
+
+  async function renderChatRooms(box) {
+    if (roomWith) return renderRoom(box, roomWith);
+    let d;
+    try { d = await api('GET', '/api/teacher/channels'); } catch (e) {
+      box.innerHTML = `<div class="empty"><p>${esc(e.message)}</p></div>`; return;
+    }
+    if (!d.channels.length) {
+      box.innerHTML = '<div class="empty"><div class="e-ico">💬</div><p>مفيش مجموعات لسه</p></div>';
+      return;
+    }
+    box.innerHTML = d.channels.map((c) => `
+      <div class="card" data-room="${c.scope}:${c.id}" style="cursor:pointer">
+        <div class="row">
+          <div class="avatar" style="background:${c.scope === 'class' ? '#e8eefb' : '#fdf3e0'}">
+            ${c.scope === 'class' ? '🏫' : '👥'}</div>
+          <div class="grow">
+            <b>${esc(c.name)}</b>
+            <small>${esc(c.kind)} · ${c.count} رسالة</small>
+          </div>
+          <span style="color:#93a1b8;font-size:19px">›</span>
+        </div>
+      </div>`).join('');
+    $$('[data-room]', box).forEach((el) => (el.onclick = () => {
+      const parts = el.dataset.room.split(':');
+      roomWith = { scope: parts[0], id: Number(parts[1]) };
+      renderComm();
+    }));
+  }
+
+  async function renderRoom(box, r) {
+    let d;
+    try { d = await api('GET', `/api/teacher/chatroom/${r.scope}/${r.id}`); } catch (e) {
+      box.innerHTML = `<div class="empty"><p>${esc(e.message)}</p></div>`; return;
+    }
+    box.innerHTML = `
+      <div class="row" style="margin-bottom:14px;gap:9px">
+        <button class="chip gray" id="rm-back">‹ رجوع</button>
+        <b style="font-size:14.5px">${esc(d.title)}</b>
+      </div>
+      <div id="rm-msgs">
+        ${d.msgs.length ? d.msgs.map((m) => `
+          <div class="msg ${m.from === 'teacher' ? 'mine' : ''}">
+            <div style="font-size:11px;color:#6b7a94;margin-bottom:3px">
+              <b style="color:${m.from === 'teacher' ? '#9a6d1f' : '#12203a'}">${esc(m.name)}</b>
+              ${m.leader ? ' <span class="chip gold">★</span>' : ''}
+            </div>
+            <div class="m-body">${esc(m.body)}</div>
+            <div class="m-meta"><span>${when(m.at)}</span>
+              <button class="chip red" data-rmdel="${m.id}" style="font-size:10px">مسح</button></div>
+          </div>`).join('') : '<div class="empty"><div class="e-ico">💬</div><p>مفيش رسايل</p></div>'}
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <input id="rm-in" placeholder="اكتبي رسالة…" style="flex:1;padding:13px 15px;border-radius:13px;border:1.5px solid #e3e8f2;font-family:inherit;font-size:14px">
+        <button class="btn primary" id="rm-send" style="width:auto;padding:0 20px">إرسال</button>
       </div>`;
+    $('#rm-back').onclick = () => { roomWith = null; renderComm(); };
+    const send = async () => {
+      const v = $('#rm-in').value.trim();
+      if (!v) return;
+      try {
+        await api('POST', `/api/teacher/chatroom/${r.scope}/${r.id}`, { body: v });
+        renderComm();
+      } catch (e) { toast(e.message); }
+    };
+    $('#rm-send').onclick = send;
+    $('#rm-in').onkeydown = (e) => { if (e.key === 'Enter') send(); };
+    $$('[data-rmdel]').forEach((el) => (el.onclick = async () => {
+      try {
+        await api('DELETE', '/api/teacher/chatroom/' + el.dataset.rmdel);
+        renderComm();
+      } catch (e) { toast(e.message); }
+    }));
   }
 
   /* ---------------- الطالب ---------------- */
+
+  $$('[data-snav]').forEach((b) => (b.onclick = () => studentNav(b.dataset.snav)));
+
+  function studentNav(what) {
+    if (what === 'home') { show('screen-student', false); renderStudent(); }
+    else if (what === 'notify') { show('screen-stnotify'); renderNotifications(); }
+    else if (what === 'chat') { show('screen-stchat'); st.chatScope = null; renderStudentChat(); }
+    else if (what === 'submit') { show('screen-stsubmit'); renderSubmit(); }
+    else if (what === 'files') { show('screen-stfiles'); renderGroupFiles(); }
+  }
+
+  $('#st-bell').onclick = () => studentNav('notify');
 
   async function renderStudent() {
     let d;
@@ -731,28 +1082,359 @@
         <div class="mc-cell"><span>الحساب</span><b>مفعّل</b></div>
       </div>`;
 
-    $('#st-ann').innerHTML = d.announcements.length
-      ? d.announcements.map((a) => `
-        <div class="msg"><div class="m-body">${esc(a.body)}</div>
-          <div class="m-meta"><span>${a.scope === 'leaders' ? 'لقادة المجموعات' : 'للجميع'}</span><span>${when(a.at)}</span></div>
-        </div>`).join('')
-      : '<div class="empty"><div class="e-ico">📢</div><p>مفيش إعلانات لسه</p></div>';
-
-    $('#st-chat').innerHTML = d.chat.length
-      ? d.chat.map((m) => `
-        <div class="msg mine"><div class="m-body">${esc(m.body)}</div>
-          <div class="m-meta"><span>${when(m.at)}</span><span>مس أسماء</span></div></div>`).join('')
-      : '<div class="empty"><div class="e-ico">💬</div><p>مفيش رسايل لسه</p></div>';
+    // شارات
+    try {
+      const n = await api('GET', '/api/student/notifications');
+      const tb = $('#st-task-badge');
+      tb.hidden = !n.pendingTasks;
+      tb.textContent = n.pendingTasks;
+      const nb = $('#st-notif-badge');
+      nb.hidden = !n.items.length;
+      nb.textContent = n.items.length > 9 ? '9+' : n.items.length;
+      const bb = $('#st-badge');
+      bb.hidden = !(n.pendingTasks + n.items.length);
+      bb.textContent = n.pendingTasks;
+    } catch (e) {}
   }
+
+  /* ---------- إشعارات ---------- */
+
+  async function renderNotifications() {
+    const box = $('#stn-body');
+    box.innerHTML = '<p style="text-align:center;color:#6b7a94;padding:30px">بنحمّل…</p>';
+    let d;
+    try { d = await api('GET', '/api/student/notifications'); } catch (e) {
+      box.innerHTML = `<div class="empty"><p>${esc(e.message)}</p></div>`; return;
+    }
+
+    if (!d.items.length && !d.pendingTasks) {
+      box.innerHTML = '<div class="empty"><div class="e-ico">📭</div><p>مفيش إشعارات لسه</p></div>';
+      return;
+    }
+
+    let html = '';
+    if (d.pendingTasks) {
+      html += `
+        <div class="card" style="background:#fff9ec;border:1.5px solid #f5e3bd">
+          <div class="row">
+            <div class="avatar" style="background:#fdf3e0;color:#9a6d1f">📤</div>
+            <div class="grow">
+              <b>عندك ${d.pendingTasks} مطلوب لسه</b>
+              <small>من أصل ${d.totalTasks} — افتح مساحة التسليم</small>
+            </div>
+          </div>
+          <div class="acts"><button class="btn gold" data-go-submit>افتح التسليم</button></div>
+        </div>`;
+    }
+    html += d.items.map((a) => `
+      <div class="msg">
+        <div class="m-body">${esc(a.body)}</div>
+        <div class="m-meta">
+          <span>${a.scope === 'leaders' ? 'لقادة المجموعات' : 'للجميع'}</span>
+          <span>${when(a.at)}</span>
+        </div>
+      </div>`).join('');
+    box.innerHTML = html;
+
+    const gs = $('[data-go-submit]', box);
+    if (gs) gs.onclick = () => studentNav('submit');
+  }
+
+  /* ---------- الدردشة ---------- */
+
+  async function renderStudentChat() {
+    const box = $('#stc-body');
+    const tabs = $('#stc-tabs');
+
+    if (!st.channels.length) {
+      let d;
+      try { d = await api('GET', '/api/student/channels'); } catch (e) {
+        box.innerHTML = `<div class="empty"><p>${esc(e.message)}</p></div>`; return;
+      }
+      if (!d.channels.length) {
+        tabs.innerHTML = '';
+        box.innerHTML = `<div class="empty"><div class="e-ico">💬</div><p>${esc(d.note || 'لسه مفيش قنوات')}</p></div>`;
+        return;
+      }
+      st.channels = d.channels;
+    }
+
+    if (!st.chatScope) st.chatScope = st.channels[0];
+
+    tabs.innerHTML = st.channels.map((c) => `
+      <button class="tab ${st.chatScope && st.chatScope.scope === c.scope ? 'on' : ''}"
+        data-ch="${c.scope}">${esc(c.kind)} · ${esc(c.name)}</button>`).join('');
+
+    $$('[data-ch]', tabs).forEach((b) => (b.onclick = () => {
+      st.chatScope = st.channels.find((c) => c.scope === b.dataset.ch);
+      renderStudentChat();
+    }));
+
+    const ch = st.chatScope;
+    $('#stc-title').textContent = ch.kind;
+
+    box.innerHTML = `
+      <div id="sc-msgs"><p style="text-align:center;color:#6b7a94;padding:20px">بنحمّل…</p></div>
+      <div style="display:flex;gap:8px;margin-top:12px;position:sticky;bottom:0;background:#f4f6fb;padding:8px 0">
+        <input id="sc-in" placeholder="اكتب رسالة…" maxlength="2000"
+          style="flex:1;padding:13px 15px;border-radius:13px;border:1.5px solid #e3e8f2;font-family:inherit;font-size:14px">
+        <button class="btn primary" id="sc-send" style="width:auto;padding:0 20px">إرسال</button>
+      </div>`;
+
+    let d;
+    try { d = await api('GET', `/api/student/chat/${ch.scope}/${ch.id}`); } catch (e) {
+      $('#sc-msgs').innerHTML = `<div class="empty"><p>${esc(e.message)}</p></div>`;
+      return;
+    }
+    $('#sc-msgs').innerHTML = d.msgs.length
+      ? d.msgs.map((m) => `
+        <div class="msg ${m.mine ? 'mine' : ''}">
+          <div style="font-size:11px;color:#6b7a94;margin-bottom:3px;display:flex;gap:5px;align-items:center">
+            <b style="color:${m.from === 'teacher' ? '#9a6d1f' : '#12203a'}">${esc(m.name)}</b>
+            ${m.leader ? '<span class="chip gold">★ قائد</span>' : ''}
+          </div>
+          <div class="m-body">${esc(m.body)}</div>
+          <div class="m-meta"><span></span><span>${when(m.at)}</span></div>
+        </div>`).join('')
+      : '<div class="empty"><div class="e-ico">💬</div><p>مفيش رسايل لسه — ابدأ انت</p></div>';
+
+    const send = async () => {
+      const v = $('#sc-in').value.trim();
+      if (!v) return;
+      try {
+        await api('POST', `/api/student/chat/${ch.scope}/${ch.id}`, { body: v });
+        renderStudentChat();
+      } catch (e) { toast(e.message); }
+    };
+    $('#sc-send').onclick = send;
+    $('#sc-in').onkeydown = (e) => { if (e.key === 'Enter') send(); };
+  }
+
+  /* ---------- التسليم ---------- */
+
+  async function renderSubmit() {
+    const box = $('#sts-body');
+    box.innerHTML = '<p style="text-align:center;color:#6b7a94;padding:30px">بنحمّل…</p>';
+    let d;
+    try { d = await api('GET', '/api/student/files'); } catch (e) {
+      box.innerHTML = `<div class="empty"><p>${esc(e.message)}</p></div>`; return;
+    }
+    if (!d.tasks.length) {
+      box.innerHTML = `<div class="empty"><div class="e-ico">📤</div>
+        <p>مفيش مطلوب منك دلوقتي<br><small>المس أسماء لما تحط مطلوب هيظهر هنا</small></p></div>`;
+      return;
+    }
+    box.innerHTML = d.tasks.map((t) => `
+      <div class="card" style="${t.done ? 'border-right:3px solid #2fa36b' : 'border-right:3px solid #e0b467'}">
+        <div class="row">
+          <div class="avatar" style="background:${t.done ? '#e6f6ee;color:#237c51' : '#fdf3e0;color:#9a6d1f'}">
+            ${t.done ? '✓' : '!'}</div>
+          <div class="grow">
+            <b>${esc(t.title)}</b>
+            <small>${t.scope === 'me' ? 'مطلوب منك انت' : 'مطلوب من المجموعة'} · ${t.done ? 'اتسلّم' : 'لسه'}</small>
+          </div>
+        </div>
+        ${t.body ? `<p style="font-size:12.5px;color:#6b7a94;margin:9px 0 0;line-height:1.6">${esc(t.body)}</p>` : ''}
+        ${t.done && t.link ? `<p style="font-size:11.5px;color:#3b6fd4;margin:8px 0 0;word-break:break-all">🔗 ${esc(t.link)}</p>` : ''}
+        <div class="acts">
+          ${t.done ? `<button class="btn ghost" data-resub="${t.id}">استبدال</button>
+                      <button class="btn danger" data-unsub="${t.id}">إلغاء التسليم</button>`
+                    : `<button class="btn primary" data-sub="${t.id}">سلّم</button>`}
+        </div>
+      </div>`).join('');
+
+    $$('[data-sub]', box).forEach((el) => (el.onclick = () => submitSheet(Number(el.dataset.sub), false)));
+    $$('[data-resub]', box).forEach((el) => (el.onclick = () => submitSheet(Number(el.dataset.resub), true)));
+    $$('[data-unsub]', box).forEach((el) => (el.onclick = async () => {
+      try {
+        await api('DELETE', '/api/student/submit/' + el.dataset.unsub);
+        toast('التسليم اتلغى');
+        renderSubmit();
+      } catch (e) { toast(e.message); }
+    }));
+  }
+
+  function submitSheet(taskId, replace) {
+    sheet(`
+      <h3>${replace ? 'استبدال التسليم' : 'تسليم المطلوب'}</h3>
+      <p class="sub">ارفع ملف، أو حط لينك درايف لو الملف أكبر من ١٢٠ ميجا</p>
+
+      <button class="big-sub" id="sb-file">
+        <span style="font-size:22px">📎</span>
+        <div><b>ارفع ملف</b><i>أقصى حجم ١٢٠ ميجا</i></div>
+      </button>
+
+      <div style="text-align:center;color:#93a1b8;font-size:12px;margin:14px 0">أو</div>
+
+      <label class="field"><span>لينك درايف</span>
+        <input id="sb-link" placeholder="https://drive.google.com/…" dir="ltr"></label>
+      <div class="sheet-acts">
+        <button class="btn ghost" data-close>إلغاء</button>
+        <button class="btn primary" id="sb-send">تسليم</button>
+      </div>`, () => {
+      $('#sb-file').onclick = () => {
+        closeSheet();
+        pickAndUpload({
+          max: 120 * 1024 * 1024,
+          onDone: async (f) => {
+            try {
+              await api('POST', `/api/student/submit/${taskId}`, { fileId: f.id });
+              toast('اتسلّم ✅');
+              renderSubmit();
+            } catch (e) { toast(e.message); }
+          },
+        });
+      };
+      $('#sb-send').onclick = async () => {
+        const link = $('#sb-link').value.trim();
+        if (!link) return toast('حط لينك أو ارفع ملف');
+        if (!/^https?:\/\//i.test(link)) return toast('اللينك لازم يبدأ بـ https://');
+        try {
+          await api('POST', `/api/student/submit/${taskId}`, { link });
+          closeSheet();
+          toast('اتسلّم ✅');
+          renderSubmit();
+        } catch (e) { toast(e.message); }
+      };
+    });
+  }
+
+  /* ---------- ملفات المجموعة ---------- */
+
+  async function renderGroupFiles() {
+    const box = $('#stf-body');
+    box.innerHTML = '<p style="text-align:center;color:#6b7a94;padding:30px">بنحمّل…</p>';
+    let d;
+    try { d = await api('GET', '/api/student/files'); } catch (e) {
+      box.innerHTML = `<div class="empty"><p>${esc(e.message)}</p></div>`; return;
+    }
+    if (!d.files.length) {
+      box.innerHTML = `<div class="empty"><div class="e-ico">📁</div>
+        <p>مفيش ملفات في مجموعتك لسه<br><small>ارفع أول ملف من الزرار فوق</small></p></div>`;
+      return;
+    }
+    // تجميع حسب العضو
+    const byOwner = {};
+    d.files.forEach((f) => {
+      const k = f.owner.id;
+      (byOwner[k] = byOwner[k] || { owner: f.owner, files: [] }).files.push(f);
+    });
+
+    box.innerHTML = Object.values(byOwner).map((g) => `
+      <div class="cls open">
+        <div class="cls-head" style="cursor:default">
+          <div class="avatar ${g.owner.mine ? 'lead' : ''}">${esc(initials(g.owner.name))}</div>
+          <div style="flex:1;min-width:0">
+            <b style="font-size:14px">${esc(g.owner.name)}${g.owner.mine ? ' (انت)' : ''}</b>
+            <small style="font-size:11px;color:#6b7a94;display:block">${g.files.length} ملف</small>
+          </div>
+        </div>
+        <div class="cls-body">
+          ${g.files.map((f) => `
+            <div class="mem">
+              <div class="card-ico" style="width:32px;height:32px;border-radius:9px;background:#eef2f9;display:grid;place-items:center;font-size:14px">📄</div>
+              <div style="flex:1;min-width:0">
+                <b style="font-size:12.5px;word-break:break-all">${esc(f.name)}</b>
+                <small style="font-size:10.5px;color:#6b7a94">${sizeTxt(f.size)} · ${when(f.at)}</small>
+              </div>
+              <button class="chip blue" data-dl="${f.id}">تحميل</button>
+              ${f.owner.mine ? `<button class="chip red" data-mine-del="${f.id}">مسح</button>` : ''}
+            </div>`).join('')}
+        </div>
+      </div>`).join('');
+
+    $$('[data-dl]', box).forEach((el) => (el.onclick = () => downloadFile(el.dataset.dl)));
+    $$('[data-mine-del]', box).forEach((el) => (el.onclick = async () => {
+      if (!confirm('تمسح الملف ده؟')) return;
+      try {
+        await api('DELETE', '/api/files/' + el.dataset.mineDel);
+        toast('اتمسح');
+        renderGroupFiles();
+      } catch (e) { toast(e.message); }
+    }));
+  }
+
+  $('#stf-up').onclick = () => pickAndUpload({
+    max: 120 * 1024 * 1024,
+    onDone: () => { toast('اترفع ✅'); renderGroupFiles(); },
+  });
 
   $('#st-logout').onclick = async () => {
     try { await api('POST', '/api/logout'); } catch (e) {}
     setToken('');
     st.role = null;
     st.student = null;
+    st.channels = [];
     history = [];
     resetTo('screen-home');
   };
+
+  /* ---------------- أدوات الملفات ---------------- */
+
+  function sizeTxt(n) {
+    if (!n) return '0';
+    if (n < 1024) return n + ' بايت';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(0) + ' ك.ب';
+    return (n / 1024 / 1024).toFixed(1) + ' م.ب';
+  }
+
+  /** بتنزّل الملف بتوكن — عشان الحماية تفضل شغالة */
+  async function downloadFile(id) {
+    try {
+      const r = await fetch(apiBase() + '/api/files/' + id, {
+        headers: { Authorization: 'Bearer ' + token() },
+      });
+      if (!r.ok) {
+        const j = await r.json().catch(() => ({}));
+        throw new Error(j.error || 'مش قادر تنزّل الملف');
+      }
+      const blob = await r.blob();
+      const cd = r.headers.get('content-disposition') || '';
+      const m = /filename\*=UTF-8''([^;]+)/.exec(cd);
+      const name = m ? decodeURIComponent(m[1]) : 'ملف';
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    } catch (e) { toast(e.message); }
+  }
+
+  /** اختيار ملف ورفعه بالتدريج مع رسالة الحجم */
+  function pickAndUpload(opt) {
+    const inp = $('#pick-file');
+    inp.value = '';
+    inp.onchange = () => {
+      const f = inp.files && inp.files[0];
+      if (!f) return;
+      if (f.size > opt.max) {
+        return toast('الملف أكبر من ١٢٠ ميجا — اضغطه أو ارفعه على درايف وحط اللينك');
+      }
+      const t = toast('بنرفع… ' + sizeTxt(f.size), 60000);
+      fetch(apiBase() + '/api/files', {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer ' + token(),
+          'Content-Type': f.type || 'application/octet-stream',
+          'X-Filename': encodeURIComponent(f.name),
+        },
+        body: f,
+      }).then((r) => r.json().then((j) => {
+        clearTimeout(toast._t);
+        document.querySelector('#toast').classList.remove('on');
+        if (!r.ok) throw new Error(j.error || 'فشل الرفع');
+        return j;
+      })).then((j) => opt.onDone(j)).catch((e) => {
+        document.querySelector('#toast').classList.remove('on');
+        toast(e.message);
+      });
+      void t;
+    };
+    inp.click();
+  }
 
   /* ---------------- الشيت ---------------- */
 
