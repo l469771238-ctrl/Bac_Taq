@@ -1,5 +1,5 @@
 {
-  "when": "2026-11-19T16:37:14.237Z",
+  "when": "2026-11-19T17:16:25.145Z",
   "passed": 50,
   "failed": 0,
   "consoleErrors": [],
@@ -163,7 +163,7 @@
     {
       "name": "progress stored",
       "ok": true,
-      "detail": "{\"page\":41,\"total\":148,\"at\":1795106211744}"
+      "detail": "{\"page\":41,\"total\":148,\"at\":1795108563204}"
     },
     {
       "name": "reload skips the password (asked once)",
