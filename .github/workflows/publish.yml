@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       BAC_VERSION: '1.8'
-      Z_VERSION: '0.1'
+      Z_VERSION: '0.2'
     steps:
       - uses: actions/checkout@v4
 
@@ -45,11 +45,11 @@ jobs:
       - name: publish to GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.0
-          name: Bac-Taq 1.8 + Z-Project 0.1 — تطبيقين
+          tag_name: ${{ github.ref_name }}
+          name: Bac-Taq 1.8 + Z-Project 0.2 — تطبيقين
           body_path: dist/release-notes.md
           files: |
             dist/Bac-Taq-1.8.apk
-            dist/Z-Project-0.1.apk
+            dist/Z-Project-0.2.apk
           fail_on_unmatched_files: true
           make_latest: true
