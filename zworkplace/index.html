@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0d1b33">
-<title>Z-Project · مساحة الفصل</title>
+<title>Z Project Workspace</title>
 <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
@@ -14,8 +14,8 @@
   <div class="home">
     <div class="brand">
       <div class="brand-mark">Z</div>
-      <h1>Z-Project</h1>
-      <p>مساحة الفصل</p>
+      <h1>Z Project Workspace</h1>
+      <p>مساحة عمل الفصل</p>
     </div>
 
     <div class="home-actions">
@@ -44,11 +44,11 @@
   <div class="scroll">
     <div class="intro">
       <span class="pill">الخطوة ١ من ٢</span>
-      <h3>اكتب الكود اللي إدتهولك المس أسماء</h3>
-      <p>هنجيب اسمك من كشف الفصل — مش هتكتبه بنفسك.</p>
+      <h3>اكتب الكود المدرسي بتاعك</h3>
+      <p>للمطابقة مع اسمك في كشف الفصل.</p>
     </div>
     <label class="field">
-      <span>الكود</span>
+      <span>الكود المدرسي</span>
       <input id="join-code" inputmode="numeric" autocomplete="off" placeholder="000000000" maxlength="12">
     </label>
     <div class="err" id="join-err"></div>
@@ -90,7 +90,7 @@
   </header>
   <div class="scroll">
     <div class="intro"><h3>أهلاً بيك تاني</h3></div>
-    <label class="field"><span>الكود</span>
+    <label class="field"><span>الكود المدرسي</span>
       <input id="li-code" inputmode="numeric" autocomplete="username" placeholder="000000000" maxlength="12"></label>
     <label class="field"><span>كلمة المرور</span>
       <input id="li-pass" type="password" autocomplete="current-password" placeholder="••••••"></label>
@@ -135,7 +135,10 @@
       <span class="th-hello">أهلاً</span>
       <h2>مس أسماء</h2>
     </div>
-    <button class="icon-btn" id="th-logout" title="خروج">⏻</button>
+    <div style="display:flex;gap:8px">
+      <button class="icon-btn" id="th-settings" title="الإعدادات">⚙️</button>
+      <button class="icon-btn" id="th-logout" title="خروج">⏻</button>
+    </div>
   </header>
   <div class="scroll">
     <div class="stats4" id="th-stats"></div>
@@ -186,9 +189,19 @@
   </header>
   <div class="tabs" id="comm-tabs">
     <button class="tab on" data-t="ann">إعلان</button>
-    <button class="tab" data-t="chat">دردشة خاصة</button>
+    <button class="tab" data-t="room">دردشة مجموعة / فصل</button>
+    <button class="tab" data-t="dm">دردشة عضو</button>
   </div>
   <div class="scroll" id="comm-body"></div>
+</section>
+
+<!-- ═══════════ المس: الإعدادات ═══════════ -->
+<section id="screen-settings" class="screen sub">
+  <header class="top">
+    <button class="back" data-nav="teacher">‹</button>
+    <h2>الإعدادات</h2>
+  </header>
+  <div class="scroll" id="set-body"></div>
 </section>
 
 <!-- ═══════════ المس: النلفات ═══════════ -->

@@ -414,7 +414,7 @@ async function api(method, p, body, t) {
     const { window } = t;
     window.document.querySelector('[data-nav="comm"]').click();
     await sleep(600);
-    window.document.querySelector('#comm-tabs [data-t="chat"]').click();
+    window.document.querySelector('#comm-tabs [data-t="room"]').click();
     await sleep(700);
     const rooms = window.document.querySelectorAll('[data-room]');
     ok('في قنوات دردشة', rooms.length >= 1);
@@ -429,6 +429,88 @@ async function api(method, p, body, t) {
       ok('المس بتبعت في القناة', /رسالة من المس/.test(window.document.querySelector('#rm-msgs').textContent));
       void before;
     }
+  }
+
+  /* ---------- ١١د. الإعدادات: حد المجموعة ---------- */
+  {
+    const T = await teacherToken();
+    const before = (await api('GET', '/api/teacher/settings', undefined, T)).data.maxGroup;
+    ok('حد المجموعة متاح', typeof before === 'number');
+
+    const set = await api('PATCH', '/api/teacher/settings', { maxGroup: 7 }, T);
+    eq('تغيير الحد نجح', set.data.maxGroup, 7);
+    const after = (await api('GET', '/api/teacher/settings', undefined, T)).data.maxGroup;
+    eq('الحد اتحفظ', after, 7);
+
+    const bad = await api('PATCH', '/api/teacher/settings', { maxGroup: 99 }, T);
+    eq('حد بره النطاق مرفوض', bad.status, 400);
+
+    await api('PATCH', '/api/teacher/settings', { maxGroup: before }, T);
+
+    // شاشة الإعدادات
+    const t = await makeDom(T);
+    const { window } = t;
+    window.document.querySelector('#th-settings').click();
+    await sleep(700);
+    eq('شاشة الإعدادات فتحت', visible(window), 'screen-settings');
+    ok('في زرار زيادة', !!window.document.querySelector('#set-plus'));
+    ok('في زرار نقصان', !!window.document.querySelector('#set-minus'));
+    ok('في زرار حفظ', !!window.document.querySelector('#set-save'));
+  }
+
+  /* ---------- ١١هـ. دردشة العضو (المس ↔ الطالب) ---------- */
+  {
+    const T = await teacherToken();
+    const st = (await api('GET', '/api/teacher/students', undefined, T)).data.rows
+      .find((x) => x.status === 'active');
+
+    const send = await api('POST', '/api/teacher/dm/' + st.id, { body: 'رسالة خاصة للمس' }, T);
+    eq('المس بعتت رسالة خاصة', send.status, 201);
+
+    // الطالب يشوفها
+    const stu = await api('POST', '/api/login', { code: st.code, password: 'goodpass1' });
+    if (stu.status === 200) {
+      const feed = await api('GET', '/api/student/notifications', undefined, stu.data.token);
+      ok('الطالب شاف رسالة المس', (feed.data.dm || []).some((m) => m.body.includes('رسالة خاصة')));
+    }
+
+    // واجهة المس: ٣ تبويبات في التواصل
+    const t = await makeDom(T);
+    const { window } = t;
+    window.document.querySelector('[data-nav="comm"]').click();
+    await sleep(600);
+    const tabs = window.document.querySelectorAll('#comm-tabs .tab');
+    eq('٣ تبويبات في التواصل', tabs.length, 3);
+    const tt = window.document.querySelector('#comm-tabs').textContent;
+    ok('تبويب إعلان', /إعلان/.test(tt));
+    ok('تبويب مجموعة/فصل', /مجموعة/.test(tt));
+    ok('تبويب عضو', /عضو/.test(tt));
+
+    // افتح دردشة العضو
+    window.document.querySelector('#comm-tabs [data-t="dm"]').click();
+    await sleep(700);
+    const cards = window.document.querySelectorAll('[data-dm]');
+    ok('في قايمة أعضاء للدردشة', cards.length >= 1);
+  }
+
+  /* ---------- ١١و. اسم البرنامج ---------- */
+  {
+    const t = await makeDom();
+    const { window } = t;
+    const h1 = window.document.querySelector('.brand h1').textContent.trim();
+    eq('اسم البرنامج', h1, 'Z Project Workspace');
+    ok('العنوان في التاب', window.document.title.includes('Z Project Workspace'));
+  }
+
+  /* ---------- ١١ز. نص الكود المدرسي ---------- */
+  {
+    const t = await makeDom();
+    const { window } = t;
+    window.document.querySelector('#go-join').click();
+    await sleep(200);
+    const txt = window.document.querySelector('#screen-join').textContent;
+    ok('مكتوب «الكود المدرسي»', /الكود المدرسي/.test(txt));
+    ok('مكتوب «للمطابقة مع اسمك»', /للمطابقة مع اسمك/.test(txt));
   }
 
   /* ---------- ١٢. الخروج ---------- */

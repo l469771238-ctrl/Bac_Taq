@@ -154,6 +154,7 @@
     else if (what === 'requests') { show('screen-requests'); loadRequests(); }
     else if (what === 'comm') { show('screen-comm'); renderComm(); }
     else if (what === 'files') { show('screen-files'); renderFiles(); }
+    else if (what === 'settings') { show('screen-settings'); renderSettings(); }
   }
 
   /* ---------------- طلب انضمام ---------------- */
@@ -284,6 +285,8 @@
     }
   }
 
+  $('#th-settings').onclick = () => navTo('settings');
+
   $('#th-logout').onclick = async () => {
     try { await api('POST', '/api/logout'); } catch (e) {}
     setToken('');
@@ -292,6 +295,68 @@
     history = [];
     resetTo('screen-home');
   };
+
+  /* ---------------- الإعدادات ---------------- */
+
+  async function renderSettings() {
+    const box = $('#set-body');
+    box.innerHTML = '<p style="text-align:center;color:#6b7a94;padding:30px">بنحمّل…</p>';
+    let d;
+    try { d = await api('GET', '/api/teacher/settings'); } catch (e) {
+      box.innerHTML = `<div class="empty"><p>${esc(e.message)}</p></div>`; return;
+    }
+
+    box.innerHTML = `
+      <div class="card">
+        <div class="row" style="margin-bottom:12px">
+          <div class="avatar" style="background:#e8eefb">👥</div>
+          <div class="grow">
+            <b>حد المجموعة</b>
+            <small>أقصى عدد طلاب في المجموعة الواحدة</small>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;justify-content:center;margin:8px 0">
+          <button class="icon-btn" id="set-minus"
+            style="background:#eef2f9;color:#12203a;font-size:22px;width:46px;height:46px">−</button>
+          <b id="set-val" style="font-size:32px;font-weight:800;color:#0d1b33;min-width:60px;text-align:center">
+            ${d.maxGroup}</b>
+          <button class="icon-btn" id="set-plus"
+            style="background:#eef2f9;color:#12203a;font-size:22px;width:46px;height:46px">＋</button>
+        </div>
+        <p style="text-align:center;font-size:11.5px;color:#6b7a94;margin:6px 0 0">
+          من ٢ لـ ٣٠ · الافتراضي ${d.defaults.maxGroup}
+        </p>
+        <div class="acts"><button class="btn primary" id="set-save">حفظ</button></div>
+      </div>
+
+      <div class="sec-head"><h3>نظرة عامة</h3></div>
+      <div class="stats4">
+        <div class="stat4"><b>${d.classCount}</b><span>فصول</span></div>
+        <div class="stat4"><b>${d.groupCount}</b><span>مجموعات</span></div>
+      </div>
+
+      <div class="card" style="background:#f8fafd">
+        <b style="font-size:13.5px;display:block;margin-bottom:8px">قواعد ثابتة</b>
+        <div style="font-size:12px;color:#5b6b85;line-height:2">
+          • المجموعة من غير قائد ما بتقفلش<br>
+          • قائد واحد بس لكل مجموعة<br>
+          • مفيش دردشة بين طالبين<br>
+          • محدش يشوف ملفات مجموعة تانية<br>
+          • أقصى حجم للملف ١٢٠ ميجا
+        </div>
+      </div>`;
+
+    let val = d.maxGroup;
+    const paint = () => ($('#set-val').textContent = val);
+    $('#set-minus').onclick = () => { val = Math.max(2, val - 1); paint(); };
+    $('#set-plus').onclick = () => { val = Math.min(30, val + 1); paint(); };
+    $('#set-save').onclick = async () => {
+      try {
+        const r = await api('PATCH', '/api/teacher/settings', { maxGroup: val });
+        toast('اتحفظ ✅ الحد بقى ' + r.maxGroup + ' أعضاء');
+      } catch (e) { toast(e.message); }
+    };
+  }
 
   /* ---------------- لوحة التنظيم ---------------- */
 
@@ -576,6 +641,7 @@
     st.commTab = t.dataset.t;
     st.chatWith = null;
     roomWith = null;
+    dmWith = null;
     $$('#comm-tabs .tab').forEach((x) => x.classList.toggle('on', x === t));
     renderComm();
   }));
@@ -583,6 +649,7 @@
   async function renderComm() {
     const box = $('#comm-body');
     if (st.commTab === 'ann') return renderAnnounce(box);
+    if (st.commTab === 'dm') return renderDMList(box);
     return renderChatRooms(box);
   }
 
@@ -688,6 +755,87 @@
     $('#ch-in').onkeydown = (e) => { if (e.key === 'Enter') send(); };
     const box2 = $('#ch-msgs');
     if (box2 && box2.scrollIntoView) box2.scrollIntoView({ block: 'end' });
+  }
+
+  /* ---------------- دردشة عضو (المس ↔ الطالب) ---------------- */
+  /*
+   * دي الدردشة الخاصة الوحيدة في التطبيق: المس مع طالب واحد.
+   * مفيش أي طريقة يخلي طالبين يتكلموا مع بعض — مش موجودة في الكود أصلًا.
+   */
+
+  let dmWith = null;
+
+  async function renderDMList(box) {
+    if (dmWith) return renderDMThread(box, dmWith);
+    let d;
+    try { d = await api('GET', '/api/teacher/students'); } catch (e) {
+      box.innerHTML = `<div class="empty"><p>${esc(e.message)}</p></div>`; return;
+    }
+    const students = d.rows.filter((x) => x.status === 'active');
+    if (!students.length) {
+      box.innerHTML = '<div class="empty"><div class="e-ico">💬</div><p>مفيش طلاب مفعّلين لسه</p></div>';
+      return;
+    }
+    box.innerHTML = `
+      <p style="font-size:12px;color:#6b7a94;margin:0 0 12px;line-height:1.6">
+        دي محادثة بينك وبين الطالب لوحده. الطالب بيشوفها في «رسايل المس».
+      </p>` + students.map((x) => `
+      <div class="card" data-dm="${x.id}" style="cursor:pointer">
+        <div class="row">
+          <div class="avatar ${x.group && x.group.gender === 'girls' ? 'girl' : ''}">${esc(initials(x.name))}</div>
+          <div class="grow"><b>${esc(x.name)}</b>
+            <small>${esc(x.code)} · ${x.group ? esc(x.group.name) : 'بدون مجموعة'}</small></div>
+          <span style="color:#93a1b8;font-size:19px">›</span>
+        </div>
+      </div>`).join('');
+    $$('[data-dm]', box).forEach((el) => (el.onclick = () => {
+      dmWith = Number(el.dataset.dm);
+      renderComm();
+    }));
+  }
+
+  async function renderDMThread(box, sid) {
+    let d;
+    try { d = await api('GET', '/api/teacher/dm/' + sid); } catch (e) {
+      box.innerHTML = `<div class="empty"><p>${esc(e.message)}</p></div>`; return;
+    }
+    box.innerHTML = `
+      <div class="row" style="margin-bottom:14px;gap:9px">
+        <button class="chip gray" id="dm-back">‹ رجوع</button>
+        <b style="font-size:15px">${esc(d.student.name)}</b>
+      </div>
+      <div id="dm-msgs">
+        ${d.msgs.length ? d.msgs.map((m) => `
+          <div class="msg mine">
+            <div style="font-size:11px;color:#9a6d1f;margin-bottom:3px"><b>مس أسماء</b></div>
+            <div class="m-body">${esc(m.body)}</div>
+            <div class="m-meta"><span>${when(m.at)}</span>
+              <button class="chip red" data-dmdel="${m.id}" style="font-size:10px">مسح</button></div>
+          </div>`).join('')
+          : '<div class="empty"><div class="e-ico">💬</div><p>مفيش رسايل — اكتبي أول واحدة</p></div>'}
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <input id="dm-in" placeholder="اكتبي رسالة…" maxlength="2000"
+          style="flex:1;padding:13px 15px;border-radius:13px;border:1.5px solid #e3e8f2;font-family:inherit;font-size:14px">
+        <button class="btn primary" id="dm-send" style="width:auto;padding:0 20px">إرسال</button>
+      </div>`;
+    $('#dm-back').onclick = () => { dmWith = null; renderComm(); };
+    const send = async () => {
+      const v = $('#dm-in').value.trim();
+      if (!v) return;
+      try {
+        await api('POST', '/api/teacher/dm/' + sid, { body: v });
+        renderComm();
+      } catch (e) { toast(e.message); }
+    };
+    $('#dm-send').onclick = send;
+    $('#dm-in').onkeydown = (e) => { if (e.key === 'Enter') send(); };
+    $$('[data-dmdel]', box).forEach((el) => (el.onclick = async () => {
+      try {
+        await api('DELETE', '/api/teacher/dm/message/' + el.dataset.dmdel);
+        renderComm();
+      } catch (e) { toast(e.message); }
+    }));
   }
 
   /* ---------------- الملفات (المس) ---------------- */
@@ -1125,6 +1273,15 @@
           </div>
           <div class="acts"><button class="btn gold" data-go-submit>افتح التسليم</button></div>
         </div>`;
+    }
+    if (d.dm && d.dm.length) {
+      html += `
+        <div class="sec-head"><h3>رسايل المس</h3></div>` + d.dm.map((m) => `
+        <div class="msg">
+          <div style="font-size:11px;color:#9a6d1f;margin-bottom:3px"><b>مس أسماء</b></div>
+          <div class="m-body">${esc(m.body)}</div>
+          <div class="m-meta"><span></span><span>${when(m.at)}</span></div>
+        </div>`).join('');
     }
     html += d.items.map((a) => `
       <div class="msg">

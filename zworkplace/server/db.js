@@ -96,6 +96,12 @@ function migrate(db) {
       created_at  INTEGER NOT NULL
     );
 
+    /* إعدادات المس — حد المجموعة وغيره */
+    CREATE TABLE IF NOT EXISTS settings (
+      key         TEXT PRIMARY KEY,
+      value       TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS sessions (
       token       TEXT PRIMARY KEY,
       role        TEXT NOT NULL CHECK (role IN ('teacher','student')),

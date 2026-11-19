@@ -17,7 +17,14 @@ const PORT = Number(process.env.PORT || 3100);
 const HOST = process.env.HOST || '0.0.0.0';
 const MAX_JSON = 4 * 1024 * 1024;
 const MIN_GROUP = 3;
-const MAX_GROUP = 8;
+const DEFAULT_MAX_GROUP = 8;
+
+/** حد المجموعة — المس هي اللي تحدده من الإعدادات */
+function maxGroup() {
+  const r = db.prepare("SELECT value FROM settings WHERE key='max_group'").get();
+  const n = r ? Number(r.value) : DEFAULT_MAX_GROUP;
+  return Number.isFinite(n) && n >= 2 && n <= 30 ? n : DEFAULT_MAX_GROUP;
+}
 
 const db = open();
 
@@ -256,6 +263,34 @@ route('POST', '/api/teacher/password', async (req, res, body) => {
   json(res, 200, { ok: true });
 });
 
+/* ====== الإعدادات ====== */
+
+route('GET', '/api/teacher/settings', async (req, res) => {
+  if (!needTeacher(req, res)) return;
+  const rows = db.prepare('SELECT * FROM settings').all();
+  const map = {};
+  rows.forEach((r) => (map[r.key] = r.value));
+  json(res, 200, {
+    maxGroup: maxGroup(),
+    defaults: { maxGroup: DEFAULT_MAX_GROUP },
+    classCount: db.prepare('SELECT COUNT(*) n FROM classes').get().n,
+    groupCount: db.prepare('SELECT COUNT(*) n FROM groups').get().n,
+  });
+});
+
+route('PATCH', '/api/teacher/settings', async (req, res, body) => {
+  if (!needTeacher(req, res)) return;
+  if (body.maxGroup !== undefined) {
+    const n = Number(body.maxGroup);
+    if (!Number.isInteger(n) || n < 2 || n > 30) {
+      return json(res, 400, { error: 'حد المجموعة من ٢ لـ ٣٠' });
+    }
+    db.prepare("INSERT INTO settings (key,value) VALUES ('max_group',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value")
+      .run(String(n));
+  }
+  json(res, 200, { ok: true, maxGroup: maxGroup() });
+});
+
 /* ====== كشف الأسماء ====== */
 
 route('GET', '/api/teacher/roster', async (req, res, body, p, u) => {
@@ -480,7 +515,8 @@ route('POST', '/api/teacher/requests/:id/approve', async (req, res, body, p) => 
   if (!g) return json(res, 400, { error: 'المجموعة مش تابعة للفصل ده' });
 
   const count = db.prepare('SELECT COUNT(*) n FROM students WHERE group_id = ?').get(groupId).n;
-  if (count >= MAX_GROUP) return json(res, 400, { error: `المجموعة وصلت الحد (${MAX_GROUP})` });
+  const cap = maxGroup();
+  if (count >= cap) return json(res, 400, { error: `المجموعة وصلت الحد (${cap} أعضاء) — كبّريه من الإعدادات` });
 
   // قائد المجموعة = أول عضو لو مفيش قائد
   const hasLeader = db.prepare('SELECT id FROM students WHERE group_id = ? AND is_leader = 1').get(groupId);
@@ -1197,6 +1233,49 @@ route('POST', '/api/student/chat/:scope/:id', async (req, res, body, p) => {
   json(res, 201, { id: Number(r.lastInsertRowid) });
 });
 
+/**
+ * المس: دردشة خاصة مع عضو — ودي الحاجة الوحيدة "الخاصة" في التطبيق.
+ * مهم: دي بين المس والطالب. مفيش أي طريق يخلي طالبين يتكلموا خاص.
+ * الطالب بيشوفها من شاشة "رسايل المس" في مركز إشعاراته.
+ */
+route('GET', '/api/teacher/dm/:studentId', async (req, res, body, p) => {
+  if (!needTeacher(req, res)) return;
+  const sid = Number(p.studentId);
+  const st = db.prepare('SELECT * FROM students WHERE id = ?').get(sid);
+  if (!st) return json(res, 404, { error: 'الطالب مش موجود' });
+  const rows = db
+    .prepare("SELECT * FROM messages WHERE kind='chat' AND student_id=? ORDER BY id")
+    .all(sid);
+  json(res, 200, {
+    student: studentView(st),
+    msgs: rows.map((m) => ({
+      id: m.id,
+      body: m.body,
+      at: m.created_at,
+      from: m.id ? 'teacher' : 'teacher',
+    })),
+  });
+});
+
+route('POST', '/api/teacher/dm/:studentId', async (req, res, body, p) => {
+  if (!needTeacher(req, res)) return;
+  const sid = Number(p.studentId);
+  const st = db.prepare('SELECT * FROM students WHERE id = ?').get(sid);
+  if (!st) return json(res, 404, { error: 'الطالب مش موجود' });
+  const text = clean(body.body, 2000);
+  if (!text) return json(res, 400, { error: 'اكتب رسالة' });
+  const r = db
+    .prepare('INSERT INTO messages (kind, scope, student_id, body, created_at) VALUES (?,?,?,?,?)')
+    .run('chat', 'student', sid, text, Date.now());
+  json(res, 201, { id: Number(r.lastInsertRowid) });
+});
+
+route('DELETE', '/api/teacher/dm/message/:id', async (req, res, body, p) => {
+  if (!needTeacher(req, res)) return;
+  db.prepare("DELETE FROM messages WHERE id=? AND kind='chat'").run(Number(p.id));
+  json(res, 200, { ok: true });
+});
+
 /** المس: بتشوف كل قنوات الفصل (بس القنوات، مش خاص) */
 route('GET', '/api/teacher/channels', async (req, res) => {
   if (!needTeacher(req, res)) return;
@@ -1281,6 +1360,10 @@ route('GET', '/api/student/notifications', async (req, res) => {
   const tasks = tasksFor(st);
   const subs = db.prepare('SELECT task_id FROM submissions WHERE student_id = ?').all(st.id);
   const doneSet = new Set(subs.map((s) => s.task_id));
+  const dm = db
+    .prepare("SELECT * FROM messages WHERE kind='chat' AND student_id=? ORDER BY id")
+    .all(st.id);
+
   json(res, 200, {
     items: ann.map((a) => ({
       kind: 'announce',
@@ -1289,6 +1372,7 @@ route('GET', '/api/student/notifications', async (req, res) => {
       scope: a.scope,
       at: a.created_at,
     })),
+    dm: dm.map((m) => ({ id: m.id, body: m.body, at: m.created_at })),
     pendingTasks: tasks.filter((t) => !doneSet.has(t.id)).length,
     totalTasks: tasks.length,
   });
