@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       BAC_VERSION: '1.8'
-      Z_VERSION: '0.3'
+      Z_VERSION: '0.4'
     steps:
       - uses: actions/checkout@v4
 
