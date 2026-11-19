@@ -33,19 +33,22 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Bac-Taq - offline study library.
+ * Z-Project Workplace - classroom workspace for Mr Gasser.
  *
- * The bundled web app lives in assets/web and is exposed to the WebView through
- * https://appassets.androidplatform.net/ (served locally, never touches the network).
- * Using a virtual https origin keeps Web Workers, fetch() and localStorage working
- * exactly like a normal site while the app itself holds no INTERNET permission.
+ * The UI shell (html/css/js/fonts) ships inside the APK and is served to the WebView
+ * from the virtual https origin https://appassets.androidplatform.net/web/* so the
+ * app opens instantly and survives flaky connections.
  *
- * Everything works offline: activation is verified locally against a SHA-256 (stored
- * for good after the first successful entry), the four PDFs ship inside the APK and
- * are rendered by the bundled PDF.js.
+ * Everything that matters lives on the school server: accounts, the student roster,
+ * registration requests and the teacher's approvals. The web layer talks to that
+ * server over HTTPS; the base URL is injected into the page as window.ZAPI at load
+ * time (never baked into the JS bundle), so one APK can point at staging or
+ * production. INTERNET permission is therefore required.
  */
 public class MainActivity extends Activity {
 
+    /** Where the school server lives. Override per build with -PZAPI_BASE or via BuildConfig. */
+    private static final String DEFAULT_API_BASE = "https://z-project.onrender.com";
     private static final String HOST_URL = "https://appassets.androidplatform.net/web/index.html";
     private static final String ASSET_PATH = "web/";
     private static final String BACK_JS =
@@ -100,7 +103,7 @@ public class MainActivity extends Activity {
         s.setTextZoom(100);
         s.setMediaPlaybackRequiresUserGesture(true);
         s.setCacheMode(WebSettings.LOAD_NO_CACHE);
-        // Offline app: nothing is ever downloaded, so mixed content stays blocked.
+        // The API is https; never let a downgrade slip through.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         }
@@ -117,7 +120,6 @@ public class MainActivity extends Activity {
         web.addJavascriptInterface(new Bridge(), "ZBridge");
 
         // Serve the bundled web app over the virtual https origin.
-        web.setWebViewClient(new LocalClient());
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             ServiceWorkerController.getInstance().setServiceWorkerClient(new ServiceWorkerClient() {
                 @Override
@@ -129,7 +131,44 @@ public class MainActivity extends Activity {
         web.setWebChromeClient(new WebChromeClient());
         CookieManager.getInstance().setAcceptCookie(false);
 
+        web.setWebViewClient(new LocalClient());
         web.loadUrl(HOST_URL);
+    }
+
+    /** Server base URL: BuildConfig override, then the compiled-in default. */
+    private String apiBase() {
+        String fromBuild = null;
+        try {
+            // Filled in by tools/build_apk.sh through strings.xml -- see README.
+            fromBuild = getString(getResources().getIdentifier("zapi_base", "string", getPackageName()));
+        } catch (Throwable ignored) {
+        }
+        if (fromBuild != null && fromBuild.startsWith("http")) return fromBuild.replaceAll("/+$", "");
+        return DEFAULT_API_BASE;
+    }
+
+    /**
+     * index.html ships without a server URL so the same bundle works everywhere.
+     * We splice one small script tag in before </head> while streaming the asset,
+     * which guarantees window.ZAPI exists before js/app.js executes.
+     */
+    private static String injectApiBase(String html, String base) {
+        String tag = "<script>window.ZAPI=" + jsString(base) + ";</script>";
+        int at = html.indexOf("</head>");
+        if (at < 0) return html;
+        return html.substring(0, at) + tag + html.substring(at);
+    }
+
+    /** Minimal JSON string escaping for the injected value. */
+    private static String jsString(String raw) {
+        StringBuilder b = new StringBuilder("\"");
+        for (int i = 0; i < raw.length(); i++) {
+            char c = raw.charAt(i);
+            if (c == '"' || c == '\\') b.append('\\').append(c);
+            else if (c < 0x20) b.append(String.format("\\u%04x", (int) c));
+            else b.append(c);
+        }
+        return b.append('"').toString();
     }
 
     private boolean isDebuggable() {
@@ -186,6 +225,16 @@ public class MainActivity extends Activity {
             AssetManager am = getAssets();
             InputStream in = am.open(path);
             String mime = mimeOf(path);
+            if (path.endsWith("index.html")) {
+                java.io.ByteArrayOutputStream buf = new java.io.ByteArrayOutputStream();
+                byte[] chunk = new byte[8192];
+                int n;
+                while ((n = in.read(chunk)) > 0) buf.write(chunk, 0, n);
+                in.close();
+                String page = new String(buf.toByteArray(), "UTF-8");
+                byte[] patched = injectApiBase(page, apiBase()).getBytes("UTF-8");
+                in = new ByteArrayInputStream(patched);
+            }
             Map<String, String> headers = new HashMap<>();
             headers.put("Cache-Control", "no-store");
             headers.put("Access-Control-Allow-Origin", "*");

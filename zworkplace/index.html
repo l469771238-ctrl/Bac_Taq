@@ -10,151 +10,307 @@
 </head>
 <body>
 
-<!-- ============ HOME ============ -->
-<section id="screen-home" class="screen active">
+<!-- ==================== 1) شاشة البداية ==================== -->
+<section id="screen-entry" class="screen active">
+  <div class="entry">
+    <div class="entry-glow"></div>
+    <div class="brand">
+      <div class="brand-logo">
+        <span></span><span></span><span></span>
+        <svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+      </div>
+      <h1>Z-Project</h1>
+      <p>ورك سبيس الفصل — مستر جاسر</p>
+    </div>
+
+    <div class="entry-actions">
+      <button class="btn btn-primary" data-go="login">
+        <svg viewBox="0 0 24 24"><path d="M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
+        تسجيل الدخول
+      </button>
+      <button class="btn btn-gold" data-go="signup">
+        <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.4"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M18 8v6M15 11h6"/></svg>
+        إنشاء حساب
+      </button>
+      <button class="btn btn-ghost" data-go="teacher-login">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16v12H4z"/><path d="M9 18v3h6v-3"/><path d="M8 10h5M8 13.5h3"/></svg>
+        دخول المدرس
+      </button>
+    </div>
+
+    <p class="entry-foot">لازم تكون متصل بالإنترنت — بياناتك محفوظة على سيرفر الفصل</p>
+    <div id="net-badge" class="net-badge hidden">مفيش إنترنت</div>
+  </div>
+</section>
+
+<!-- ==================== 2) تسجيل الدخول ==================== -->
+<section id="screen-login" class="screen">
+  <header class="sub-head">
+    <button class="icon-btn" data-back><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+    <div><h2>تسجيل الدخول</h2><span class="tiny">برقم الجلوس وكلمة المرور</span></div>
+  </header>
+  <div class="scroller">
+    <div class="form-wrap">
+      <div class="field">
+        <label for="login-seat">رقم الجلوس (9 أرقام)</label>
+        <input id="login-seat" inputmode="numeric" maxlength="9" placeholder="000000000" autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="login-pass">كلمة المرور</label>
+        <input id="login-pass" type="password" placeholder="••••••" autocomplete="current-password">
+      </div>
+      <p class="form-err" id="login-err"></p>
+      <button class="btn btn-primary" id="login-btn">دخول</button>
+      <button class="btn-link" data-go="recover">نسيت كلمة المرور؟</button>
+      <button class="btn-link" data-go="signup">معنديش حساب — أنشئ واحد</button>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 3) إنشاء حساب ==================== -->
+<section id="screen-signup" class="screen">
+  <header class="sub-head">
+    <button class="icon-btn" data-back><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+    <div><h2>إنشاء حساب</h2><span class="tiny" id="signup-step-label">الخطوة 1 من 2</span></div>
+  </header>
+  <div class="scroller">
+
+    <!-- step 1 -->
+    <div id="signup-step1">
+      <div class="steps"><i class="on"></i><i></i></div>
+      <div class="form-wrap">
+        <p class="form-note">اكتب رقم الجلوس بس — الاسم هيظهر لوحده من كشف الفصل.</p>
+        <div class="field">
+          <label for="su-seat">رقم الجلوس</label>
+          <input id="su-seat" inputmode="numeric" maxlength="9" placeholder="000000000">
+        </div>
+        <p class="form-err" id="su-err1"></p>
+        <button class="btn btn-primary" id="su-next">التالي</button>
+      </div>
+    </div>
+
+    <!-- step 2 -->
+    <div id="signup-step2" class="hidden">
+      <div class="steps"><i class="on"></i><i class="on"></i></div>
+      <div class="name-card">
+        <div class="nc-av" id="su-avatar">؟</div>
+        <div class="nc-body">
+          <span>الاسم المسجّل في الكشف</span>
+          <b id="su-name">—</b>
+          <em id="su-seat-view">—</em>
+        </div>
+        <svg class="nc-tick" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 9.5"/></svg>
+      </div>
+
+      <div class="form-wrap">
+        <div class="field">
+          <label for="su-pass">كلمة المرور الجديدة</label>
+          <input id="su-pass" type="password" placeholder="6 حروف أو أرقام على الأقل" autocomplete="new-password">
+        </div>
+        <div class="field">
+          <label for="su-pass2">تأكيد كلمة المرور</label>
+          <input id="su-pass2" type="password" placeholder="اكتبها تاني" autocomplete="new-password">
+        </div>
+        <div class="field">
+          <label for="su-q">سؤال سري (للاسترجاع)</label>
+          <input id="su-q" placeholder="مثال: اسم مدرستي الابتدائي؟" maxlength="80">
+        </div>
+        <div class="field">
+          <label for="su-a">إجابة السؤال السري</label>
+          <input id="su-a" placeholder="الإجابة" maxlength="60">
+        </div>
+        <p class="form-err" id="su-err2"></p>
+        <button class="btn btn-primary" id="su-submit">ابعت طلب التسجيل</button>
+        <p class="form-note center">طلبك هيفضل مستني لحد ما المدرس يقبله ويحطك في فصل ومجموعة.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ==================== 4) طلب مستني الموافقة ==================== -->
+<section id="screen-pending" class="screen">
+  <div class="result-wrap">
+    <div class="result-ico gold">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+    </div>
+    <h2>طلبك وصل ✅</h2>
+    <p class="result-name" id="pending-name">—</p>
+    <p class="result-sub" id="pending-seat">—</p>
+    <p class="result-txt">حسابك مستني موافقة المدرس. أول ما يقبلك ويحدد لك الفصل والمجموعة، تقدر تدخل برقم الجلوس وكلمة المرور.</p>
+    <button class="btn btn-primary" id="pending-check">اتأكد من الحالة</button>
+    <button class="btn btn-ghost" data-go="entry">رجوع للبداية</button>
+  </div>
+</section>
+
+<!-- ==================== 5) استرجاع كلمة المرور ==================== -->
+<section id="screen-recover" class="screen">
+  <header class="sub-head">
+    <button class="icon-btn" data-back><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+    <div><h2>استرجاع كلمة المرور</h2><span class="tiny">بالسؤال السري</span></div>
+  </header>
+  <div class="scroller">
+    <div class="form-wrap">
+      <div class="field">
+        <label for="rc-seat">رقم الجلوس</label>
+        <input id="rc-seat" inputmode="numeric" maxlength="9" placeholder="000000000">
+      </div>
+      <p class="form-err" id="rc-err1"></p>
+      <button class="btn btn-primary" id="rc-next">هات السؤال السري</button>
+    </div>
+
+    <div id="rc-step2" class="hidden">
+      <div class="q-box">
+        <span>السؤال السري</span>
+        <b id="rc-question">—</b>
+      </div>
+      <div class="form-wrap">
+        <div class="field">
+          <label for="rc-answer">الإجابة</label>
+          <input id="rc-answer" placeholder="إجابتك">
+        </div>
+        <div class="field">
+          <label for="rc-pass">كلمة المرور الجديدة</label>
+          <input id="rc-pass" type="password" placeholder="6 حروف أو أرقام على الأقل">
+        </div>
+        <p class="form-err" id="rc-err2"></p>
+        <button class="btn btn-primary" id="rc-submit">غيّر كلمة المرور</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 6) دخول المدرس ==================== -->
+<section id="screen-teacher-login" class="screen">
+  <header class="sub-head">
+    <button class="icon-btn" data-back><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+    <div><h2>دخول المدرس</h2><span class="tiny">لوحة التحكم والموافقات</span></div>
+  </header>
+  <div class="scroller">
+    <div class="form-wrap">
+      <div class="field">
+        <label for="tl-email">البريد</label>
+        <input id="tl-email" type="email" inputmode="email" placeholder="name@z-school.local" autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="tl-pass">كلمة المرور</label>
+        <input id="tl-pass" type="password" placeholder="••••••" autocomplete="current-password">
+      </div>
+      <p class="form-err" id="tl-err"></p>
+      <button class="btn btn-primary" id="tl-btn">دخول</button>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 7) رئيسية الطالب ==================== -->
+<section id="screen-student" class="screen">
   <header class="top">
     <div class="top-row">
       <div>
-        <h1 id="greet">أهلاً يا مستر</h1>
-        <span class="sub" id="today">—</span>
+        <h1 id="st-greet">أهلاً 👋</h1>
+        <span class="sub" id="st-sub">—</span>
       </div>
-      <div class="avatar" id="avatar">م</div>
+      <div class="avatar" id="st-avatar">؟</div>
+    </div>
+  </header>
+  <div class="scroller">
+    <div class="hero">
+      <span class="k" id="st-class-tag">—</span>
+      <h3>أهلاً بيك في ورك سبيس الفصل</h3>
+      <p>حسابك اتفعّل. الحاجات الجديدة هتظهر هنا أول ما تتنزّل.</p>
+    </div>
+    <div class="stats">
+      <div class="stat"><b id="st-seat">—</b><span>رقم الجلوس</span></div>
+      <div class="stat gold"><b id="st-group">—</b><span>المجموعة</span></div>
+      <div class="stat green"><b>مفعّل</b><span>الحساب</span></div>
+    </div>
+    <div class="sec-head"><h3>قريبًا</h3></div>
+    <div class="card"><div class="card-row">
+      <div class="card-ico ci-blue"><svg viewBox="0 0 24 24"><path d="M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1z"/></svg></div>
+      <div class="card-body"><b>الواجبات</b><span>هتظهر هنا</span></div>
+    </div></div>
+    <div class="card"><div class="card-row">
+      <div class="card-ico ci-green"><svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg></div>
+      <div class="card-body"><b>الحضور</b><span>هيتسجل هنا</span></div>
+    </div></div>
+    <div class="card"><div class="card-row">
+      <div class="card-ico ci-gold"><svg viewBox="0 0 24 24"><path d="M4 6h16v12H4z"/><path d="M8 10h8M8 13.5h5"/></svg></div>
+      <div class="card-body"><b>الامتحانات والدرجات</b><span>هتظهر هنا</span></div>
+    </div></div>
+    <div class="spacer"></div>
+    <button class="btn btn-ghost" id="st-logout">تسجيل خروج</button>
+  </div>
+</section>
+
+<!-- ==================== 8) لوحة المدرس ==================== -->
+<section id="screen-teacher" class="screen">
+  <header class="top">
+    <div class="top-row">
+      <div>
+        <h1 id="th-name">لوحة المدرس</h1>
+        <span class="sub" id="th-sub">—</span>
+      </div>
+      <button class="icon-btn" id="th-logout" aria-label="خروج">
+        <svg viewBox="0 0 24 24"><path d="M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h5"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+      </button>
     </div>
   </header>
 
+  <div class="dash-tabs" id="dash-tabs">
+    <button class="on" data-tab="requests">الطلبات <i id="badge-req" class="pill-badge hidden">0</i></button>
+    <button data-tab="roster">الكشف</button>
+    <button data-tab="classes">الفصول</button>
+    <button data-tab="students">الطلاب</button>
+  </div>
+
   <div class="scroller">
-    <div class="hero">
-      <span class="k">فصل 3/2 — رياضيات</span>
-      <h3 id="hero-title">الفصل مستني حضرتك 👋</h3>
-      <p id="hero-sub">—</p>
+    <div class="stats" id="dash-stats">
+      <div class="stat"><b id="stat-roster">—</b><span>في الكشف</span></div>
+      <div class="stat gold"><b id="stat-pending">—</b><span>طلبات مستنية</span></div>
+      <div class="stat green"><b id="stat-students">—</b><span>حسابات مفعّلة</span></div>
     </div>
 
-    <div class="stats">
-      <div class="stat"><b id="st-students">0</b><span>طالب</span></div>
-      <div class="stat gold"><b id="st-hw">0</b><span>واجب مفتوح</span></div>
-      <div class="stat green"><b id="st-rate">—</b><span>حضور النهاردة</span></div>
+    <!-- الطلبات -->
+    <div id="tab-requests" class="tabpane">
+      <div class="sec-head"><h3>طلبات التسجيل</h3><span class="link" id="req-refresh">تحديث</span></div>
+      <div class="list" id="req-list"></div>
     </div>
 
-    <div class="sec-head"><h3>اختصارات</h3></div>
-    <div class="card" data-go="attendance">
-      <div class="card-row">
-        <div class="card-ico ci-green"><svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg></div>
-        <div class="card-body"><b>تسجيل حضور النهاردة</b><span id="att-hint">اضغط لتسجيل الحضور</span></div>
-        <span class="card-go"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></span>
+    <!-- الكشف -->
+    <div id="tab-roster" class="tabpane hidden">
+      <div class="sec-head"><h3>كشف الفصل</h3><span class="link" id="roster-import">تحميل كشف</span></div>
+      <div class="search">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
+        <input id="roster-q" placeholder="دوّر بالاسم أو رقم الجلوس">
       </div>
-    </div>
-    <div class="card" data-go="students">
-      <div class="card-row">
-        <div class="card-ico ci-blue"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg></div>
-        <div class="card-body"><b>قايمة الطلاب</b><span id="stu-hint">—</span></div>
-        <span class="card-go"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></span>
-      </div>
-    </div>
-    <div class="card" data-go="homework">
-      <div class="card-row">
-        <div class="card-ico ci-gold"><svg viewBox="0 0 24 24"><path d="M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1z"/></svg></div>
-        <div class="card-body"><b>الواجبات</b><span id="hw-hint">—</span></div>
-        <span class="card-go"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></span>
-      </div>
+      <div class="list" id="roster-list"></div>
     </div>
 
-    <div class="sec-head"><h3>آخر الواجبات</h3><span class="link" data-go="homework">الكل</span></div>
-    <div id="recent-hw"></div>
+    <!-- الفصول -->
+    <div id="tab-classes" class="tabpane hidden">
+      <div class="sec-head"><h3>الفصول والمجموعات</h3><span class="link" id="class-add">+ فصل جديد</span></div>
+      <div class="list" id="class-list"></div>
+    </div>
 
-    <div class="sec-head"><h3>إعلان سريع</h3></div>
-    <div class="card" id="quick-note">
-      <div class="field" style="margin:0">
-        <textarea id="note-text" placeholder="اكتب إعلان للفصل… (مثال: امتحان الأحد الجاي في الوحدة 4)"></textarea>
-      </div>
-      <button class="btn btn-gold sm" id="note-send" style="margin-top:10px">
-        <svg viewBox="0 0 24 24"><path d="M4 12l16-7-7 16-2-7-7-2z"/></svg>حط الإعلان في لوحة الفصل
-      </button>
+    <!-- الطلاب -->
+    <div id="tab-students" class="tabpane hidden">
+      <div class="sec-head"><h3>الطلاب المفعّلين</h3><span class="link" id="students-refresh">تحديث</span></div>
+      <div class="list" id="students-list"></div>
     </div>
   </div>
 </section>
 
-<!-- ============ STUDENTS ============ -->
-<section id="screen-students" class="screen">
-  <div class="sub-head">
-    <button class="icon-btn" data-back><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
-    <div><h2>قايمة الطلاب</h2><span class="tiny" id="students-sub">—</span></div>
-  </div>
-  <div class="scroller">
-    <div class="search">
-      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-      <input id="stu-search" placeholder="دوّر على طالب…">
-    </div>
-    <div class="sec-head" style="margin-top:6px">
-      <h3>الطلاب</h3>
-      <span class="link" id="add-student">+ ضيف طالب</span>
-    </div>
-    <div class="list" id="students-list"></div>
-  </div>
-</section>
-
-<!-- ============ ATTENDANCE ============ -->
-<section id="screen-attendance" class="screen">
-  <div class="sub-head">
-    <button class="icon-btn" data-back><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
-    <div><h2>حضور النهاردة</h2><span class="tiny" id="att-sub">—</span></div>
-  </div>
-  <div class="scroller">
-    <div class="stats" style="margin-top:4px">
-      <div class="stat green"><b id="att-p">0</b><span>حاضر</span></div>
-      <div class="stat gold"><b id="att-l">0</b><span>متأخر</span></div>
-      <div class="stat" style="--x:0"><b id="att-a" style="color:var(--red)">0</b><span>غايب</span></div>
-    </div>
-    <div class="sec-head"><h3>سجّل لكل طالب</h3><span class="link" id="att-all">الكل حاضر</span></div>
-    <div class="list" id="attendance-list"></div>
-  </div>
-</section>
-
-<!-- ============ HOMEWORK ============ -->
-<section id="screen-homework" class="screen">
-  <div class="sub-head">
-    <button class="icon-btn" data-back><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
-    <div><h2>الواجبات</h2><span class="tiny" id="hw-sub">—</span></div>
-  </div>
-  <div class="scroller">
-    <div style="padding:14px 16px 0">
-      <button class="btn btn-primary" id="new-hw">
-        <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>واجب جديد
-      </button>
-    </div>
-    <div class="sec-head"><h3>المفتوح</h3></div>
-    <div class="list" id="hw-list"></div>
-  </div>
-</section>
-
-<!-- ============ BOTTOM NAV ============ -->
-<nav class="nav">
-  <button class="tab on" data-go="home"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"/></svg><span>الرئيسية</span></button>
-  <button class="tab" data-go="students"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 5.5a3 3 0 0 1 0 5.6M17.5 20a6 6 0 0 0-2-4.2"/></svg><span>الطلاب</span></button>
-  <button class="tab" data-go="attendance"><svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg><span>الحضور</span></button>
-  <button class="tab" data-go="homework"><svg viewBox="0 0 24 24"><path d="M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1z"/></svg><span>الواجبات</span></button>
-</nav>
-
-<!-- ============ SHEETS ============ -->
+<!-- ==================== حوارات ==================== -->
 <div class="sheet" id="sheet">
   <div class="sheet-card">
     <div class="sheet-handle"></div>
-    <h3 class="sheet-title" id="sheet-title">—</h3>
-    <div class="field">
-      <label id="f1-label">الاسم</label>
-      <input id="f1" placeholder="">
-    </div>
-    <div class="field">
-      <label id="f2-label">ملاحظات</label>
-      <input id="f2" placeholder="اختياري">
-    </div>
-    <div class="sheet-actions">
-      <button class="btn btn-ghost" id="sheet-cancel">إلغاء</button>
-      <button class="btn btn-primary" id="sheet-save">حفظ</button>
-    </div>
+    <h3 class="sheet-title"><span id="sheet-title">—</span><button class="x" id="sheet-close">✕</button></h3>
+    <div id="sheet-body"></div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
+
 <script src="js/app.js"></script>
 </body>
 </html>

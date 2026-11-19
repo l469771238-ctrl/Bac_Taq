@@ -3,3 +3,9 @@ node_modules/
 # tools/OWNER.md is committed on purpose: this repo is private and it is the owner's manual
 shots/
 probe_out/
+
+# قاعدة بيانات الفصل — بتتولد على السيرفر، مش بتتحفظ في git
+zworkplace/data/
+*.db
+*.db-wal
+*.db-shm

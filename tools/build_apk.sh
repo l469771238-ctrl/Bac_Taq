@@ -33,16 +33,35 @@ echo "==> building $APK_NAME $version ($version_code) from $app"
 rm -rf "$WORK"
 mkdir -p "$WORK/compiled" "$WORK/gen" "$WORK/dex" "$WORK/assets" "$OUT"
 
+# optional: point the app at a different class server (defaults to strings.xml)
+if [ -n "${ZAPI_BASE:-}" ] && [ "$app" = "zworkplace" ]; then
+  echo "==> API base: $ZAPI_BASE"
+  STAMP_DIR="$WORK/res"
+  cp -r "$APP/res" "$STAMP_DIR"
+  python3 - "$STAMP_DIR/values/strings.xml" "$ZAPI_BASE" <<'PYAPI'
+import sys, re
+p, base = sys.argv[1], sys.argv[2].rstrip('/')
+s = open(p, encoding='utf-8').read()
+s = re.sub(r'(<string name="zapi_base"[^>]*>)[^<]*(</string>)', lambda m: m.group(1) + base + m.group(2), s)
+open(p, 'w', encoding='utf-8').write(s)
+print('zapi_base ->', base)
+PYAPI
+  APP_RES="$STAMP_DIR"
+else
+  APP_RES="$APP/res"
+fi
+
 echo "==> stage web assets"
 mkdir -p "$WORK/assets/web"
 cp -r "$WEB"/. "$WORK/assets/web"/
 # never ship dev-only files inside the apk
 rm -rf "$WORK/assets/web/tests" "$WORK/assets/web/node_modules" "$WORK/assets/web/package.json" \
        "$WORK/assets/web/README.md" "$WORK/assets/web/.gitignore" "$WORK/assets/web/img/icon-1024.png" \
-       "$WORK/assets/web/img/logo@2x.png"
+       "$WORK/assets/web/img/logo@2x.png" \
+       "$WORK/assets/web/server" "$WORK/assets/web/data" "$WORK/assets/web/.env"
 
 echo "==> compile resources"
-"$BT/aapt2" compile --dir "$APP/res" -o "$WORK/compiled/res.zip"
+"$BT/aapt2" compile --dir "${APP_RES:-$APP/res}" -o "$WORK/compiled/res.zip"
 
 echo "==> link resources + manifest"
 "$BT/aapt2" link \
@@ -108,7 +127,8 @@ if os.environ.get('NEED_PDF') == '1':
              'assets/web/books/programming.pdf']
 missing = [n for n in need if n not in names]
 stray = [n for n in names if n.startswith('web/')]
-junk = [n for n in names if n.startswith(('assets/web/tests', 'assets/web/node_modules'))]
+junk = [n for n in names if n.startswith(('assets/web/tests', 'assets/web/node_modules',
+                                            'assets/web/server', 'assets/web/data'))]
 if missing or stray or junk:
     print('PACKAGING ERROR')
     for n in missing: print('  missing:', n)
