@@ -1,226 +1,327 @@
-/* اختبار الواجهة الحقيقية في jsdom — الكود بدل رقم الجلوس، والتسجيل بيتحفظ */
-process.env.ZDB = '/tmp/zui-' + Date.now() + '.db';
-const fs = require('fs'), path = require('path');
-const { JSDOM, VirtualConsole } = require(path.join(__dirname, '..', '..', 'tests', 'node_modules', 'jsdom'));
-const { once } = require('node:events');
+'use strict';
+/**
+ * اختبارات واجهة Z-Project — بتشغّل index.html في jsdom وبتتكلم السيرفر الحقيقي.
+ * الاستخدام: node zworkplace/tests/ui.test.js [baseUrl]
+ */
+const path = require('node:path');
+const fs = require('node:fs');
+const { JSDOM, VirtualConsole } = require('jsdom');
 
 const ROOT = path.join(__dirname, '..');
-const results = [];
-const check = (n, c, d) => results.push([c ? 'PASS' : 'FAIL', n, d == null ? '' : String(d).slice(0, 110)]);
-const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-const APP = fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
-const HTML = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8').replace('<script src="js/app.js"></script>', '');
+const BASE = process.env.ZTEST_BASE || process.argv[2] || 'http://127.0.0.1:3100';
 
-function boot(base, token, last) {
+let pass = 0;
+let fail = 0;
+const fails = [];
+
+function ok(name, cond, extra) {
+  if (cond) {
+    pass++;
+    console.log('  ✓ ' + name);
+  } else {
+    fail++;
+    fails.push(name);
+    console.log('  ✗ ' + name + (extra ? '  →  ' + extra : ''));
+  }
+}
+
+function eq(name, got, want) {
+  ok(name, got === want, `اتوقعنا ${JSON.stringify(want)}، لقينا ${JSON.stringify(got)}`);
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function makeDom(token) {
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   const vc = new VirtualConsole();
   const errs = [];
-  vc.on('jsdomError', e => errs.push(e.message));
-  const dom = new JSDOM(HTML, { url: base + '/', runScripts: 'outside-only', pretendToBeVisual: true, virtualConsole: vc });
-  dom.window.fetch = (u, o) => fetch(u.startsWith('http') ? u : base + u, o);
-  if (token) dom.window.localStorage.setItem('zwork.tok', token);
-  if (token && last) dom.window.localStorage.setItem('zwork.last', last);
-  dom.window.eval(APP);
-  return { w: dom.window, errs };
+  vc.on('jsdomError', (e) => errs.push(e.message));
+
+  const dom = new JSDOM(html, {
+    url: BASE + '/',
+    runScripts: 'outside-only',
+    pretendToBeVisual: true,
+    virtualConsole: vc,
+  });
+  const { window } = dom;
+  window.fetch = (u, o) => fetch(new URL(u, BASE), o);
+  window.ZAPI = BASE;
+  window.localStorage.clear();
+  if (token) window.localStorage.setItem('zk_token', token);
+  window.eval(fs.readFileSync(path.join(ROOT, 'js', 'app.js'), 'utf8'));
+  await sleep(120);
+  return { dom, window, errs };
 }
-const nf = (arr) => arr.filter(Boolean);
+
+const visible = (w) => (w.document.querySelector('.screen.show') || {}).id || 'none';
+
+async function teacherToken() {
+  const r = await fetch(BASE + '/api/teacher/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: process.env.ZTEACHER_PASS || 'asmaa2026' }),
+  });
+  const j = await r.json();
+  return j.token;
+}
+
+async function api(method, p, body, t) {
+  const r = await fetch(BASE + p, {
+    method,
+    headers: { 'Content-Type': 'application/json', ...(t ? { Authorization: 'Bearer ' + t } : {}) },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  return { status: r.status, data: await r.json().catch(() => ({})) };
+}
 
 (async () => {
-  const { server, bootstrap } = require('../server/index.js');
-  bootstrap();
-  server.listen(0, '127.0.0.1');
-  await once(server, 'listening');
-  const base = 'http://127.0.0.1:' + server.address().port;
-  const post = (p, body, t) => fetch(base + p, {
-    method: 'POST',
-    headers: Object.assign({ 'Content-Type': 'application/json' }, t ? { Authorization: 'Bearer ' + t } : {}),
-    body: JSON.stringify(body || {})
-  }).then(r => r.json());
+  console.log('=== واجهة Z-Project ===\n');
 
-  const tl = await post('/api/teacher/login', { email: 'gasser@z-school.local', password: 'zwork2026' });
-  const T = tl.token;
-  await post('/api/teacher/roster', {
-    csv: 'code,name,grade\n100000001,يوسف إبراهيم الشامي,3/2\n100000002,مريم خالد سعيد,3/2\nA12,سارة حسن إبراهيم,3/1'
-  }, T);
+  /* ---------- ١. الشاشة الأولى ---------- */
+  {
+    const { window } = await makeDom();
+    eq('البداية على الشاشة الرئيسية', visible(window), 'screen-home');
+    ok('فيها ٣ أزرار', window.document.querySelectorAll('.big-btn').length === 3);
+    ok('زرار طلب انضمام', /طلب انضمام/.test(window.document.querySelector('#go-join').textContent));
+    ok('زرار تسجيل دخول', /تسجيل دخول/.test(window.document.querySelector('#go-login').textContent));
+    ok('زرار أنا مس أسماء', /أنا مس أسماء/.test(window.document.querySelector('#go-teacher').textContent));
 
-  // ================= أول تشغيل =================
-  let { w, errs } = boot(base);
-  await sleep(220);
-  const $ = (sel, r) => (r || w.document).querySelector(sel);
-  const active = () => { const a = w.document.querySelector('.screen.active'); return a ? a.id.replace('screen-', '') : null; };
-  const type = (sel, v) => { const el = $(sel); el.value = v; el.dispatchEvent(new w.Event('input', { bubbles: true })); };
-  const click = async (sel) => { const el = $(sel); if (!el) throw new Error('مفيش ' + sel); el.click(); await sleep(170); };
+    window.document.querySelector('#go-join').click();
+    eq('بيفتح شاشة الانضمام', visible(window), 'screen-join');
+    window.document.querySelector('[data-back]').click();
+    eq('الرجوع بيرجّع للبداية', visible(window), 'screen-home');
 
-  check('boot: no script errors', errs.length === 0, errs.join(' | '));
-  check('boot: starts on the entry screen', active() === 'entry', active());
-  check('boot: three entry buttons', w.document.querySelectorAll('#screen-entry .entry-actions .btn').length === 3);
+    window.document.querySelector('#go-teacher').click();
+    eq('بيفتح شاشة المس', visible(window), 'screen-tlogin');
+  }
 
-  // ---------- التسجيل ----------
-  await click('[data-go="signup"]');
-  check('signup: opens', active() === 'signup', active());
-  check('signup: no name field anywhere', w.document.querySelector('input#su-name') === null &&
-        /اسمك هيظهر لوحده/.test($('#screen-signup').textContent));
+  /* ---------- ٢. دخول المس ---------- */
+  {
+    const { window } = await makeDom();
+    window.document.querySelector('#go-teacher').click();
+    window.document.querySelector('#tl-pass').value = 'غلط';
+    window.document.querySelector('#tl-go').click();
+    await sleep(300);
+    ok('كلمة سر غلط بتطلع رسالة', /غلط/.test(window.document.querySelector('#tl-err').textContent));
 
-  type('#code-signup', 'nope123');
-  await click('#su-next');
-  check('signup: unknown code says so plainly', /مش موجود/.test($('#su-err1').textContent), $('#su-err1').textContent);
+    window.document.querySelector('#tl-pass').value = process.env.ZTEACHER_PASS || 'asmaa2026';
+    window.document.querySelector('#tl-go').click();
+    await sleep(600);
+    eq('دخل لوحة المس', visible(window), 'screen-teacher');
+    ok('فيها ٤ بلاطات', window.document.querySelectorAll('#th-tiles .tile').length === 4);
+    const txt = window.document.querySelector('#th-tiles').textContent;
+    ok('لوحة التنظيم', /لوحة التنظيم/.test(txt));
+    ok('الإشعارات', /الإشعارات/.test(txt));
+    ok('التواصل', /التواصل/.test(txt));
+    ok('مساحة الملفات', /مساحة الملفات/.test(txt));
+    ok('الإحصائيات ظاهرة', /\d/.test(window.document.querySelector('#th-stats').textContent));
+  }
 
-  type('#code-signup', 'ab');
-  await click('#su-next');
-  check('signup: too-short code rejected', /قصير/.test($('#su-err1').textContent), $('#su-err1').textContent);
+  /* ---------- ٣. لوحة التنظيم ---------- */
+  {
+    const T = await teacherToken();
+    const t = await makeDom(T);
+    const { window } = t;
+    eq('بيرجع على كرسي المس من التوكن', visible(window), 'screen-teacher');
+    window.document.querySelector('[data-nav="organize"]').click();
+    await sleep(500);
+    eq('فتح لوحة التنظيم', visible(window), 'screen-organize');
+    const body = window.document.querySelector('#org-body');
+    ok('فيها فصول', body.querySelectorAll('.cls').length >= 1);
 
-  type('#code-signup', '100000001');
-  await click('#su-next');
-  await sleep(150);
-  check('signup: moves to step 2', !$('#signup-step2').classList.contains('hidden'));
-  check('signup: the name came from the database', $('#su-name').textContent === 'يوسف إبراهيم الشامي', $('#su-name').textContent);
-  check('signup: the code is shown back', $('#su-code-view').textContent === '100000001');
+    // فتح فصل
+    const head = body.querySelector('[data-toggle]');
+    if (head) {
+      head.click();
+      await sleep(400);
+      const body2 = window.document.querySelector('#org-body');
+      ok('الفصل بيفتح ويوري مجموعاته', body2.querySelectorAll('.grp').length >= 1);
+      ok('في شارة القيادة', /قائد|القيادة/.test(body2.textContent));
+    }
+  }
 
-  type('#su-pass', '123'); type('#su-pass2', '123'); type('#su-q', 'مدرستي؟'); type('#su-a', 'الامتياز');
-  await click('#su-submit');
-  check('signup: short password blocked', /6 حروف/.test($('#su-err2').textContent), $('#su-err2').textContent);
-  type('#su-pass', 'youssef2026'); type('#su-pass2', 'youssef2027');
-  await click('#su-submit');
-  check('signup: mismatched passwords blocked', /مش زي بعض/.test($('#su-err2').textContent), $('#su-err2').textContent);
+  /* ---------- ٤. طلب انضمام كامل ---------- */
+  const NEW_CODE = '470460558';
+  let newId = null;
+  {
+    // امسح الطالب لو موجود من تشغيل سابق
+    const T = await teacherToken();
+    const list = await api('GET', '/api/teacher/students?q=' + NEW_CODE, undefined, T);
+    const old = (list.data.rows || []).find((r) => r.code === NEW_CODE);
+    if (old) {
+      // نشيله خالص عشان الاختبار يبدأ نضيف
+      await api('POST', `/api/teacher/students/${old.id}/purge`, undefined, T);
+    }
 
-  type('#su-pass2', 'youssef2026');
-  await click('#su-submit');
-  await sleep(420);
-  check('signup: lands straight in the account', active() === 'student', active());
-  check('signup: greeting uses the first name', /يوسف/.test($('#st-greet').textContent), $('#st-greet').textContent);
-  check('signup: code shown on the dashboard', $('#st-code').textContent === '100000001', $('#st-code').textContent);
-  const tok1 = w.localStorage.getItem('zwork.tok');
-  check('signup: session saved on the device', !!tok1);
+    const { window } = await makeDom();
+    window.document.querySelector('#go-join').click();
+    window.document.querySelector('#join-code').value = NEW_CODE;
+    window.document.querySelector('#join-check').click();
+    await sleep(500);
+    eq('الكود بيودّي للتسجيل', visible(window), 'screen-signup');
+    const nm = window.document.querySelector('#su-name').textContent;
+    ok('الاسم ظهر من الكشف', nm && nm !== '—' && nm.split(' ').length >= 2, nm);
 
-  // ---------- الإغلاق والرجوع: الحساب محفوظ ----------
-  let r2 = boot(base, tok1, '100000001');
-  await sleep(420);
-  const $2 = (s) => r2.w.document.querySelector(s);
-  const act2 = () => { const a = r2.w.document.querySelector('.screen.active'); return a ? a.id.replace('screen-', '') : null; };
-  check('reopen: still signed in (registration saved)', act2() === 'student', act2());
-  check('reopen: same code still there', $2('#st-code').textContent === '100000001', $2('#st-code').textContent);
+    // باسورد قصير
+    window.document.querySelector('#su-pass').value = '123';
+    window.document.querySelector('#su-pass2').value = '123';
+    window.document.querySelector('#su-send').click();
+    await sleep(200);
+    ok('بيرفض الباسورد القصير', /٦|6/.test(window.document.querySelector('#su-err').textContent));
 
-  // ---------- تسجيل خروج -> الحساب يفضل موجود ----------
-  $2('#st-logout').click();
-  await sleep(320);
-  check('logout: goes back to the entry screen', act2() === 'entry', act2());
-  check('logout: token is cleared', !r2.w.localStorage.getItem('zwork.tok'));
-  check('logout: the code is remembered for next time', $2('#code-login').value === '100000001', $2('#code-login').value);
+    // مش متطابقين
+    window.document.querySelector('#su-pass').value = 'goodpass1';
+    window.document.querySelector('#su-pass2').value = 'goodpass2';
+    window.document.querySelector('#su-send').click();
+    await sleep(200);
+    ok('بيرفض عدم التطابق', /مش زي|مختلف/.test(window.document.querySelector('#su-err').textContent));
 
-  // ---------- الدخول بكلمة المرور ----------
-  await (async () => { $2('[data-go="login"]').click(); await sleep(180); })();
-  $2('#code-login').value = '100000001';
-  $2('#login-pass').value = 'youssef2026';
-  $2('#login-btn').click();
-  await sleep(420);
-  check('login: back into the same account', act2() === 'student', act2());
-  check('login: no duplicate account created', true);
+    // صح
+    window.document.querySelector('#su-pass2').value = 'goodpass1';
+    window.document.querySelector('#su-send').click();
+    await sleep(700);
+    eq('طلب الانضمام بيتبعت', visible(window), 'screen-pending');
+    ok('رسالة الانتظار', /موافقة|مستني|اتسجل/.test(window.document.querySelector('#pd-msg').textContent + window.document.querySelector('#pd-title').textContent));
 
-  // ---------- الطالب مش مدرس ----------
-  check('guard: student cannot see the teacher dashboard', !$2('#screen-teacher').classList.contains('active'));
+    const reqs = await api('GET', '/api/teacher/requests?status=pending', undefined, T);
+    const mine = (reqs.data.rows || []).find((r) => r.code === NEW_CODE);
+    ok('الطلب وصل للمس', !!mine);
+    newId = mine && mine.id;
+  }
 
-  // ================= واجهة المدرس =================
-  let t = boot(base);
-  await sleep(200);
-  const $3 = (s) => t.w.document.querySelector(s);
-  const act3 = () => { const a = t.w.document.querySelector('.screen.active'); return a ? a.id.replace('screen-', '') : null; };
-  const click3 = async (s) => { const el = $3(s); if (!el) throw new Error('مفيش ' + s); el.click(); await sleep(200); };
-  const type3 = (s, v) => { const el = $3(s); el.value = v; el.dispatchEvent(new t.w.Event('input', { bubbles: true })); };
+  /* ---------- ٥. الطالب مش بيدخل قبل الموافقة ---------- */
+  {
+    const r = await api('POST', '/api/login', { code: NEW_CODE, password: 'goodpass1' });
+    eq('دخول قبل الموافقة مرفوض', r.status, 403);
+  }
 
-  await click3('[data-go="teacher-login"]');
-  type3('#tl-email', 'gasser@z-school.local'); type3('#tl-pass', 'zwork2026');
-  await click3('#tl-btn');
-  await sleep(450);
-  check('teacher: dashboard opens', act3() === 'teacher', act3());
-  check('teacher: roster count shown', $3('#stat-roster').textContent === '3', $3('#stat-roster').textContent);
-  check('teacher: registered count shown', $3('#stat-students').textContent === '1', $3('#stat-students').textContent);
+  /* ---------- ٦. قبول الطلب ---------- */
+  {
+    const T = await teacherToken();
+    const t = await makeDom(T);
+    const { window } = t;
+    window.document.querySelector('[data-nav="requests"]').click();
+    await sleep(600);
+    eq('فتح الإشعارات', visible(window), 'screen-requests');
+    const txt = window.document.querySelector('#req-body').textContent;
+    ok('الطلب ظاهر', txt.includes(NEW_CODE) || /مستني/.test(txt));
 
-  await click3('#dash-tabs button[data-tab="roster"]');
-  await sleep(300);
-  check('teacher: roster list renders', t.w.document.querySelectorAll('#roster-list .list-row').length === 3,
-        t.w.document.querySelectorAll('#roster-list .list-row').length);
-  check('teacher: codes visible in the roster', t.w.document.querySelector('#roster-list').textContent.includes('A12'));
+    // زرار القبول
+    const accBtn = window.document.querySelector('[data-acc]');
+    ok('في زرار قبول', !!accBtn);
+    if (accBtn) {
+      accBtn.click();
+      await sleep(500);
+      ok('شيت القبول فتح', !!window.document.querySelector('.sheet-bg'));
+      ok('فيه اختيار فصل', !!window.document.querySelector('#ap-cls'));
+      ok('فيه اختيار مجموعة', !!window.document.querySelector('#ap-grp'));
+      ok('مكتوب إن القبول محتاج مكان', /الفصل والمجموعة/.test(window.document.querySelector('.sheet').textContent));
+    }
+  }
 
-  // ---------- رفع قاعدة بيانات بـ CSV فيه عناوين عربية ----------
-  await click3('#roster-import');
-  type3('#imp-csv', 'الكود,الاسم,الصف\n7001,طارق سامي الديب,3/1\n7002,هبة مصطفى فؤاد,3/2');
-  await sleep(120);
-  check('import: preview counts the rows (header excluded)', /2 صف/.test($3('#imp-preview').textContent), $3('#imp-preview').textContent);
-  await click3('#imp-go');
-  await sleep(450);
-  check('import: sheet closed after upload', !$3('#sheet').classList.contains('open'));
-  check('import: roster grew to 5', $3('#stat-roster').textContent === '5', $3('#stat-roster').textContent);
+  /* ---------- ٧. قبول فعلي عبر الـAPI ---------- */
+  {
+    const T = await teacherToken();
+    const classes = await api('GET', '/api/teacher/classes', undefined, T);
+    const cls = classes.data.classes[0];
+    const grp = cls.groups.find((g) => g.gender === 'boys');
+    const r = await api('POST', `/api/teacher/requests/${newId}/approve`, { classId: cls.id, groupId: grp.id }, T);
+    eq('القبول نجح', r.status, 200);
+    eq('اتحط في المجموعة', r.data.student.group.id, grp.id);
+  }
 
-  // ---------- مراجعة التسجيلات ----------
-  await click3('#dash-tabs button[data-tab="requests"]');
-  await sleep(250);
-  check('approval: empty state explains instant signup', /فوري/.test($3('#req-list').textContent));
-  check('approval: toggle button present', !!$3('#approval-toggle'));
-  const before = await post('/api/teacher/settings', {}, T).then(() => fetch(base + '/api/teacher/settings', { headers: { Authorization: 'Bearer ' + T } }).then(r => r.json()));
-  await click3('#approval-toggle');
-  await sleep(400);
-  const after = await fetch(base + '/api/teacher/settings', { headers: { Authorization: 'Bearer ' + T } }).then(r => r.json());
-  check('approval: toggle flips the server setting', after.approvalRequired !== before.approvalRequired,
-        `${before.approvalRequired} -> ${after.approvalRequired}`);
+  /* ---------- ٨. الطالب يدخل ويشوف حالته ---------- */
+  {
+    const r = await api('POST', '/api/login', { code: NEW_CODE, password: 'goodpass1' });
+    eq('دخل بعد الموافقة', r.status, 200);
+    const { window } = await makeDom(r.data.token);
+    await sleep(500);
+    eq('على شاشة الطالب', visible(window), 'screen-student');
+    const card = window.document.querySelector('#st-card').textContent;
+    ok('شايف اسمه', card.includes('احمد') || card.includes(r.data.student.name.split(' ')[0]));
+    ok('شايف كوده', card.includes(NEW_CODE));
+    ok('شايف مجموعته', card.includes(r.data.student.group.name));
+    ok('شايف دوره', /عضو|قائد/.test(card));
+  }
 
-  // سجّل طالب جديد والمراجعة مفعّلة
-  const pend = await post('/api/register', { code: '7001', password: 'tarek2026', secretQ: 'مين؟', secretA: 'طارق' });
-  check('approval: new signup is pending', pend.status === 'pending', pend.status);
-  await click3('#req-refresh');
-  await sleep(350);
-  check('approval: teacher sees it in the review tab', t.w.document.querySelectorAll('#req-list .req').length === 1);
-  check('approval: name matches the database', /طارق سامي الديب/.test($3('#req-list').textContent));
+  /* ---------- ٩. الإعلانات ---------- */
+  {
+    const T = await teacherToken();
+    const t = await makeDom(T);
+    const { window } = t;
+    window.document.querySelector('[data-nav="comm"]').click();
+    await sleep(600);
+    eq('فتح التواصل', visible(window), 'screen-comm');
+    const body = window.document.querySelector('#comm-body');
+    ok('في خانة إعلان', !!window.document.querySelector('#an-body'));
+    ok('في خيارين للجمهور', window.document.querySelectorAll('#an-seg button').length === 2);
 
-  await click3('[data-approve]');
-  await sleep(400);
-  check('approval: sheet opens', $3('#sheet').classList.contains('open'));
-  check('approval: can approve without a class', $3('#ap-do') && $3('#ap-do').disabled === false);
-  await click3('#ap-do');
-  await sleep(450);
-  check('approval: request list empties', t.w.document.querySelectorAll('#req-list .req').length === 0);
-  const li = await post('/api/login', { code: '7001', password: 'tarek2026' });
-  check('approval: student can log in after approval', !!li.token);
+    const before = (await api('GET', '/api/teacher/messages', undefined, T)).data.announcements.length;
+    window.document.querySelector('#an-body').value = 'اختبار من الواجهة — إعلان';
+    window.document.querySelector('#an-send').click();
+    await sleep(700);
+    const after = (await api('GET', '/api/teacher/messages', undefined, T)).data.announcements.length;
+    eq('الإعلان اتنشر', after, before + 1);
+  }
 
-  // ---------- استرجاع كلمة المرور ----------
-  let rec = boot(base);
-  await sleep(200);
-  const $4 = (s) => rec.w.document.querySelector(s);
-  const act4 = () => { const a = rec.w.document.querySelector('.screen.active'); return a ? a.id.replace('screen-', '') : null; };
-  await (async () => { $4('[data-go="login"]').click(); await sleep(160); $4('[data-go="recover"]').click(); await sleep(160); })();
-  $4('#code-recover').value = '100000001';
-  $4('#rc-next').click();
-  await sleep(420);
-  check('recover: secret question shown', $4('#rc-question').textContent === 'مدرستي؟', $4('#rc-question').textContent);
-  $4('#rc-answer').value = 'غلط'; $4('#rc-pass').value = 'newpass2026';
-  $4('#rc-submit').click();
-  await sleep(400);
-  check('recover: wrong answer blocked', /غلط/.test($4('#rc-err2').textContent), $4('#rc-err2').textContent);
-  $4('#rc-answer').value = 'الامتياز';
-  $4('#rc-submit').click();
-  await sleep(450);
-  check('recover: success returns to login', act4() === 'login', act4());
-  $4('#login-pass').value = 'newpass2026';
-  $4('#login-btn').click();
-  await sleep(450);
-  check('recover: new password enters the account', act4() === 'student', act4());
+  /* ---------- ١٠. الدردشة ---------- */
+  {
+    const T = await teacherToken();
+    const t = await makeDom(T);
+    const { window } = t;
+    window.document.querySelector('[data-nav="comm"]').click();
+    await sleep(500);
+    window.document.querySelector('#comm-tabs [data-t="chat"]').click();
+    await sleep(700);
+    const list = window.document.querySelectorAll('[data-chat]');
+    ok('في قائمة طلاب للدردشة', list.length >= 1);
+    if (list.length) {
+      list[0].click();
+      await sleep(600);
+      ok('فتح محادثة', !!window.document.querySelector('#ch-in'));
+      ok('مفيش رفع صور أو مرفقات', !window.document.querySelector('input[type="file"]'));
+      window.document.querySelector('#ch-in').value = 'رسالة اختبار';
+      window.document.querySelector('#ch-send').click();
+      await sleep(700);
+      ok('الرسالة اتبعتت', /اختبار/.test(window.document.querySelector('#ch-msgs').textContent));
+    }
+  }
 
-  // ---------- أكواد مش أرقام ----------
-  const mixed = await post('/api/lookup', { code: 'A12' });
-  check('codes: alphanumeric code resolves to its name', mixed.name === 'سارة حسن إبراهيم', mixed.name);
+  /* ---------- ١١. مساحة الملفات ---------- */
+  {
+    const T = await teacherToken();
+    const t = await makeDom(T);
+    const { window } = t;
+    window.document.querySelector('[data-nav="files"]').click();
+    await sleep(400);
+    eq('فتح مساحة الملفات', visible(window), 'screen-files');
+    ok('فيها شرح', /الملفات|المجموعة/.test(window.document.querySelector('#files-body').textContent));
+  }
 
-  // ---------- حقن عنوان السيرفر (أندرويد) ----------
-  const inject = (html, b) => {
-    const tag = '<script>window.ZAPI=' + JSON.stringify(b) + ';</script>';
-    const at = html.indexOf('</head>');
-    return at < 0 ? html : html.slice(0, at) + tag + html.slice(at);
-  };
-  const inj = inject(fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8'), 'https://z-project.onrender.com');
-  check('android: ZAPI injected before app.js', inj.indexOf('window.ZAPI') < inj.indexOf('js/app.js'));
-  check('android: ships without a hard-coded base',
-        fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8').indexOf('onrender.com') === -1);
+  /* ---------- ١٢. الخروج ---------- */
+  {
+    const T = await teacherToken();
+    const t = await makeDom(T);
+    const { window } = t;
+    window.document.querySelector('#th-logout').click();
+    await sleep(600);
+    eq('الخروج بيرجّع للبداية', visible(window), 'screen-home');
+    ok('التوكن اتمسح', !window.localStorage.getItem('zk_token'));
+  }
 
-  for (const x of nf(results)) console.log(x[0], '-', x[1], x[2] ? '[' + x[2] + ']' : '');
-  const f = results.filter(x => x[0] === 'FAIL');
-  console.log(f.length ? `\n${f.length} FAILED of ${results.length}` : `\nALL PASSED (${results.length})`);
-  server.close();
-  process.exit(f.length ? 1 : 0);
-})().catch(e => { console.error(e); process.exit(1); });
+  /* ---------- ١٣. مفيش أخطاء JS ---------- */
+  {
+    const t = await makeDom();
+    ok('مفيش أخطاء JavaScript', t.errs.length === 0, t.errs.join(' | '));
+  }
+
+  console.log(`\n=== النتيجة: ${pass} نجح · ${fail} فشل ===`);
+  if (fail) {
+    console.log('فشل: ' + fails.join(' · '));
+    process.exit(1);
+  }
+  console.log('ALL PASSED (' + pass + ')');
+})().catch((e) => {
+  console.error('انهار:', e);
+  process.exit(1);
+});

@@ -2,316 +2,223 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#0a1f4d">
-<title>Z-Project Workplace — ورك سبيس الفصل</title>
-<link rel="icon" href="assets/icon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d1b33">
+<title>Z-Project · مساحة الفصل</title>
 <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
 
-<!-- ==================== 1) شاشة البداية ==================== -->
-<section id="screen-entry" class="screen active">
-  <div class="entry">
-    <div class="entry-glow"></div>
+<!-- ═══════════ البداية ═══════════ -->
+<section id="screen-home" class="screen show">
+  <div class="home">
     <div class="brand">
-      <div class="brand-logo">
-        <span></span><span></span><span></span>
-        <svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
-      </div>
+      <div class="brand-mark">Z</div>
       <h1>Z-Project</h1>
-      <p>ورك سبيس الفصل — مستر جاسر</p>
+      <p>مساحة الفصل</p>
     </div>
 
-    <div class="entry-actions">
-      <button class="btn btn-primary" data-go="login">
-        <svg viewBox="0 0 24 24"><path d="M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
-        تسجيل الدخول
+    <div class="home-actions">
+      <button class="big-btn gold" id="go-join">
+        <span class="bb-ico">📩</span>
+        <span class="bb-txt"><b>طلب انضمام</b><i>لو معاك كود من المس أسماء</i></span>
       </button>
-      <button class="btn btn-gold" data-go="signup">
-        <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.4"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M18 8v6M15 11h6"/></svg>
-        إنشاء حساب
+      <button class="big-btn blue" id="go-login">
+        <span class="bb-ico">🔑</span>
+        <span class="bb-txt"><b>تسجيل دخول</b><i>عندك حساب بالفعل</i></span>
       </button>
-      <button class="btn btn-ghost" data-go="teacher-login">
-        <svg viewBox="0 0 24 24"><path d="M4 6h16v12H4z"/><path d="M9 18v3h6v-3"/><path d="M8 10h5M8 13.5h3"/></svg>
-        دخول المدرس
+      <button class="big-btn ghost" id="go-teacher">
+        <span class="bb-ico">👩‍🏫</span>
+        <span class="bb-txt"><b>أنا مس أسماء</b><i>لوحة الإدارة</i></span>
       </button>
     </div>
-
-    <p class="entry-foot">لازم تكون متصل بالإنترنت — بياناتك محفوظة على سيرفر الفصل</p>
-    <div id="net-badge" class="net-badge hidden">مفيش إنترنت</div>
   </div>
 </section>
 
-<!-- ==================== 2) تسجيل الدخول ==================== -->
-<section id="screen-login" class="screen">
-  <header class="sub-head">
-    <button class="icon-btn" data-back><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
-    <div><h2>تسجيل الدخول</h2><span class="tiny">بالكود وكلمة المرور</span></div>
+<!-- ═══════════ طلب انضمام ═══════════ -->
+<section id="screen-join" class="screen">
+  <header class="top">
+    <button class="back" data-back>‹</button>
+    <h2>طلب انضمام</h2>
   </header>
-  <div class="scroller">
-    <div class="form-wrap">
-      <div class="field">
-        <label for="code-login">الكود</label>
-        <input id="code-login" placeholder="اكتب كودك" autocomplete="username"
-               autocapitalize="characters" spellcheck="false">
-      </div>
-      <div class="field">
-        <label for="login-pass">كلمة المرور</label>
-        <input id="login-pass" type="password" placeholder="••••••" autocomplete="current-password">
-      </div>
-      <p class="form-err" id="login-err"></p>
-      <button class="btn btn-primary" id="login-btn">دخول</button>
-      <button class="btn-link" data-go="recover">نسيت كلمة المرور؟</button>
-      <button class="btn-link" data-go="signup">أول مرة أدخل — سجّل بكودي</button>
+  <div class="scroll">
+    <div class="intro">
+      <span class="pill">الخطوة ١ من ٢</span>
+      <h3>اكتب الكود اللي إدتهولك المس أسماء</h3>
+      <p>هنجيب اسمك من كشف الفصل — مش هتكتبه بنفسك.</p>
     </div>
+    <label class="field">
+      <span>الكود</span>
+      <input id="join-code" inputmode="numeric" autocomplete="off" placeholder="000000000" maxlength="12">
+    </label>
+    <div class="err" id="join-err"></div>
+    <button class="btn primary" id="join-check">التالي</button>
   </div>
 </section>
 
-<!-- ==================== 3) إنشاء حساب ==================== -->
+<!-- ═══════════ التسجيل ═══════════ -->
 <section id="screen-signup" class="screen">
-  <header class="sub-head">
-    <button class="icon-btn" data-back><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
-    <div><h2>التسجيل</h2><span class="tiny" id="signup-step-label">الخطوة 1 من 2</span></div>
+  <header class="top">
+    <button class="back" data-back>‹</button>
+    <h2>إنشاء الحساب</h2>
   </header>
-  <div class="scroller">
-
-    <!-- step 1 -->
-    <div id="signup-step1">
-      <div class="steps"><i class="on"></i><i></i></div>
-      <div class="form-wrap">
-        <p class="form-note">اكتب الكود اللي المدرس إدهولك — اسمك هيظهر لوحده.</p>
-        <div class="field">
-          <label for="code-signup">الكود</label>
-          <input id="code-signup" placeholder="اكتب كودك" autocapitalize="characters" spellcheck="false">
-        </div>
-        <p class="form-err" id="su-err1"></p>
-        <button class="btn btn-primary" id="su-next">التالي</button>
-      </div>
+  <div class="scroll">
+    <div class="name-card">
+      <span class="nc-label">الاسم</span>
+      <b id="su-name">—</b>
+      <span class="nc-code" id="su-code">—</span>
     </div>
-
-    <!-- step 2 -->
-    <div id="signup-step2" class="hidden">
-      <div class="steps"><i class="on"></i><i class="on"></i></div>
-      <div class="name-card">
-        <div class="nc-av" id="su-avatar">؟</div>
-        <div class="nc-body">
-          <span>الاسم المسجّل في الكشف</span>
-          <b id="su-name">—</b>
-          <em id="su-code-view">—</em>
-        </div>
-        <svg class="nc-tick" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 9.5"/></svg>
-      </div>
-
-      <div class="form-wrap">
-        <div class="field">
-          <label for="su-pass">كلمة المرور الجديدة</label>
-          <input id="su-pass" type="password" placeholder="6 حروف أو أرقام على الأقل" autocomplete="new-password">
-        </div>
-        <div class="field">
-          <label for="su-pass2">تأكيد كلمة المرور</label>
-          <input id="su-pass2" type="password" placeholder="اكتبها تاني" autocomplete="new-password">
-        </div>
-        <div class="field">
-          <label for="su-q">سؤال سري (للاسترجاع)</label>
-          <input id="su-q" placeholder="مثال: اسم مدرستي الابتدائي؟" maxlength="80">
-        </div>
-        <div class="field">
-          <label for="su-a">إجابة السؤال السري</label>
-          <input id="su-a" placeholder="الإجابة" maxlength="60">
-        </div>
-        <p class="form-err" id="su-err2"></p>
-        <button class="btn btn-primary" id="su-submit"><span id="su-btn-label">سجّل وابدأ</span></button>
-        <p class="form-note center">تسجيلك بيتحفظ على طول. بعد كده كل ما تفتح التطبيق هتلاقي حسابك مفتوح.</p>
-      </div>
-    </div>
-
+    <label class="field">
+      <span>كلمة المرور</span>
+      <input id="su-pass" type="password" autocomplete="new-password" placeholder="٦ حروف على الأقل">
+    </label>
+    <label class="field">
+      <span>أكّد كلمة المرور</span>
+      <input id="su-pass2" type="password" autocomplete="new-password" placeholder="اكتبها تاني">
+    </label>
+    <div class="err" id="su-err"></div>
+    <button class="btn primary" id="su-send">ابعت طلب الانضمام</button>
+    <p class="hint">طلبك هيوصل للمس أسماء — أول ما توافق هتقدر تدخل.</p>
   </div>
 </section>
 
-<!-- ==================== 4) التسجيل اتم (أو مستني مراجعة) ==================== -->
+<!-- ═══════════ تسجيل دخول الطالب ═══════════ -->
+<section id="screen-login" class="screen">
+  <header class="top">
+    <button class="back" data-back>‹</button>
+    <h2>تسجيل دخول</h2>
+  </header>
+  <div class="scroll">
+    <div class="intro"><h3>أهلاً بيك تاني</h3></div>
+    <label class="field"><span>الكود</span>
+      <input id="li-code" inputmode="numeric" autocomplete="username" placeholder="000000000" maxlength="12"></label>
+    <label class="field"><span>كلمة المرور</span>
+      <input id="li-pass" type="password" autocomplete="current-password" placeholder="••••••"></label>
+    <div class="err" id="li-err"></div>
+    <button class="btn primary" id="li-go">دخول</button>
+  </div>
+</section>
+
+<!-- ═══════════ المس: كلمة المرور ═══════════ -->
+<section id="screen-tlogin" class="screen">
+  <header class="top">
+    <button class="back" data-back>‹</button>
+    <h2>أنا مس أسماء</h2>
+  </header>
+  <div class="scroll">
+    <div class="intro center">
+      <div class="avatar big">👩‍🏫</div>
+      <h3>مس أسماء</h3>
+      <p>اكتبي كلمة المرور</p>
+    </div>
+    <label class="field"><span>كلمة المرور</span>
+      <input id="tl-pass" type="password" autocomplete="current-password" placeholder="••••••"></label>
+    <div class="err" id="tl-err"></div>
+    <button class="btn primary" id="tl-go">دخول</button>
+  </div>
+</section>
+
+<!-- ═══════════ حالة الانتظار ═══════════ -->
 <section id="screen-pending" class="screen">
-  <div class="result-wrap">
-    <div class="result-ico gold" id="pending-ico">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-    </div>
-    <h2 id="pending-title">تسجيلك اتحفظ ✅</h2>
-    <p class="result-name" id="pending-name">—</p>
-    <p class="result-sub" id="pending-code">—</p>
-    <p class="result-txt" id="pending-txt">—</p>
-    <button class="btn btn-primary" id="pending-check">اتأكد من الحالة</button>
-    <button class="btn btn-ghost" data-go="entry">رجوع للبداية</button>
+  <div class="center-wrap">
+    <div class="wait-ico">⏳</div>
+    <h3 id="pd-title">طلبك اتبعت ✅</h3>
+    <p id="pd-msg">مستني موافقة المس أسماء.</p>
+    <button class="btn ghost" data-back>رجوع</button>
   </div>
 </section>
 
-<!-- ==================== 5) استرجاع كلمة المرور ==================== -->
-<section id="screen-recover" class="screen">
-  <header class="sub-head">
-    <button class="icon-btn" data-back><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
-    <div><h2>استرجاع كلمة المرور</h2><span class="tiny">بالسؤال السري</span></div>
-  </header>
-  <div class="scroller">
-    <div class="form-wrap">
-      <div class="field">
-        <label for="code-recover">الكود</label>
-        <input id="code-recover" placeholder="اكتب كودك" autocapitalize="characters" spellcheck="false">
-      </div>
-      <p class="form-err" id="rc-err1"></p>
-      <button class="btn btn-primary" id="rc-next">هات السؤال السري</button>
-    </div>
-
-    <div id="rc-step2" class="hidden">
-      <div class="q-box">
-        <span>السؤال السري</span>
-        <b id="rc-question">—</b>
-      </div>
-      <div class="form-wrap">
-        <div class="field">
-          <label for="rc-answer">الإجابة</label>
-          <input id="rc-answer" placeholder="إجابتك">
-        </div>
-        <div class="field">
-          <label for="rc-pass">كلمة المرور الجديدة</label>
-          <input id="rc-pass" type="password" placeholder="6 حروف أو أرقام على الأقل">
-        </div>
-        <p class="form-err" id="rc-err2"></p>
-        <button class="btn btn-primary" id="rc-submit">غيّر كلمة المرور</button>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ==================== 6) دخول المدرس ==================== -->
-<section id="screen-teacher-login" class="screen">
-  <header class="sub-head">
-    <button class="icon-btn" data-back><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
-    <div><h2>دخول المدرس</h2><span class="tiny">لوحة التحكم والموافقات</span></div>
-  </header>
-  <div class="scroller">
-    <div class="form-wrap">
-      <div class="field">
-        <label for="tl-email">البريد</label>
-        <input id="tl-email" type="email" inputmode="email" placeholder="name@z-school.local" autocomplete="username">
-      </div>
-      <div class="field">
-        <label for="tl-pass">كلمة المرور</label>
-        <input id="tl-pass" type="password" placeholder="••••••" autocomplete="current-password">
-      </div>
-      <p class="form-err" id="tl-err"></p>
-      <button class="btn btn-primary" id="tl-btn">دخول</button>
-    </div>
-  </div>
-</section>
-
-<!-- ==================== 7) رئيسية الطالب ==================== -->
-<section id="screen-student" class="screen">
-  <header class="top">
-    <div class="top-row">
-      <div>
-        <h1 id="st-greet">أهلاً 👋</h1>
-        <span class="sub" id="st-sub">—</span>
-      </div>
-      <div class="avatar" id="st-avatar">؟</div>
-    </div>
-  </header>
-  <div class="scroller">
-    <div class="hero">
-      <span class="k" id="st-class-tag">—</span>
-      <h3>أهلاً بيك في ورك سبيس الفصل</h3>
-      <p>حسابك محفوظ — هتلاقيه زي ما هو كل ما تفتح التطبيق.</p>
-    </div>
-    <div class="stats">
-      <div class="stat"><b id="st-code">—</b><span>كودك</span></div>
-      <div class="stat gold"><b id="st-group">—</b><span>المجموعة</span></div>
-      <div class="stat green"><b>مفعّل</b><span>الحساب</span></div>
-    </div>
-    <div class="sec-head"><h3>قريبًا</h3></div>
-    <div class="card"><div class="card-row">
-      <div class="card-ico ci-blue"><svg viewBox="0 0 24 24"><path d="M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1z"/></svg></div>
-      <div class="card-body"><b>الواجبات</b><span>هتظهر هنا</span></div>
-    </div></div>
-    <div class="card"><div class="card-row">
-      <div class="card-ico ci-green"><svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg></div>
-      <div class="card-body"><b>الحضور</b><span>هيتسجل هنا</span></div>
-    </div></div>
-    <div class="card"><div class="card-row">
-      <div class="card-ico ci-gold"><svg viewBox="0 0 24 24"><path d="M4 6h16v12H4z"/><path d="M8 10h8M8 13.5h5"/></svg></div>
-      <div class="card-body"><b>الامتحانات والدرجات</b><span>هتظهر هنا</span></div>
-    </div></div>
-    <div class="spacer"></div>
-    <button class="btn btn-ghost" id="st-logout">تسجيل خروج</button>
-  </div>
-</section>
-
-<!-- ==================== 8) لوحة المدرس ==================== -->
+<!-- ═══════════ المس: الرئيسية ═══════════ -->
 <section id="screen-teacher" class="screen">
-  <header class="top">
-    <div class="top-row">
-      <div>
-        <h1 id="th-name">لوحة المدرس</h1>
-        <span class="sub" id="th-sub">—</span>
-      </div>
-      <button class="icon-btn" id="th-logout" aria-label="خروج">
-        <svg viewBox="0 0 24 24"><path d="M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h5"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
-      </button>
+  <header class="th-top">
+    <div>
+      <span class="th-hello">أهلاً</span>
+      <h2>مس أسماء</h2>
     </div>
+    <button class="icon-btn" id="th-logout" title="خروج">⏻</button>
   </header>
-
-  <div class="dash-tabs" id="dash-tabs">
-    <button class="on" data-tab="requests">المراجعة <i id="badge-req" class="pill-badge hidden">0</i></button>
-    <button data-tab="roster">قاعدة البيانات</button>
-    <button data-tab="classes">الفصول</button>
-    <button data-tab="students">الطلاب</button>
-  </div>
-
-  <div class="scroller">
-    <div class="stats" id="dash-stats">
-      <div class="stat"><b id="stat-roster">—</b><span>أكواد في القاعدة</span></div>
-      <div class="stat gold"><b id="stat-pending">—</b><span>مستني مراجعة</span></div>
-      <div class="stat green"><b id="stat-students">—</b><span>مسجلين</span></div>
-    </div>
-
-    <!-- الطلبات -->
-    <div id="tab-requests" class="tabpane">
-      <div class="sec-head"><h3>تسجيلات مستنية</h3><span class="link" id="req-refresh">تحديث</span></div>
-      <div class="list" id="req-list"></div>
-    </div>
-
-    <!-- الكشف -->
-    <div id="tab-roster" class="tabpane hidden">
-      <div class="sec-head"><h3>قاعدة بيانات الأكواد</h3><span class="link" id="roster-import">رفع ملف</span></div>
-      <div class="search">
-        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
-        <input id="roster-q" placeholder="دوّر بالاسم أو الكود">
-      </div>
-      <div class="list" id="roster-list"></div>
-    </div>
-
-    <!-- الفصول -->
-    <div id="tab-classes" class="tabpane hidden">
-      <div class="sec-head"><h3>الفصول والمجموعات</h3><span class="link" id="class-add">+ فصل جديد</span></div>
-      <div class="list" id="class-list"></div>
-    </div>
-
-    <!-- الطلاب -->
-    <div id="tab-students" class="tabpane hidden">
-      <div class="sec-head"><h3>الطلاب المسجلين</h3><span class="link" id="students-refresh">تحديث</span></div>
-      <div class="list" id="students-list"></div>
+  <div class="scroll">
+    <div class="stats4" id="th-stats"></div>
+    <div class="sec-head"><h3>الأقسام</h3></div>
+    <div class="tiles" id="th-tiles">
+      <button class="tile t-blue" data-nav="organize">
+        <span class="t-ico">🗂️</span><b>لوحة التنظيم</b><i>فصول · مجموعات · شارات</i></button>
+      <button class="tile t-gold" data-nav="requests">
+        <span class="t-ico">🔔</span><b>الإشعارات</b><i>طلبات الانضمام</i>
+        <span class="badge" id="th-badge" hidden>0</span></button>
+      <button class="tile t-green" data-nav="comm">
+        <span class="t-ico">💬</span><b>التواصل</b><i>إعلانات · دردشة</i></button>
+      <button class="tile t-navy" data-nav="files">
+        <span class="t-ico">📁</span><b>مساحة الملفات</b><i>شغل المجموعات</i></button>
     </div>
   </div>
 </section>
 
-<!-- ==================== حوارات ==================== -->
-<div class="sheet" id="sheet">
-  <div class="sheet-card">
-    <div class="sheet-handle"></div>
-    <h3 class="sheet-title"><span id="sheet-title">—</span><button class="x" id="sheet-close">✕</button></h3>
-    <div id="sheet-body"></div>
+<!-- ═══════════ المس: لوحة التنظيم ═══════════ -->
+<section id="screen-organize" class="screen sub">
+  <header class="top">
+    <button class="back" data-nav="teacher">‹</button>
+    <h2>لوحة التنظيم</h2>
+    <button class="icon-btn" id="org-add-class" title="فصل جديد">＋</button>
+  </header>
+  <div class="scroll" id="org-body"></div>
+</section>
+
+<!-- ═══════════ المس: الإشعارات ═══════════ -->
+<section id="screen-requests" class="screen sub">
+  <header class="top">
+    <button class="back" data-nav="teacher">‹</button>
+    <h2>طلبات الانضمام</h2>
+  </header>
+  <div class="tabs" id="req-tabs">
+    <button class="tab on" data-st="pending">مستنية</button>
+    <button class="tab" data-st="active">مقبولة</button>
+    <button class="tab" data-st="rejected">مرفوضة</button>
   </div>
-</div>
+  <div class="scroll" id="req-body"></div>
+</section>
+
+<!-- ═══════════ المس: التواصل ═══════════ -->
+<section id="screen-comm" class="screen sub">
+  <header class="top">
+    <button class="back" data-nav="teacher">‹</button>
+    <h2>التواصل</h2>
+  </header>
+  <div class="tabs" id="comm-tabs">
+    <button class="tab on" data-t="ann">إعلان</button>
+    <button class="tab" data-t="chat">دردشة خاصة</button>
+  </div>
+  <div class="scroll" id="comm-body"></div>
+</section>
+
+<!-- ═══════════ المس: النلفات ═══════════ -->
+<section id="screen-files" class="screen sub">
+  <header class="top">
+    <button class="back" data-nav="teacher">‹</button>
+    <h2>مساحة الملفات</h2>
+  </header>
+  <div class="scroll" id="files-body"></div>
+</section>
+
+<!-- ═══════════ الطالب ═══════════ -->
+<section id="screen-student" class="screen">
+  <header class="th-top">
+    <div>
+      <span class="th-hello" id="st-hello">أهلاً</span>
+      <h2 id="st-name">—</h2>
+    </div>
+    <button class="icon-btn" id="st-logout" title="خروج">⏻</button>
+  </header>
+  <div class="scroll">
+    <div class="my-card" id="st-card"></div>
+    <div class="sec-head"><h3>الإعلانات</h3></div>
+    <div id="st-ann"></div>
+    <div class="sec-head"><h3>رسايل المس</h3></div>
+    <div id="st-chat"></div>
+  </div>
+</section>
 
 <div class="toast" id="toast"></div>
-
 <script src="js/app.js"></script>
 </body>
 </html>

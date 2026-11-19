@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="app_name">Z-Project</string>
-    <string name="splash_tag">ورك سبيس الفصل</string>
-    <!-- عنوان سيرفر الفصل. tools/build_apk.sh يقدر يغيّره وقت البناء:
-         ZAPI_BASE=https://... bash tools/build_apk.sh 0.2 2 zworkplace -->
-    <string name="zapi_base" translatable="false">https://z-project.onrender.com</string>
-</resources>

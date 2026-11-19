@@ -1,7 +1,0 @@
-data/
-tests/
-android/
-node_modules/
-*.db
-*.db-wal
-*.db-shm

@@ -1,180 +1,116 @@
-/* ============================================================
-   قاعدة البيانات — SQLite (node:sqlite، بدون أي تبعيات)
-
-   الفكرة: الطالب عنده "كود" من قاعدة بيانات المدرس (كشف الفصل).
-   الكود ده هو اللي بيتكتب وقت التسجيل، والاسم بيظهر منه.
-   بعد التسجيل التسجيل بيتحفظ — الطالب بيرجع يلاقي حسابه شغال.
-
-   الجداول:
-     roster    كشف الطلاب (code -> full_name)   ← بيتملي من قاعدة بيانات المدرس
-     students  حسابات الطلاب (الكود + كلمة المرور + الحالة + الفصل/المجموعة)
-     requests  طلبات التسجيل الجديدة (لو المدرس فعّل "الموافقة قبل التفعيل")
-     classes / groups  تقسيم الفصل
-     sessions  الجلسات المفتوحة
-     teachers  المدرس
-     audit     سجل العمليات
-   ============================================================ */
 'use strict';
+/**
+ * قاعدة البيانات — Z-Project Workplace
+ *
+ * الفكرة: التطبيق إدارة فصل. المس أسماء هي المركز.
+ *
+ *   teacher    — حساب المس (واحد بس)
+ *   roster     — كشف الأسماء (الكود + الاسم الثلاثي) اللي المس بتوزعه على الطلبة
+ *   students   — الطالب بعد ما يطلب انضمام (بيستنى موافقة)
+ *   classes    — الفصل
+ *   groups     — المجموعة جوه الفصل، متصنفة ولاد / بنات
+ *   messages   — إعلانات + دردشة خاصة
+ *   files      — ملفات المجموعات والأعضاء
+ *   sessions   — الجلسات
+ */
 const path = require('node:path');
 const fs = require('node:fs');
 const { DatabaseSync } = require('node:sqlite');
 
 const DB_PATH = process.env.ZDB || path.join(__dirname, '..', 'data', 'zwork.db');
-fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
-const db = new DatabaseSync(DB_PATH);
-db.__path = DB_PATH;
 
-/**
- * ترقية من المخطط القديم (seat_id = رقم جلوس) للمخطط الجديد (code).
- * الترقية دي بتحصل مرة واحدة قبل إنشاء الجداول: لو لقينا الجداول القديمة،
- * بنشيل اللي اتغيّر شكلها وبنسيب teachers/sessions/audit زي ما هما.
- * (ده مخطط ما قبل الإصدار — مفيش بيانات حقيقية بنخسرها.)
- */
-function upgradeLegacySchema() {
-  const colsOf = (t) => {
-    try { return db.prepare('PRAGMA table_info(' + t + ')').all().map(c => c.name); }
-    catch (e) { return []; }
-  };
-  const rosterCols = colsOf('roster');
-  if (!rosterCols.length) return;                 // قاعدة جديدة — مفيش حاجة نعملها
-  if (rosterCols.includes('code')) return;        // أصلاً على المخطط الجديد
-  try {
-    db.exec('PRAGMA foreign_keys = OFF');
-    db.exec('BEGIN');
-    for (const t of ['requests', 'students', 'groups', 'classes', 'roster']) {
-      db.exec('DROP TABLE IF EXISTS ' + t);
-    }
-    db.exec('COMMIT');
-    db.exec('PRAGMA foreign_keys = ON');
-    console.log('ℹ️  اتم عمل ترقية للمخطط الجديد (code بدل seat_id)');
-  } catch (e) {
-    try { db.exec('ROLLBACK'); } catch (_) {}
-    throw e;
-  }
-}
-upgradeLegacySchema();
-
-db.exec(`
-PRAGMA journal_mode = WAL;
-PRAGMA foreign_keys = ON;
-
-CREATE TABLE IF NOT EXISTS teachers (
-  id           TEXT PRIMARY KEY,
-  name         TEXT NOT NULL,
-  email        TEXT UNIQUE,
-  pass_hash    TEXT NOT NULL,
-  created_at   INTEGER NOT NULL
-);
-
--- كشف الطلاب: الكود اللي الطالب بيكتبه -> اسمه
-CREATE TABLE IF NOT EXISTS roster (
-  code         TEXT PRIMARY KEY,             -- كود الطالب (حروف/أرقام، فريد)
-  full_name    TEXT NOT NULL,
-  national_id  TEXT,
-  phone        TEXT,
-  guardian     TEXT,
-  grade        TEXT,
-  note         TEXT,
-  imported_at  INTEGER NOT NULL,
-  imported_by  TEXT
-);
-CREATE INDEX IF NOT EXISTS idx_roster_name  ON roster(full_name);
-CREATE INDEX IF NOT EXISTS idx_roster_grade ON roster(grade);
-
-CREATE TABLE IF NOT EXISTS classes (
-  id         TEXT PRIMARY KEY,
-  name       TEXT NOT NULL,
-  grade      TEXT,
-  created_at INTEGER NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS groups (
-  id         TEXT PRIMARY KEY,
-  class_id   TEXT NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
-  name       TEXT NOT NULL,
-  capacity   INTEGER NOT NULL DEFAULT 5,
-  created_at INTEGER NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_groups_class ON groups(class_id);
-
--- حساب الطالب: الكود مربوط بالكشف، والتسجيل بيتحفظ على طول
-CREATE TABLE IF NOT EXISTS students (
-  id            TEXT PRIMARY KEY,
-  code          TEXT NOT NULL UNIQUE REFERENCES roster(code),
-  pass_hash     TEXT,
-  secret_q      TEXT,
-  secret_hash   TEXT,
-  status        TEXT NOT NULL DEFAULT 'active',   -- active | pending | rejected | blocked
-  class_id      TEXT REFERENCES classes(id),
-  group_id      TEXT REFERENCES groups(id),
-  created_at    INTEGER NOT NULL,
-  approved_at   INTEGER,
-  approved_by   TEXT,
-  last_login    INTEGER,
-  failed_tries  INTEGER NOT NULL DEFAULT 0,
-  locked_until  INTEGER
-);
-CREATE INDEX IF NOT EXISTS idx_students_status ON students(status);
-CREATE INDEX IF NOT EXISTS idx_students_group  ON students(group_id);
-CREATE INDEX IF NOT EXISTS idx_students_class  ON students(class_id);
-
-CREATE TABLE IF NOT EXISTS requests (
-  id          TEXT PRIMARY KEY,
-  code        TEXT NOT NULL REFERENCES roster(code),
-  pass_hash   TEXT NOT NULL,
-  secret_q    TEXT,
-  secret_hash TEXT,
-  status      TEXT NOT NULL DEFAULT 'pending',   -- pending | approved | rejected
-  created_at  INTEGER NOT NULL,
-  decided_at  INTEGER,
-  decided_by  TEXT,
-  note        TEXT
-);
-CREATE INDEX IF NOT EXISTS idx_requests_status ON requests(status);
-CREATE INDEX IF NOT EXISTS idx_requests_code   ON requests(code);
-
-CREATE TABLE IF NOT EXISTS sessions (
-  token      TEXT PRIMARY KEY,
-  role       TEXT NOT NULL,      -- teacher | student
-  subject_id TEXT NOT NULL,
-  created_at INTEGER NOT NULL,
-  expires_at INTEGER NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_sessions_subject ON sessions(subject_id);
-
-CREATE TABLE IF NOT EXISTS audit (
-  id         TEXT PRIMARY KEY,
-  at         INTEGER NOT NULL,
-  actor      TEXT,
-  action     TEXT NOT NULL,
-  detail     TEXT
-);
-CREATE INDEX IF NOT EXISTS idx_audit_at ON audit(at);
-
--- إعدادات السيرفر (خيارات المدرس)
-CREATE TABLE IF NOT EXISTS settings (
-  key   TEXT PRIMARY KEY,
-  value TEXT NOT NULL
-);
-`);
-
-/* ------------- إعدادات ------------- */
-function setting(key, fallback) {
-  try {
-    const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(key);
-    if (!row) return fallback;
-    return row.value;
-  } catch (e) { return fallback; }
-}
-function setSetting(key, value) {
-  db.prepare('INSERT INTO settings (key, value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value = excluded.value')
-    .run(key, String(value));
-}
-/** هل الطالب الجديد يستنى موافقة المدرس قبل ما يقدر يدخل؟ (افتراضي: لا) */
-function approvalRequired() { return setting('approval_required', '0') === '1'; }
-
-function id(prefix) {
-  return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+function open(dbPath = DB_PATH) {
+  const dir = path.dirname(dbPath);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  const db = new DatabaseSync(dbPath);
+  db.exec('PRAGMA journal_mode = WAL');
+  db.exec('PRAGMA foreign_keys = ON');
+  migrate(db);
+  return db;
 }
 
-module.exports = { db, DB_PATH, id, setting, setSetting, approvalRequired };
+function migrate(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS teacher (
+      id          INTEGER PRIMARY KEY CHECK (id = 1),
+      name        TEXT NOT NULL DEFAULT 'مس أسماء',
+      pass_hash   TEXT NOT NULL,
+      pass_salt   TEXT NOT NULL,
+      created_at  INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS roster (
+      code        TEXT PRIMARY KEY,
+      name        TEXT NOT NULL,
+      sort_no     INTEGER NOT NULL DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS classes (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      name        TEXT NOT NULL UNIQUE,
+      created_at  INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS groups (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      class_id    INTEGER NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+      name        TEXT NOT NULL,
+      gender      TEXT NOT NULL DEFAULT 'boys' CHECK (gender IN ('boys','girls')),
+      created_at  INTEGER NOT NULL,
+      UNIQUE (class_id, name)
+    );
+
+    CREATE TABLE IF NOT EXISTS students (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      code        TEXT NOT NULL UNIQUE,
+      full_name   TEXT NOT NULL,
+      gender      TEXT NOT NULL DEFAULT 'boy' CHECK (gender IN ('boy','girl')),
+      pass_hash   TEXT NOT NULL,
+      pass_salt   TEXT NOT NULL,
+      status      TEXT NOT NULL DEFAULT 'pending'
+                  CHECK (status IN ('pending','active','rejected','blocked')),
+      is_leader   INTEGER NOT NULL DEFAULT 0,
+      group_id    INTEGER REFERENCES groups(id) ON DELETE SET NULL,
+      note        TEXT NOT NULL DEFAULT '',
+      created_at  INTEGER NOT NULL,
+      decided_at  INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS messages (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      kind        TEXT NOT NULL CHECK (kind IN ('announce','chat')),
+      scope       TEXT NOT NULL CHECK (scope IN ('all','leaders','student')),
+      student_id  INTEGER REFERENCES students(id) ON DELETE CASCADE,
+      body        TEXT NOT NULL,
+      created_at  INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS files (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      group_id    INTEGER REFERENCES groups(id) ON DELETE CASCADE,
+      student_id  INTEGER REFERENCES students(id) ON DELETE CASCADE,
+      stored_name TEXT NOT NULL UNIQUE,
+      orig_name   TEXT NOT NULL,
+      mime        TEXT NOT NULL DEFAULT '',
+      size        INTEGER NOT NULL DEFAULT 0,
+      created_at  INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS sessions (
+      token       TEXT PRIMARY KEY,
+      role        TEXT NOT NULL CHECK (role IN ('teacher','student')),
+      uid         INTEGER NOT NULL,
+      created_at  INTEGER NOT NULL,
+      expires_at  INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS ix_students_group  ON students(group_id);
+    CREATE INDEX IF NOT EXISTS ix_students_status ON students(status);
+    CREATE INDEX IF NOT EXISTS ix_groups_class    ON groups(class_id);
+    CREATE INDEX IF NOT EXISTS ix_msg_kind        ON messages(kind, created_at);
+    CREATE INDEX IF NOT EXISTS ix_files_group     ON files(group_id);
+    CREATE INDEX IF NOT EXISTS ix_sessions_exp    ON sessions(expires_at);
+  `);
+}
+
+module.exports = { open, migrate, DB_PATH };
