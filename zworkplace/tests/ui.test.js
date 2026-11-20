@@ -48,6 +48,8 @@ async function makeDom(token) {
   window.ZAPI = BASE;
   window.localStorage.clear();
   if (token) window.localStorage.setItem('zk_token', token);
+  // الأيقونات تُحمَّل الأول — app.js بيعتمد عليها
+  window.eval(fs.readFileSync(path.join(ROOT, 'js', 'icons.js'), 'utf8'));
   window.eval(fs.readFileSync(path.join(ROOT, 'js', 'app.js'), 'utf8'));
   await sleep(120);
   return { dom, window, errs };
@@ -193,7 +195,7 @@ async function api(method, p, body, t) {
     // صح
     window.document.querySelector('#su-pass2').value = 'goodpass1';
     window.document.querySelector('#su-send').click();
-    await sleep(700);
+    await sleep(1200);
     eq('طلب الانضمام بيتبعت', visible(window), 'screen-pending');
     ok('رسالة الانتظار', /موافقة|مستني|اتسجل/.test(window.document.querySelector('#pd-msg').textContent + window.document.querySelector('#pd-title').textContent));
 

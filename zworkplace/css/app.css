@@ -205,3 +205,142 @@ input,textarea,select{font-family:inherit}
 .tag.no{background:var(--danger-soft);color:var(--danger);border-color:transparent}
 
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ═══════════════════════════════════════════════
+   عناصر الواجهة الداخلية
+   (كانت ناقصة — الصفحات كانت مكسّرة)
+   ═══════════════════════════════════════════════ */
+
+/* ── كارت ── */
+.card{
+  background:var(--paper);border:1px solid var(--line);
+  border-radius:var(--r-md);padding:15px 16px;margin-bottom:10px;
+}
+.card-ico{
+  width:40px;height:40px;border-radius:10px;flex-shrink:0;
+  display:grid;place-items:center;background:var(--paper-3);color:var(--ink-2);
+}
+
+/* ── أزرار داخل الكارت ── */
+.acts{display:flex;gap:8px;margin-top:12px}
+.acts .btn{flex:1;padding:10px 14px;font-size:13.5px}
+
+/* ── أفاتار ── */
+.avatar.girl{background:#faf0f2;color:#9d5a68;border-color:transparent}
+.avatar.gray{background:var(--paper-3);color:var(--ink-3)}
+
+/* ── شارات ── */
+.chip{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:4px 9px;border-radius:5px;
+  font-size:10.5px;font-weight:600;letter-spacing:.1px;
+  background:var(--paper-3);color:var(--ink-3);
+  border:1px solid var(--line);white-space:nowrap;
+}
+.chip.gold{background:var(--accent-soft);color:#8a6520;border-color:transparent}
+.chip.green{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.chip.red{background:var(--danger-soft);color:var(--danger);border-color:transparent}
+.chip.blue{background:#eef3fa;color:#3a5f96;border-color:transparent}
+
+/* ── الفصل ── */
+.cls{
+  background:var(--paper);border:1px solid var(--line);
+  border-radius:var(--r-md);margin-bottom:10px;overflow:hidden;
+  transition:border-color .15s var(--t);
+}
+.cls.open{border-color:var(--line-2)}
+.cls-head{
+  display:flex;align-items:center;gap:12px;
+  padding:15px 16px;cursor:pointer;
+}
+.cls-head:active{background:var(--paper-2)}
+.cls-ico{
+  width:40px;height:40px;border-radius:10px;flex-shrink:0;
+  display:grid;place-items:center;
+  background:#eef3fa;color:#3a5f96;
+}
+.cls-body{display:none;padding:0 12px 12px;border-top:1px solid var(--line)}
+.cls.open .cls-body{display:block;padding-top:12px}
+
+/* ── المجموعة ── */
+.grp{
+  background:var(--paper-2);border:1px solid var(--line);
+  border-radius:var(--r-sm);padding:12px 14px;margin-bottom:8px;
+}
+.grp-head{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+.grp-name{font-size:14px;font-weight:600;letter-spacing:-.1px;flex:1;min-width:0}
+.m-body{padding-left:2px}
+.m-meta{font-size:11px;color:var(--ink-4);margin-top:1px}
+
+/* ── عضو ── */
+.mem{
+  display:flex;align-items:center;gap:9px;
+  padding:7px 0;font-size:13px;
+}
+.mem + .mem{border-top:1px solid var(--line)}
+
+/* ── رسالة ── */
+.msg{
+  background:var(--paper);border:1px solid var(--line);
+  border-radius:var(--r-md);padding:13px 15px;margin-bottom:9px;
+}
+.msg .m-body{font-size:13.5px;line-height:1.75;color:var(--ink-2)}
+.msg.mine{background:#f0f4fa;border-color:#dfe7f2}
+
+/* ── شبكة الكارت ── */
+.mc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(255,255,255,.09);border-radius:var(--r-sm);overflow:hidden;margin-top:12px}
+.mc-cell{background:var(--brand);padding:10px 9px;text-align:center}
+.mc-cell span{display:block;font-size:10px;color:rgba(255,255,255,.45);margin-bottom:3px;letter-spacing:.2px}
+.mc-cell b{display:block;font-size:13.5px;font-weight:600;color:#fff;font-variant-numeric:tabular-nums}
+.mc-cell b.gold{color:var(--accent)}
+.mc-sub{font-size:11.5px;color:var(--ink-4);margin-top:10px}
+
+/* ── أقسام ── */
+.seg{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0 12px}
+.seg::-webkit-scrollbar{display:none}
+.seg > *{flex-shrink:0}
+
+/* ── ورقة سفلية ── */
+.sheet-bg{
+  position:fixed;inset:0;z-index:150;
+  background:rgba(15,22,35,.5);
+  display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;transition:opacity .2s var(--t);
+  backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+}
+.sheet-bg.on{opacity:1}
+.sheet{
+  background:var(--paper);width:100%;max-width:480px;
+  border-radius:var(--r-xl) var(--r-xl) 0 0;
+  padding:24px 20px calc(24px + env(safe-area-inset-bottom));
+  max-height:90vh;overflow-y:auto;
+  transform:translateY(24px);transition:transform .24s var(--t);
+}
+.sheet-bg.on .sheet{transform:translateY(0)}
+.sheet h3{margin:0 0 5px;font-size:17px;font-weight:600;letter-spacing:-.2px}
+.sheet .sub{margin:0 0 20px;font-size:12.5px;color:var(--ink-4);line-height:1.65}
+.sheet-acts{display:flex;gap:9px;margin-top:18px}
+.sheet-acts .btn{flex:1}
+.sheet::before{
+  content:'';display:block;width:36px;height:4px;
+  background:var(--line-2);border-radius:2px;
+  margin:-10px auto 18px;
+}
+
+/* ── إحصاءات ── */
+.stat4{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-bottom:6px}
+
+/* ── نص ثانوي ── */
+.big-sub{font-size:12.5px;color:var(--ink-4);line-height:1.7}
+
+/* أيقونة الحالة الفارغة */
+.e-ico{
+  display:grid;place-items:center;
+  color:var(--ink-4);opacity:.55;margin-bottom:14px;
+}
+.empty .e-ico{margin:0 auto 14px}
+
+/* ألوان حالة الانتظار */
+.wait-ico.tone-warn{background:var(--warn-soft);color:var(--warn)}
+.wait-ico.tone-danger{background:var(--danger-soft);color:var(--danger)}
+.wait-ico.tone-ok{background:var(--ok-soft);color:var(--ok)}

@@ -206,9 +206,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
         toast('عندك حساب بالفعل — سجّل دخول');
         show('screen-login');
       } else {
-        $('#pd-title').textContent = r.state === 'pending' ? 'طلبك مستني الموافقة' : 'حسابك مش مفعّل';
-        $('#pd-msg').textContent = r.message || '';
-        show('screen-pending');
+        showPending(r.state, r.message);
       }
     } catch (e) {
       err.textContent = e.message;
@@ -216,6 +214,25 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       btn.disabled = false;
     }
   };
+
+  /* شاشة الحالة — كل حالة ليها عنوان وأيقونة مختلفة */
+  function showPending(state, message) {
+    const T = {
+      pending:  { title: 'طلبك مستني الموافقة',  icon: 'clock', tone: 'warn' },
+      rejected: { title: 'طلبك اترفض',            icon: 'xCircle', tone: 'danger' },
+      blocked:  { title: 'حسابك موقوف',           icon: 'alert', tone: 'danger' },
+      active:   { title: 'حسابك جاهز',            icon: 'checkCircle', tone: 'ok' },
+    };
+    const t = T[state] || T.pending;
+    const icoEl = document.querySelector('#screen-pending .wait-ico');
+    if (icoEl) {
+      icoEl.innerHTML = window.icon(t.icon, 'ic-xl');
+      icoEl.className = 'wait-ico tone-' + t.tone;
+    }
+    $('#pd-title').textContent = t.title;
+    $('#pd-msg').textContent = message || '';
+    show('screen-pending');
+  }
 
   $('#su-send').onclick = async () => {
     const p1 = $('#su-pass').value;
@@ -227,11 +244,8 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
     const btn = $('#su-send');
     btn.disabled = true;
     try {
-      const r = await api('POST', '/api/register', { code: joinData.code, password: p1 });
-      $('#pd-title').textContent = 'طلبك اتبعت';
-      $('#pd-msg').textContent = 'مستني موافقة المس أسماء — أول ما توافق هتقدر تدخل.';
-      show('screen-pending');
-      void r;
+      await api('POST', '/api/register', { code: joinData.code, password: p1 });
+      showPending('pending', 'طلبك اتبعت للمس أسماء — أول ما توافق هتقدر تدخل.');
     } catch (e) {
       err.textContent = e.message;
     } finally {
@@ -409,11 +423,13 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
           <div class="cls-ico">${ico("school")}</div>
           <div class="grow" style="flex:1;min-width:0">
             <b style="font-size:15px">${esc(c.name)}</b>
-            <small style="font-size:11.5px;color:#6b7a94;display:block">
+            <small class="m-meta">
               ${c.groups.length} مجموعة · ${total} طالب · ${ready} جاهزة
             </small>
           </div>
-          <span style="font-size:19px;color:#93a1b8">${open ? '⌃' : '⌄'}</span>
+          <button class="icon-btn" data-delcls="${c.id}" title="حذف الفصل"
+                  style="color:var(--ink-4)">${ico("trash","ic-sm")}</button>
+          <span style="color:var(--ink-4)">${ico(open ? 'chevronUp' : 'chevronDown','ic-sm')}</span>
         </div>
         <div class="cls-body">
           ${c.groups.map((g) => groupCard(g)).join('') || '<p style="color:#6b7a94;font-size:13px;text-align:center;padding:8px 0">مفيش مجموعات لسه</p>'}
@@ -424,6 +440,22 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       </div>`;
     }).join('');
 
+    $$('[data-delcls]', box).forEach((el) => {
+      el.onclick = (ev) => {
+        ev.stopPropagation();
+        const c = st.classes.find((x) => x.id === Number(el.dataset.delcls));
+        if (c) deleteClass(c);
+      };
+    });
+    $$('[data-delgrp]', box).forEach((el) => {
+      el.onclick = (ev) => {
+        ev.stopPropagation();
+        for (const c of st.classes) {
+          const g = c.groups.find((x) => x.id === Number(el.dataset.delgrp));
+          if (g) return deleteGroup(g);
+        }
+      };
+    });
     $$('[data-toggle]', box).forEach((el) => {
       el.onclick = () => {
         const id = Number(el.dataset.toggle);
@@ -444,6 +476,8 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
         <span class="chip ${girls ? 'gray' : 'blue'}">${girls ? 'بنات' : 'ولاد'}</span>
         <span class="grp-name">${esc(g.name)}</span>
         ${g.ready ? '<span class="chip green">جاهزة</span>' : '<span class="chip red">محتاجة قائد</span>'}
+        <button class="icon-btn" data-delgrp="${g.id}" title="حذف المجموعة"
+                style="width:26px;height:26px;color:var(--ink-4)">${ico("trash","ic-sm")}</button>
       </div>
       ${g.members.map((m) => `
         <div class="mem">
@@ -467,6 +501,86 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       toast(remove ? 'الشارة اتشالت' : 'الشارة اتمنحت');
       renderOrganize();
     } catch (e) { toast(e.message); }
+  }
+
+  /* ─────────── تأكيد بستايلنا ─────────── */
+  function confirmDlg(title, msg, okLabel, onOk, danger) {
+    sheet(`
+      <h3>${esc(title)}</h3>
+      <p class="sub">${esc(msg)}</p>
+      <div class="sheet-acts">
+        <button class="btn ghost" data-close>إلغاء</button>
+        <button class="btn ${danger ? 'danger' : 'primary'}" id="cf-ok">${esc(okLabel)}</button>
+      </div>`, () => {
+      $('#cf-ok').onclick = async () => {
+        $('#cf-ok').disabled = true;
+        try { await onOk(); closeSheet(); }
+        catch (e) { $('#cf-ok').disabled = false; toast(e.message); }
+      };
+    });
+  }
+
+  /* ─────────── حذف فصل ─────────── */
+  function deleteClass(c) {
+    const n = c.groups.reduce((a, g) => a + g.members.length, 0);
+    const warn = n
+      ? `فيه ${n} طالب جواه. هيرجعوا "مستنيين" ومش هيتشالوا من الكشف.`
+      : 'الفصل فاضي.';
+    confirmDlg(
+      'حذف ' + c.name,
+      warn + ' المجموعات كلها هتتشال. الخطوة دي مش بترجع.',
+      'احذف الفصل',
+      async () => {
+        await api('DELETE', '/api/teacher/classes/' + c.id);
+        toast('الفصل اتحذف');
+        renderOrganize();
+      },
+      true
+    );
+  }
+
+  /* ─────────── حذف مجموعة ─────────── */
+  function deleteGroup(g) {
+    const n = g.members.length;
+    confirmDlg(
+      'حذف ' + g.name,
+      (n ? `${n} طالب هيرجعوا "مستنيين". ` : '') + 'الملفات والرسايل بتاعة المجموعة بتتشال.',
+      'احذف المجموعة',
+      async () => {
+        await api('DELETE', '/api/teacher/groups/' + g.id);
+        toast('المجموعة اتحذفت');
+        renderOrganize();
+      },
+      true
+    );
+  }
+
+  /* ─────────── رجوع طلب مرفوض → مستني ─────────── */
+  async function undoReject(id, name) {
+    confirmDlg(
+      'رجوع طلب ' + name,
+      'الطلب هيرجع "مستني" وتقدري تقبليه تاني.',
+      'رجّع الطلب',
+      async () => {
+        await api('POST', '/api/teacher/students/' + id + '/status', { status: 'pending' });
+        toast('الطلب رجع مستني');
+        loadRequests();
+      }
+    );
+  }
+
+  /* ─────────── إلغاء قبول → مستني ─────────── */
+  async function undoApprove(id, name) {
+    confirmDlg(
+      'إلغاء قبول ' + name,
+      'هيخرج من المجموعة ويرجع "مستني". ملفاته هتفضل موجودة.',
+      'إلغاء القبول',
+      async () => {
+        await api('POST', '/api/teacher/students/' + id + '/status', { status: 'pending' });
+        toast('اتشال من المجموعة');
+        loadRequests();
+      }
+    );
   }
 
   function addClass() {
@@ -576,16 +690,44 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
         ${isPend ? `<div class="acts">
           <button class="btn danger" data-rej="${r.id}">رفض</button>
           <button class="btn primary" data-acc="${r.id}">قبول</button>
+        </div>` : r.status === 'rejected' ? `<div class="acts">
+          <button class="btn ghost" data-undo-rej="${r.id}" data-name="${esc(r.name)}">
+            رجّع الطلب
+          </button>
+        </div>` : r.status === 'active' ? `<div class="acts">
+          <button class="btn ghost" data-undo-acc="${r.id}" data-name="${esc(r.name)}">
+            إلغاء القبول
+          </button>
         </div>` : ''}
       </div>`;
     }).join('');
 
     $$('[data-acc]', box).forEach((el) => (el.onclick = () => approveSheet(Number(el.dataset.acc))));
-    $$('[data-rej]', box).forEach((el) => (el.onclick = () => reject(Number(el.dataset.rej))));
+    $$('[data-rej]', box).forEach((el) => (el.onclick = () => reject(Number(el.dataset.rej), el.closest('.card')?.querySelector('b')?.textContent)));
+    $$('[data-undo-rej]', box).forEach((el) => {
+      el.onclick = () => undoReject(Number(el.dataset.undoRej), el.dataset.name);
+    });
+    $$('[data-undo-acc]', box).forEach((el) => {
+      el.onclick = () => undoApprove(Number(el.dataset.undoAcc), el.dataset.name);
+    });
     renderTeacherHome();
   }
 
-  async function reject(id) {
+  async function reject(id, name) {
+    confirmDlg(
+      'رفض طلب ' + (name || ''),
+      'الطالب هيتشال من القايمة المستنية، ويقدر يبعت تاني لو رجعتيه.',
+      'ارفض',
+      async () => {
+        await api('POST', `/api/teacher/requests/${id}/reject`, {});
+        toast('الطلب اترفض');
+        loadRequests();
+      },
+      true
+    );
+  }
+
+  async function rejectOld(id) {
     try {
       await api('POST', `/api/teacher/requests/${id}/reject`, {});
       toast('الطلب اترفض');

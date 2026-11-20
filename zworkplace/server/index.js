@@ -710,7 +710,23 @@ route('POST', '/api/register', async (req, res, body) => {
         const token = A.createSession(db, 'student', existing.id);
         return json(res, 200, { token, student: studentView(existing), resume: true });
       }
-      return json(res, 200, { resume: true, state: existing.status, message: 'طلبك متسجل — مستني الموافقة' });
+      /*
+       * الرسالة لازم تقول الحقيقة. قبل كده كانت بتقول "مستني الموافقة"
+       * لأي حالة — فالمرفوض كان بيفضل يستنى على الفاضي.
+       */
+      const STATE_MSG = {
+        pending: 'طلبك متسجل — مستني موافقة المس أسماء',
+        rejected: 'طلبك اترفض. طلبك وصل للمس أسماء — كلّمها لو حابة ترجعي الطلب.',
+        blocked: 'حسابك موقوف. كلّم المس أسماء.',
+        active: 'حسابك جاهز.',
+      };
+      return json(res, 200, {
+        resume: true,
+        state: existing.status,
+        status: existing.status,
+        canRetry: existing.status === 'rejected',
+        message: STATE_MSG[existing.status] || 'حالة غير معروفة',
+      });
     }
     return json(res, 409, { error: 'الكود ده مسجّل بالفعل — سجّل دخول بكلمة المرور بتاعتك' });
   }
