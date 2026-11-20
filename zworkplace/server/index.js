@@ -13,8 +13,12 @@ const { open } = require('./db');
 const A = require('./auth');
 
 const ROOT = path.join(__dirname, '..');
-const PORT = Number(process.env.PORT || 3100);
-const HOST = process.env.HOST || '0.0.0.0';
+/*
+ * alwaysdata بيحدد IP وPORT لكل موقع وبيبعتهم كمتغيرات بيئة.
+ * غيرهما (Render/SnapDeploy) بيبعت PORT بس. لو مفيش حاجة، بنقع على 3100.
+ */
+const PORT = Number(process.env.PORT || process.env.ZPORT || 3100);
+const HOST = process.env.IP || process.env.HOST || '0.0.0.0';
 const MAX_JSON = 4 * 1024 * 1024;
 const MIN_GROUP = 3;
 const DEFAULT_MAX_GROUP = 8;
