@@ -19,6 +19,42 @@ const { DatabaseSync } = require('node:sqlite');
 
 const DB_PATH = process.env.ZDB || path.join(__dirname, '..', 'data', 'zwork.db');
 
+/**
+ * استعادة متزامنة للملف قبل فتح القاعدة.
+ *
+ * ليه متزامنة: لازم تخلص قبل أي اتصال بقاعدة البيانات،
+ * وإلا السيرفر بيفتح قاعدة فاضية وبيضيع كل حاجة.
+ *
+ * الملف بيتبعت من التخزين كـBuffer أو stream. للـlocal بنقرا الملف
+ * مباشرة. للـS3/Drive بنستخدم طلب متزامن عبر طفل منفصل — لكن الأسهل
+ * والأأمن إننا نستخدم مكتبة التخزين بشكل غير متزامن قبل listen،
+ * وبعدها نعيد فتح القاعدة. العملية دي بتاخد ثانية واحدة بس.
+ */
+async function prefetch(dbPath, store, key) {
+  const dir = path.dirname(dbPath);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  if (!store) return { restored: false, note: 'مفيش تخزين خارجي' };
+  try {
+    const stream = await store.get(key);
+    const chunks = [];
+    for await (const c of stream) chunks.push(c);
+    const buf = Buffer.concat(chunks);
+    if (buf.length < 16) return { restored: false, note: 'مفيش نسخة محفوظة' };
+    if (buf.slice(0, 16).toString('utf8') !== 'SQLite format 3\u0000') {
+      return { restored: false, note: 'النسخة المحفوظة تالفة' };
+    }
+    try { fs.unlinkSync(dbPath + '-wal'); } catch (e) {}
+    try { fs.unlinkSync(dbPath + '-shm'); } catch (e) {}
+    fs.writeFileSync(dbPath, buf);
+    return { restored: true, bytes: buf.length };
+  } catch (e) {
+    if (e.status === 404 || /not exist|مش موجود/i.test(String(e.message))) {
+      return { restored: false, note: 'أول تشغيل — مفيش نسخة' };
+    }
+    return { restored: false, note: e.message };
+  }
+}
+
 function open(dbPath = DB_PATH) {
   const dir = path.dirname(dbPath);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -26,6 +62,15 @@ function open(dbPath = DB_PATH) {
   db.exec('PRAGMA journal_mode = WAL');
   db.exec('PRAGMA foreign_keys = ON');
   migrate(db);
+
+  /*
+   * الحفظ الخارجي: القاعدة بتتحفظ في التخزين بعد كل تعديل.
+   * لازم نربطها هنا عشان أي تعديل في أي مكان يعلّمها "متسخة".
+   */
+  const persist = require('./persist');
+  global.__sharedDb = db;
+  db.__persist = persist.attach(db, dbPath);
+  db.__path = dbPath;
   return db;
 }
 
@@ -159,4 +204,14 @@ function migrate(db) {
   `);
 }
 
-module.exports = { open, migrate, DB_PATH };
+/**
+ * إعادة فتح القاعدة بعد ما نستعيد ملف جديد من التخزين.
+ * لازم نقفل القديمة الأول عشان ما يبقاش فيه اتصالين على نفس الملف.
+ */
+function reopen(db, dbPath) {
+  const p = dbPath || db.__path || DB_PATH;
+  try { db.close(); } catch (e) {}
+  return open(p);
+}
+
+module.exports = { open, reopen, prefetch, migrate, DB_PATH };

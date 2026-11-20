@@ -21,12 +21,13 @@ const DEFAULT_MAX_GROUP = 8;
 
 /** حد المجموعة — المس هي اللي تحدده من الإعدادات */
 function maxGroup() {
+  if (!db) return DEFAULT_MAX_GROUP;
   const r = db.prepare("SELECT value FROM settings WHERE key='max_group'").get();
   const n = r ? Number(r.value) : DEFAULT_MAX_GROUP;
   return Number.isFinite(n) && n >= 2 && n <= 30 ? n : DEFAULT_MAX_GROUP;
 }
 
-const db = open();
+let db = null;   // بيتفتح في main() بعد استعادة القاعدة
 
 /* لو حساب المس لسه مش موجود، نعمله بكلمة سر افتراضية ونطبعها */
 function ensureTeacher() {
@@ -40,7 +41,7 @@ function ensureTeacher() {
   console.log(`   حساب المس: مس أسماء — كلمة المرور: ${pass}`);
   return db.prepare('SELECT * FROM teacher WHERE id = 1').get();
 }
-const teacher = ensureTeacher();
+let teacher = null;
 
 /**
  * تحميل كشف الأسماء تلقائيًا.
@@ -79,7 +80,7 @@ function bootstrapRoster() {
   }
   if (added) console.log(`   ✅ كشف الأسماء: ${added} طالب اتحمّلوا`);
 }
-bootstrapRoster();
+// bootstrapRoster();  — بتتنادى في main() بعد الاستعادة
 
 /* ---------------- أدوات ---------------- */
 
@@ -1381,6 +1382,7 @@ route('GET', '/api/student/notifications', async (req, res) => {
 /* ====== الصحة والتخزين ====== */
 
 const STORAGE = require('./storage');
+const PERSIST = require('./persist');
 
 route('GET', '/api/health', async (req, res) => {
   json(res, 200, {
@@ -1504,14 +1506,69 @@ const server = http.createServer(async (req, res) => {
   json(res, 404, { error: 'المسار مش موجود' });
 });
 
-A.sweepSessions(db);
-server.listen(PORT, HOST, () => {
-  console.log(`Z-Project server on http://${HOST}:${PORT}`);
-  console.log(
-    `   كشف الأسماء: ${db.prepare('SELECT COUNT(*) n FROM roster').get().n} كود` +
-      ` · الطلاب: ${db.prepare('SELECT COUNT(*) n FROM students').get().n}` +
-      ` · الفصول: ${db.prepare('SELECT COUNT(*) n FROM classes').get().n}`
-  );
+
+/*
+ * ══════════════ الإقلاع ══════════════
+ *
+ * الترتيب ده هو أهم حاجة في التطبيق كله:
+ *
+ *   ١. نستعيد القاعدة من التخزين الخارجي   ← الحسابات والملفات
+ *   ٢. نفتح القاعدة
+ *   ٣. نعمل حساب المس لو مش موجود
+ *   ٤. نحمّل كشف الأسماء لو القاعدة فاضية
+ *   ٥. نبدأ نسمع
+ *
+ * لو عكسنا أي خطوة، الطالب ممكن يدخل ويشوف قاعدة فاضية — أو أسوأ،
+ * السيرفر يمسح القاعدة القديمة بكتابة فوقها.
+ */
+async function main() {
+  const st0 = { enabled: PERSIST.available() };
+
+  // ١+٢ الاستعادة لازم تسبق الفتح
+  if (st0.enabled) {
+    const r = await require('./db').prefetch(
+      require('./db').DB_PATH,
+      STORAGE.store,
+      PERSIST.KEY
+    );
+    console.log(
+      r.restored
+        ? `   ✅ القاعدة اترجعت من التخزين (${(r.bytes / 1024).toFixed(1)} ك.ب)`
+        : `   ℹ️ ${r.note}`
+    );
+  }
+
+  db = open();
+  A.sweepSessions(db);
+
+  // ٣+٤
+  teacher = ensureTeacher();
+  bootstrapRoster();
+
+  // اطبع الحالة
+  console.log(`   التخزين: ${STORAGE.kind} · الحفظ: ${PERSIST.available() ? 'شغال' : 'مقفول'}`);
+
+  server.listen(PORT, HOST, () => {
+    console.log(`Z-Project server on http://${HOST}:${PORT}`);
+    console.log(
+      `   كشف الأسماء: ${db.prepare('SELECT COUNT(*) n FROM roster').get().n} كود` +
+        ` · الطلاب: ${db.prepare('SELECT COUNT(*) n FROM students').get().n}` +
+        ` · الفصول: ${db.prepare('SELECT COUNT(*) n FROM classes').get().n}`
+    );
+  });
+
+  // حفظ أخير عند الإغلاق
+  const bye = () => {
+    PERSIST.flush(true).finally(() => process.exit(0));
+    setTimeout(() => process.exit(0), 3000);
+  };
+  process.on('SIGTERM', bye);
+  process.on('SIGINT', bye);
+}
+
+main().catch((e) => {
+  console.error('فشل الإقلاع:', e);
+  process.exit(1);
 });
 
 module.exports = { server, db };

@@ -77,6 +77,20 @@ async function api(method, p, body, t) {
 (async () => {
   console.log('=== واجهة Z-Project ===\n');
 
+  /* ---------- ٠. تجهيز: فصل ومجموعة ---------- */
+  {
+    const T = await teacherToken();
+    const cls = await api('GET', '/api/teacher/classes', undefined, T);
+    if (!cls.data.classes.length) {
+      const c = await api('POST', '/api/teacher/classes', { name: '٣ ثانوي أ' }, T);
+      await api('POST', `/api/teacher/classes/${c.data.id}/groups`,
+        { name: 'النسور', gender: 'boys' }, T);
+      await api('POST', `/api/teacher/classes/${c.data.id}/groups`,
+        { name: 'الياسمين', gender: 'girls' }, T);
+      console.log('  ⚙️ اتجهز: فصل ومجموعتين');
+    }
+  }
+
   /* ---------- ١. الشاشة الأولى ---------- */
   {
     const { window } = await makeDom();
