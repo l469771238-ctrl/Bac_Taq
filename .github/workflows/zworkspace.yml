@@ -1,0 +1,45 @@
+name: zworkspace-apk
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['z*']
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: verify APK
+        run: |
+          set -e
+          ls -la dist/Z-Project-Workspace-*.apk
+          python3 - <<'PY'
+          import glob, zipfile, sys
+          apk = glob.glob('dist/Z-Project-Workspace-*.apk')[0]
+          z = zipfile.ZipFile(apk)
+          print(apk, '->', len(z.infolist()), 'entries, corrupt:', z.testzip())
+          names = set(z.namelist())
+          need = ['AndroidManifest.xml', 'classes.dex', 'resources.arsc',
+                  'assets/web/index.html', 'assets/web/js/app.js']
+          bad = [n for n in need if n not in names]
+          bad += [n for n in names if n.startswith(('assets/web/tests', 'assets/web/node_modules',
+                                                    'assets/web/uploads', 'assets/web/data/'))]
+          if bad:
+              print('PACKAGING BROKEN:', bad[:8]); sys.exit(1)
+          print('PACKAGING OK')
+          PY
+
+      - name: publish
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Z Project Workspace 1.0
+          body_path: dist/release-notes.md
+          files: dist/Z-Project-Workspace-1.0.apk
+          fail_on_unmatched_files: false
+          make_latest: true
