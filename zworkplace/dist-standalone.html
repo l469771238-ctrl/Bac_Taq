@@ -512,21 +512,6 @@ input,textarea,select{font-family:inherit}
 }
 .avatar:has(>svg.av){background:transparent;padding:0;overflow:hidden}
 
-/* أفاتار صغير في الرسايل — جنب اسم اللي بيبعت */
-.msg-who{
-  display:flex;align-items:center;gap:6px;
-  font-size:11px;color:#6b7a94;margin-bottom:4px;
-}
-.msg-av{
-  width:22px;height:22px;flex-shrink:0;
-  border-radius:7px;overflow:hidden;display:grid;place-items:center;
-  background:#eef1f8;
-}
-.msg-av svg{
-  width:100%;height:100%;display:block;
-  transform:scale(1.12);transform-origin:50% 42%;
-}
-
 /* القائد: قبل الأيقونات كان بيتميّز إن مربعه فيه كأس بدل الحروف.
    بعد ما كل الطلبة بقى عندهم أيقونات، لازم يفضل باين — إطار دهبي
    + نقطة صغيرة تحت. الأيقونة نفسها بتفضل زي ما الطالب اختارها. */
@@ -694,6 +679,209 @@ input,textarea,select{font-family:inherit}
 }
 
 /* ══════════ الرسايل ══════════ */
+/* ══════════ فقاعات الدردشة — شكل تيليجرام ══════════ */
+
+/*
+ * كل الكلام اللي تحت ده على مبدأ واحد:
+ *  - الفقاعة عرضها بعرض المحتوى، مش بعرض الشاشة
+ *  - أقصى عرض ٧٨٪ عشان تعرف مين بيتكلم من نظرة
+ *  - رسايلي على اليمين (RTL) بلون نيڤي، والباقي على الشمال بأبيض
+ *  - الوقت جوه الفقاعة، والذيل بيربط آخر فقاعة في المجموعة بالمرسل
+ *  - الإعلانات فقاعات دهبية عشان تبان مميزة
+ */
+
+/* الحاوية: الفقاعة على اليمين (البداية في RTL) = رسايلي */
+.b{
+  display:flex;justify-content:flex-start;
+  margin:0;padding:0 2px;
+}
+.b > .fb{margin-inline-start:0}          /* رسايل غيري: البداية */
+.b > .fb.mine{margin-inline-start:auto}  /* رسايلي: الناحية التانية */
+
+/* الفقاعة نفسها */
+.fb{
+  position:relative;
+  max-width:78%;
+  min-width:92px;
+  background:#fff;
+  border-radius:16px 16px 16px 5px;
+  padding:8px 11px 6px;
+  box-shadow:0 1px 2px rgba(7,26,63,.09);
+  color:var(--ink);
+}
+
+/* رسالتي */
+.fb.mine{
+  background:var(--navy-700);
+  color:#fff;
+  border-radius:16px 16px 5px 16px;
+}
+
+/* إعلان — فقاعة دهبية */
+.fb.t-gold{
+  background:#fff9ec;
+  border:1.5px solid #f2dfb4;
+  border-radius:16px 16px 16px 5px;
+  box-shadow:0 1px 3px rgba(138,92,5,.10);
+}
+
+/* رسالة المس في دردشة الطالب */
+.fb.t-teacher{
+  background:#fff9ec;
+  border:1.5px solid #f2dfb4;
+}
+
+/* الذيل — بس على آخر فقاعة في مجموعة المرسل.
+   بنستخدم حدّين بألوان الخلفية عشان يشتغل مع أي لون فقاعة. */
+.fb.tail::after{
+  content:'';
+  position:absolute;bottom:0;
+  width:9px;height:11px;
+  pointer-events:none;
+  background:inherit;
+  border-radius:0 0 4px 0;
+}
+.fb.tail:not(.mine)::after{
+  left:-7px;
+  clip-path:polygon(100% 0,100% 100%,0 100%);
+}
+.fb.tail.mine::after{
+  right:-7px;
+  clip-path:polygon(0 0,0 100%,100% 100%);
+}
+
+/* اسم المرسل (للباقي بس) فوق النص */
+.b-who{
+  display:flex;align-items:center;gap:5px;
+  margin-bottom:1px;
+}
+.b-who b{
+  font-size:11.5px;font-weight:800;
+  color:var(--navy-600);
+  overflow-wrap:anywhere;
+}
+.fb.t-gold .b-who b{color:#8a5c05}
+.b-av{
+  width:19px;height:19px;flex-shrink:0;
+  border-radius:6px;overflow:hidden;
+  display:grid;place-items:center;background:#eef1f8;
+}
+.b-av svg{width:100%;height:100%;display:block;transform:scale(1.12);transform-origin:50% 42%}
+.b-badge{
+  display:grid;place-items:center;flex-shrink:0;
+  width:15px;height:15px;border-radius:5px;
+  background:var(--gold);color:#5c3f07;
+}
+.b-badge .ic-sm{width:11px;height:11px}
+
+/* نص الرسالة — بيحترم السطر الجديد */
+.b-txt{
+  font-size:13.5px;line-height:1.6;font-weight:600;
+  color:var(--ink-2);
+  overflow-wrap:anywhere;word-break:break-word;
+  white-space:pre-wrap;
+}
+.fb.mine .b-txt{color:rgba(255,255,255,.96)}
+/* إعلاني أنا كمان دهبي — الأهم من لون "رسايلي" */
+.fb.t-gold.mine{
+  background:#fff9ec;
+  border:1.5px solid #f2dfb4;
+  color:var(--ink);
+}
+.fb.t-gold.mine .b-txt{color:#6b4c10}
+.fb.t-gold.mine .b-time{color:#a8873e}
+.fb.t-gold.mine .b-del{color:#a8873e}
+.fb.t-gold .b-txt{color:#6b4c10}
+
+/* السطر الأخير: الوقت + زرار المسح — مظبوط على جنب الفقاعة (زي تيليجرام) */
+.b-foot{
+  display:flex;align-items:center;gap:5px;
+  justify-content:flex-end;
+  margin-top:0;
+  min-height:13px;
+}
+.b-time{
+  font-size:9.5px;font-weight:700;
+  color:var(--ink-3);
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap;
+}
+.fb.mine .b-time{color:rgba(255,255,255,.62)}
+.fb.t-gold .b-time{color:#a8873e}
+
+/* زرار المسح */
+.b-del{
+  width:18px;height:18px;flex-shrink:0;
+  display:grid;place-items:center;
+  border-radius:5px;
+  color:var(--ink-3);background:transparent;
+  opacity:.55;transition:opacity .12s,background .12s;
+  -webkit-tap-highlight-color:transparent;
+}
+.b-del:active{background:rgba(0,0,0,.07);opacity:1}
+.fb.mine .b-del{color:rgba(255,255,255,.65)}
+.b-del .ic-sm{width:12px;height:12px}
+
+/* المسافات: ٢px جوه مجموعة نفس المرسل، ١٠px بين المجموعات */
+.b + .b{margin-top:2px}
+.b.last + .b{margin-top:10px}
+
+/* شاشة الدردشة: خلفية زي تيليجرام */
+.chat-scroll{
+  background:#eef2f9;
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(29,79,168,.035) 0 2px, transparent 2px),
+    radial-gradient(circle at 70% 65%, rgba(29,79,168,.03) 0 2px, transparent 2px);
+  background-size:64px 64px, 86px 86px;
+  padding:12px 12px 8px;
+}
+
+/* ══════════ مدخل الرسالة — زي تيليجرام ══════════ */
+.composer{
+  display:flex;align-items:flex-end;gap:8px;
+  padding:8px 10px calc(8px + env(safe-area-inset-bottom, 0));
+  background:#fff;
+  border-top:1px solid #e6ecf5;
+  flex-shrink:0;
+}
+.composer-in{
+  flex:1;min-width:0;
+  display:block;
+  padding:10px 14px;
+  border:none;outline:none;resize:none;
+  background:#f1f4fa;
+  border-radius:20px;
+  font-family:inherit;font-size:14px;font-weight:600;
+  color:var(--ink);
+  max-height:96px;line-height:1.5;
+  -webkit-appearance:none;
+}
+.composer-in::placeholder{color:var(--ink-4);font-weight:600}
+.composer-in:focus{background:#e9eefa}
+.composer-send{
+  width:42px;height:42px;flex-shrink:0;
+  display:grid;place-items:center;
+  border-radius:50%;
+  background:var(--navy-700);color:#fff;
+  transition:transform .12s,opacity .12s;
+  -webkit-tap-highlight-color:transparent;
+}
+.composer-send:active{transform:scale(.92)}
+.composer-send:disabled{opacity:.4}
+.composer-send .ic{width:20px;height:20px}
+
+/* فوق المدخل: زرار الرجوع + العنوان */
+.chat-top{
+  display:flex;align-items:center;gap:9px;
+  padding:10px 12px;
+  background:#fff;
+  border-bottom:1px solid #e6ecf5;
+  flex-shrink:0;
+}
+.chat-top b{font-size:14px;font-weight:800;color:var(--ink);min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ══════════ الرسايل القديمة (إعلانات في صفحات تانية) ══════════ */
 .msg{
   background:#fff;border-radius:var(--r-md);
   padding:15px 17px;margin-bottom:10px;
@@ -2426,14 +2614,12 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
         <button class="btn gold" id="an-send">نشر الإعلان</button>
       </div>
       <div class="sec-head"><h3>الإعلانات السابقة</h3></div>
-      ${data.announcements.length ? data.announcements.map((a) => `
-        <div class="msg">
-          <div class="m-body">${esc(a.body)}</div>
-          <div class="m-meta">
-            <span>${esc(a.to)} · ${when(a.at)}</span>
-            <button class="chip red" data-del="${a.id}">حذف</button>
-          </div>
-        </div>`).join('') : `<div class="empty"><div class="e-ico">${ico("bell","ic-xl")}</div><p>مفيش إعلانات لسه</p></div>`}`;
+      ${data.announcements.length ? `<div class="chat-scroll" style="background:transparent;padding:0">${
+        bubbleList(data.announcements.map((a) => ({
+          body: a.body, at: a.at, name: a.to, avatar: '',
+          mine: true, tone: 'gold', del: a.id, delAttr: 'del',
+        })))
+      }</div>` : `<div class="empty"><div class="e-ico">${ico("bell","ic-xl")}</div><p>مفيش إعلانات لسه</p></div>`}`;
 
     let scope = 'all';
     $$('#an-seg button').forEach((b) => (b.onclick = () => {
@@ -2490,15 +2676,17 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
         <button class="chip gray" id="ch-back">‹ رجوع</button>
         <b style="font-size:15px">${esc(d.student.name)}</b>
       </div>
-      <div id="ch-msgs">
-        ${d.msgs.length ? d.msgs.map((m) => `
-          <div class="msg mine"><div class="m-body">${esc(m.body)}</div>
-            <div class="m-meta"><span>${when(m.at)}</span><span>المس</span></div></div>`).join('')
+      <div class="chat-scroll" id="ch-msgs">
+        ${d.msgs.length
+          ? bubbleList(d.msgs.map((m) => ({
+              body: m.body, at: m.at, name: 'مس أسماء', avatar: '',
+              mine: true,
+            })))
           : `<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش رسايل لسه — ابدأي</p></div>`}
       </div>
-      <div style="display:flex;gap:8px;margin-top:12px">
-        <input id="ch-in" placeholder="اكتبي رسالة…" style="flex:1;padding:13px 15px;border-radius:13px;border:1.5px solid #e3e8f2;font-family:inherit;font-size:14px">
-        <button class="btn primary" id="ch-send" style="width:auto;padding:0 20px">إرسال</button>
+      <div class="composer">
+        <textarea class="composer-in" id="ch-in" rows="1" placeholder="اكتبي رسالة…"></textarea>
+        <button class="composer-send" id="ch-send" title="إرسال">${ico('send','ic')}</button>
       </div>`;
     $('#ch-back').onclick = () => { st.chatWith = null; renderComm(); };
     const send = async () => {
@@ -2510,7 +2698,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       } catch (e) { toast(e.message); }
     };
     $('#ch-send').onclick = send;
-    $('#ch-in').onkeydown = (e) => { if (e.key === 'Enter') send(); };
+    wireComposer('#ch-in', send);
     const box2 = $('#ch-msgs');
     if (box2 && box2.scrollIntoView) box2.scrollIntoView({ block: 'end' });
   }
@@ -2562,20 +2750,17 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
         <button class="chip gray" id="dm-back">‹ رجوع</button>
         <b style="font-size:15px">${esc(d.student.name)}</b>
       </div>
-      <div id="dm-msgs">
-        ${d.msgs.length ? d.msgs.map((m) => `
-          <div class="msg mine">
-            <div style="font-size:11px;color:#9a6d1f;margin-bottom:3px"><b>مس أسماء</b></div>
-            <div class="m-body">${esc(m.body)}</div>
-            <div class="m-meta"><span>${when(m.at)}</span>
-              <button class="chip red" data-dmdel="${m.id}" style="font-size:10px">مسح</button></div>
-          </div>`).join('')
+      <div class="chat-scroll" id="dm-msgs">
+        ${d.msgs.length
+          ? bubbleList(d.msgs.map((m) => ({
+              body: m.body, at: m.at, name: 'مس أسماء', avatar: '',
+              mine: true, del: m.id, delAttr: 'dmdel',
+            })))
           : `<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش رسايل — اكتبي أول واحدة</p></div>`}
       </div>
-      <div style="display:flex;gap:8px;margin-top:12px">
-        <input id="dm-in" placeholder="اكتبي رسالة…" maxlength="2000"
-          style="flex:1;padding:13px 15px;border-radius:13px;border:1.5px solid #e3e8f2;font-family:inherit;font-size:14px">
-        <button class="btn primary" id="dm-send" style="width:auto;padding:0 20px">إرسال</button>
+      <div class="composer">
+        <textarea class="composer-in" id="dm-in" rows="1" maxlength="2000" placeholder="اكتبي رسالة…"></textarea>
+        <button class="composer-send" id="dm-send" title="إرسال">${ico('send','ic')}</button>
       </div>`;
     $('#dm-back').onclick = () => { dmWith = null; renderComm(); };
     const send = async () => {
@@ -2587,7 +2772,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       } catch (e) { toast(e.message); }
     };
     $('#dm-send').onclick = send;
-    $('#dm-in').onkeydown = (e) => { if (e.key === 'Enter') send(); };
+    wireComposer('#dm-in', send);
     $$('[data-dmdel]', box).forEach((el) => (el.onclick = () => {
       confirmDlg('مسح الرسالة', 'الرسالة هتتشال من عند الطالب كمان.', 'امسح',
         async () => { await api('DELETE', '/api/teacher/dm/message/' + el.dataset.dmdel); toast('اتمسحت'); renderComm(); }, true);
@@ -2909,22 +3094,19 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
         <button class="chip gray" id="rm-back">‹ رجوع</button>
         <b style="font-size:14.5px">${esc(d.title)}</b>
       </div>
-      <div id="rm-msgs">
-        ${d.msgs.length ? d.msgs.map((m) => `
-          <div class="msg ${m.from === 'teacher' ? 'mine' : ''}">
-            <div class="msg-who">
-              <span class="msg-av">${avaAny(m.avatar, m.name)}</span>
-              <b style="color:${m.from === 'teacher' ? '#9a6d1f' : '#12203a'}">${esc(m.name)}</b>
-              ${m.leader ? ' <span class="chip gold">' + ico('award','ic-sm') + '</span>' : ''}
-            </div>
-            <div class="m-body">${esc(m.body)}</div>
-            <div class="m-meta"><span>${when(m.at)}</span>
-              <button class="chip red" data-rmdel="${m.id}" style="font-size:10px">مسح</button></div>
-          </div>`).join('') : `<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش رسايل</p></div>`}
+      <div class="chat-scroll" id="rm-msgs">
+        ${d.msgs.length
+          ? bubbleList(d.msgs.map((m) => ({
+              body: m.body, at: m.at, name: m.name, avatar: m.avatar,
+              mine: m.from === 'teacher',
+              tone: m.from === 'teacher' ? 'normal' : 'normal',
+              leader: m.leader, del: m.id, delAttr: 'rmdel',
+            })))
+          : `<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش رسايل</p></div>`}
       </div>
-      <div style="display:flex;gap:8px;margin-top:12px">
-        <input id="rm-in" placeholder="اكتبي رسالة…" style="flex:1;padding:13px 15px;border-radius:13px;border:1.5px solid #e3e8f2;font-family:inherit;font-size:14px">
-        <button class="btn primary" id="rm-send" style="width:auto;padding:0 20px">إرسال</button>
+      <div class="composer">
+        <textarea class="composer-in" id="rm-in" rows="1" placeholder="اكتبي رسالة…"></textarea>
+        <button class="composer-send" id="rm-send" title="إرسال">${ico('send','ic')}</button>
       </div>`;
     $('#rm-back').onclick = () => { roomWith = null; renderComm(); };
     const send = async () => {
@@ -2936,7 +3118,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       } catch (e) { toast(e.message); }
     };
     $('#rm-send').onclick = send;
-    $('#rm-in').onkeydown = (e) => { if (e.key === 'Enter') send(); };
+    wireComposer('#rm-in', send);
     $$('[data-rmdel]').forEach((el) => (el.onclick = () => {
       confirmDlg('مسح الرسالة', 'الرسالة هتتشال من عند الكل.', 'امسح',
         async () => { await api('DELETE', '/api/teacher/chatroom/' + el.dataset.rmdel); toast('اتمسحت'); renderComm(); }, true);
@@ -2994,6 +3176,88 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       bb.hidden = !(n.pendingTasks + n.items.length);
       bb.textContent = n.pendingTasks;
     } catch (e) {}
+  }
+
+  /* ---------- مدخل الرسالة (شكل تيليجرام) ---------- */
+
+  /*
+   * شغّال مع <textarea> مش <input> — عشان الرسالة الطويلة تلفّ على سطرين
+   * زي تيليجرام بدل ما تتمطّط أفقيًا. وبيكبر لوحده لحد ٤ سطور.
+   * Enter يبعت، Shift+Enter ينزل سطر.
+   */
+  function wireComposer(inputSel, sendFn) {
+    const el = $(inputSel);
+    if (!el) return;
+    const resize = () => {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 96) + 'px';
+    };
+    el.addEventListener('input', resize);
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (el.value.trim()) sendFn();
+      }
+    });
+    resize();
+  }
+
+  /* ---------- فقاعات الدردشة (شكل تيليجرام) ---------- */
+
+  /*
+   * مكوّن واحد لكل رسايل المشروع — كانت ٦ أنماط مختلفة في ٦ أماكن.
+   * تيليجرام معناها: الفقاعة بتاخد عرض المحتوى (مش الشاشة كلها)،
+   * الوقت جوه الفقاعة على الجنب، رسايلي على جنب وأنا غيري على الجنب التاني،
+   * اسم وأفاتار في الأعلى للمرسل التاني بس.
+   *
+   * o = {
+   *   body, at, name, avatar, mine, leader,
+   *   tone: 'normal' | 'gold' (إعلان) | 'teacher',
+   *   tail: true (فقاعة آخر مجموعة),
+   *   del: id → زرار مسح، delAttr: 'del' | 'dmdel' | 'rmdel'
+   * }
+   */
+  function bubble(o) {
+    var mine = !!o.mine;
+    var tone = o.tone || 'normal';
+    var cls = 'fb' + (mine ? ' mine' : '') + (tone !== 'normal' ? ' t-' + tone : '') +
+      (o.tail ? ' tail' : '') + (o.last ? ' last' : '');
+    var who = '';
+    if (!mine && (o.name || o.avatar) && o.showWho !== false) {
+      who = '<div class="b-who">' +
+        (o.avatar !== undefined ? '<span class="b-av">' + avaAny(o.avatar, o.name) + '</span>' : '') +
+        '<b>' + esc(o.name || '') + '</b>' +
+        (o.leader ? '<span class="b-badge">' + ico('award', 'ic-sm') + '</span>' : '') +
+        '</div>';
+    }
+    var delBtn = o.del
+      ? '<button class="b-del" data-' + (o.delAttr || 'del') + '="' + o.del + '" title="مسح">' +
+        ico('trash', 'ic-sm') + '</button>'
+      : '';
+    return '<div class="b"><div class="' + cls.trim() + '">' + who +
+      '<div class="b-txt">' + esc(o.body || '').replace(/\n/g, '<br>') + '</div>' +
+      '<div class="b-foot"><span class="b-time">' + when(o.at) + '</span>' + delBtn + '</div>' +
+      '</div></div>';
+  }
+
+  /* حاوية الدردشة — بتلف الفقاعات وبتضيف المسافة بين المجموعات */
+  function bubbleList(list, opts) {
+    opts = opts || {};
+    if (!list.length) return '';
+    return list.map(function (m, i) {
+      var o = Object.assign({}, m);
+      o.body = m.body;
+      o.at = m.at;
+      if (opts.mineKey) o.mine = !!m[opts.mineKey];
+      /* نفس المرسل ورا بعضه → آخر واحد بس هو اللي ليه ذيل */
+      var next = list[i + 1];
+      o.tail = !next || next.name !== m.name || !!next.mine !== !!o.mine;
+      /* والاسم/الأفاتار في الأول بس — زي تيليجرام */
+      var prev = list[i - 1];
+      o.showWho = !prev || prev.name !== m.name || !!prev.mine !== !!o.mine;
+      o.last = i === list.length - 1;
+      return bubble(o);
+    }).join('');
   }
 
   /* ---------- الأفاتار ---------- */
@@ -3089,21 +3353,18 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
     }
     if (d.dm && d.dm.length) {
       html += `
-        <div class="sec-head"><h3>رسايل المس</h3></div>` + d.dm.map((m) => `
-        <div class="msg">
-          <div style="font-size:11px;color:#9a6d1f;margin-bottom:3px"><b>مس أسماء</b></div>
-          <div class="m-body">${esc(m.body)}</div>
-          <div class="m-meta"><span></span><span>${when(m.at)}</span></div>
-        </div>`).join('');
+        <div class="sec-head"><h3>رسايل المس</h3></div>
+        <div class="notif-chat">` + bubbleList(d.dm.map((m) => ({
+          body: m.body, at: m.at, name: 'مس أسماء', avatar: '',
+          mine: false, tone: 'teacher',
+        }))) + `</div>`;
     }
     html += d.items.map((a) => `
-      <div class="msg">
-        <div class="m-body">${esc(a.body)}</div>
-        <div class="m-meta">
-          <span>${a.scope === 'leaders' ? 'لقادة المجموعات' : 'للجميع'}</span>
-          <span>${when(a.at)}</span>
-        </div>
-      </div>`).join('');
+      <div class="notif-chat">` + bubble({
+        body: a.body, at: a.at,
+        name: a.scope === 'leaders' ? 'لقادة المجموعات' : 'للجميع',
+        avatar: '', mine: false, tone: 'gold', tail: true, last: true,
+      }) + `</div>`).join('');
     box.innerHTML = html;
 
     const gs = $('[data-go-submit]', box);
@@ -3144,11 +3405,10 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
     $('#stc-title').textContent = ch.kind;
 
     box.innerHTML = `
-      <div id="sc-msgs"><p style="text-align:center;color:#6b7a94;padding:20px">بنحمّل…</p></div>
-      <div style="display:flex;gap:8px;margin-top:12px;position:sticky;bottom:0;background:#f4f6fb;padding:8px 0">
-        <input id="sc-in" placeholder="اكتب رسالة…" maxlength="2000"
-          style="flex:1;padding:13px 15px;border-radius:13px;border:1.5px solid #e3e8f2;font-family:inherit;font-size:14px">
-        <button class="btn primary" id="sc-send" style="width:auto;padding:0 20px">إرسال</button>
+      <div class="chat-scroll" id="sc-msgs"><p style="text-align:center;color:#6b7a94;padding:20px">بنحمّل…</p></div>
+      <div class="composer">
+        <textarea class="composer-in" id="sc-in" rows="1" maxlength="2000" placeholder="اكتب رسالة…"></textarea>
+        <button class="composer-send" id="sc-send" title="إرسال">${ico('send','ic')}</button>
       </div>`;
 
     let d;
@@ -3157,16 +3417,13 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       return;
     }
     $('#sc-msgs').innerHTML = d.msgs.length
-      ? d.msgs.map((m) => `
-        <div class="msg ${m.mine ? 'mine' : ''}">
-          <div class="msg-who">
-            <span class="msg-av">${avaAny(m.avatar, m.name)}</span>
-            <b style="color:${m.from === 'teacher' ? '#9a6d1f' : '#12203a'}">${esc(m.name)}</b>
-            ${m.leader ? '<span class="chip gold">' + ico('award','ic-sm') + ' قائد</span>' : ''}
-          </div>
-          <div class="m-body">${esc(m.body)}</div>
-          <div class="m-meta"><span></span><span>${when(m.at)}</span></div>
-        </div>`).join('')
+      ? bubbleList(d.msgs.map((m) => ({
+          body: m.body, at: m.at, name: m.name,
+          avatar: m.from === 'teacher' ? '' : m.avatar,
+          mine: m.mine,
+          tone: m.from === 'teacher' ? 'teacher' : 'normal',
+          leader: m.leader,
+        })))
       : `<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش رسايل لسه — ابدأ انت</p></div>`;
 
     const send = async () => {
@@ -3178,7 +3435,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       } catch (e) { toast(e.message); }
     };
     $('#sc-send').onclick = send;
-    $('#sc-in').onkeydown = (e) => { if (e.key === 'Enter') send(); };
+    wireComposer('#sc-in', send);
   }
 
   /* ---------- التسليم ---------- */

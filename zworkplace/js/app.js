@@ -997,14 +997,12 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
         <button class="btn gold" id="an-send">نشر الإعلان</button>
       </div>
       <div class="sec-head"><h3>الإعلانات السابقة</h3></div>
-      ${data.announcements.length ? data.announcements.map((a) => `
-        <div class="msg">
-          <div class="m-body">${esc(a.body)}</div>
-          <div class="m-meta">
-            <span>${esc(a.to)} · ${when(a.at)}</span>
-            <button class="chip red" data-del="${a.id}">حذف</button>
-          </div>
-        </div>`).join('') : `<div class="empty"><div class="e-ico">${ico("bell","ic-xl")}</div><p>مفيش إعلانات لسه</p></div>`}`;
+      ${data.announcements.length ? `<div class="chat-scroll" style="background:transparent;padding:0">${
+        bubbleList(data.announcements.map((a) => ({
+          body: a.body, at: a.at, name: a.to, avatar: '',
+          mine: true, tone: 'gold', del: a.id, delAttr: 'del',
+        })))
+      }</div>` : `<div class="empty"><div class="e-ico">${ico("bell","ic-xl")}</div><p>مفيش إعلانات لسه</p></div>`}`;
 
     let scope = 'all';
     $$('#an-seg button').forEach((b) => (b.onclick = () => {
@@ -1061,15 +1059,17 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
         <button class="chip gray" id="ch-back">‹ رجوع</button>
         <b style="font-size:15px">${esc(d.student.name)}</b>
       </div>
-      <div id="ch-msgs">
-        ${d.msgs.length ? d.msgs.map((m) => `
-          <div class="msg mine"><div class="m-body">${esc(m.body)}</div>
-            <div class="m-meta"><span>${when(m.at)}</span><span>المس</span></div></div>`).join('')
+      <div class="chat-scroll" id="ch-msgs">
+        ${d.msgs.length
+          ? bubbleList(d.msgs.map((m) => ({
+              body: m.body, at: m.at, name: 'مس أسماء', avatar: '',
+              mine: true,
+            })))
           : `<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش رسايل لسه — ابدأي</p></div>`}
       </div>
-      <div style="display:flex;gap:8px;margin-top:12px">
-        <input id="ch-in" placeholder="اكتبي رسالة…" style="flex:1;padding:13px 15px;border-radius:13px;border:1.5px solid #e3e8f2;font-family:inherit;font-size:14px">
-        <button class="btn primary" id="ch-send" style="width:auto;padding:0 20px">إرسال</button>
+      <div class="composer">
+        <textarea class="composer-in" id="ch-in" rows="1" placeholder="اكتبي رسالة…"></textarea>
+        <button class="composer-send" id="ch-send" title="إرسال">${ico('send','ic')}</button>
       </div>`;
     $('#ch-back').onclick = () => { st.chatWith = null; renderComm(); };
     const send = async () => {
@@ -1081,7 +1081,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       } catch (e) { toast(e.message); }
     };
     $('#ch-send').onclick = send;
-    $('#ch-in').onkeydown = (e) => { if (e.key === 'Enter') send(); };
+    wireComposer('#ch-in', send);
     const box2 = $('#ch-msgs');
     if (box2 && box2.scrollIntoView) box2.scrollIntoView({ block: 'end' });
   }
@@ -1133,20 +1133,17 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
         <button class="chip gray" id="dm-back">‹ رجوع</button>
         <b style="font-size:15px">${esc(d.student.name)}</b>
       </div>
-      <div id="dm-msgs">
-        ${d.msgs.length ? d.msgs.map((m) => `
-          <div class="msg mine">
-            <div style="font-size:11px;color:#9a6d1f;margin-bottom:3px"><b>مس أسماء</b></div>
-            <div class="m-body">${esc(m.body)}</div>
-            <div class="m-meta"><span>${when(m.at)}</span>
-              <button class="chip red" data-dmdel="${m.id}" style="font-size:10px">مسح</button></div>
-          </div>`).join('')
+      <div class="chat-scroll" id="dm-msgs">
+        ${d.msgs.length
+          ? bubbleList(d.msgs.map((m) => ({
+              body: m.body, at: m.at, name: 'مس أسماء', avatar: '',
+              mine: true, del: m.id, delAttr: 'dmdel',
+            })))
           : `<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش رسايل — اكتبي أول واحدة</p></div>`}
       </div>
-      <div style="display:flex;gap:8px;margin-top:12px">
-        <input id="dm-in" placeholder="اكتبي رسالة…" maxlength="2000"
-          style="flex:1;padding:13px 15px;border-radius:13px;border:1.5px solid #e3e8f2;font-family:inherit;font-size:14px">
-        <button class="btn primary" id="dm-send" style="width:auto;padding:0 20px">إرسال</button>
+      <div class="composer">
+        <textarea class="composer-in" id="dm-in" rows="1" maxlength="2000" placeholder="اكتبي رسالة…"></textarea>
+        <button class="composer-send" id="dm-send" title="إرسال">${ico('send','ic')}</button>
       </div>`;
     $('#dm-back').onclick = () => { dmWith = null; renderComm(); };
     const send = async () => {
@@ -1158,7 +1155,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       } catch (e) { toast(e.message); }
     };
     $('#dm-send').onclick = send;
-    $('#dm-in').onkeydown = (e) => { if (e.key === 'Enter') send(); };
+    wireComposer('#dm-in', send);
     $$('[data-dmdel]', box).forEach((el) => (el.onclick = () => {
       confirmDlg('مسح الرسالة', 'الرسالة هتتشال من عند الطالب كمان.', 'امسح',
         async () => { await api('DELETE', '/api/teacher/dm/message/' + el.dataset.dmdel); toast('اتمسحت'); renderComm(); }, true);
@@ -1480,22 +1477,19 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
         <button class="chip gray" id="rm-back">‹ رجوع</button>
         <b style="font-size:14.5px">${esc(d.title)}</b>
       </div>
-      <div id="rm-msgs">
-        ${d.msgs.length ? d.msgs.map((m) => `
-          <div class="msg ${m.from === 'teacher' ? 'mine' : ''}">
-            <div class="msg-who">
-              <span class="msg-av">${avaAny(m.avatar, m.name)}</span>
-              <b style="color:${m.from === 'teacher' ? '#9a6d1f' : '#12203a'}">${esc(m.name)}</b>
-              ${m.leader ? ' <span class="chip gold">' + ico('award','ic-sm') + '</span>' : ''}
-            </div>
-            <div class="m-body">${esc(m.body)}</div>
-            <div class="m-meta"><span>${when(m.at)}</span>
-              <button class="chip red" data-rmdel="${m.id}" style="font-size:10px">مسح</button></div>
-          </div>`).join('') : `<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش رسايل</p></div>`}
+      <div class="chat-scroll" id="rm-msgs">
+        ${d.msgs.length
+          ? bubbleList(d.msgs.map((m) => ({
+              body: m.body, at: m.at, name: m.name, avatar: m.avatar,
+              mine: m.from === 'teacher',
+              tone: m.from === 'teacher' ? 'normal' : 'normal',
+              leader: m.leader, del: m.id, delAttr: 'rmdel',
+            })))
+          : `<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش رسايل</p></div>`}
       </div>
-      <div style="display:flex;gap:8px;margin-top:12px">
-        <input id="rm-in" placeholder="اكتبي رسالة…" style="flex:1;padding:13px 15px;border-radius:13px;border:1.5px solid #e3e8f2;font-family:inherit;font-size:14px">
-        <button class="btn primary" id="rm-send" style="width:auto;padding:0 20px">إرسال</button>
+      <div class="composer">
+        <textarea class="composer-in" id="rm-in" rows="1" placeholder="اكتبي رسالة…"></textarea>
+        <button class="composer-send" id="rm-send" title="إرسال">${ico('send','ic')}</button>
       </div>`;
     $('#rm-back').onclick = () => { roomWith = null; renderComm(); };
     const send = async () => {
@@ -1507,7 +1501,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       } catch (e) { toast(e.message); }
     };
     $('#rm-send').onclick = send;
-    $('#rm-in').onkeydown = (e) => { if (e.key === 'Enter') send(); };
+    wireComposer('#rm-in', send);
     $$('[data-rmdel]').forEach((el) => (el.onclick = () => {
       confirmDlg('مسح الرسالة', 'الرسالة هتتشال من عند الكل.', 'امسح',
         async () => { await api('DELETE', '/api/teacher/chatroom/' + el.dataset.rmdel); toast('اتمسحت'); renderComm(); }, true);
@@ -1565,6 +1559,88 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       bb.hidden = !(n.pendingTasks + n.items.length);
       bb.textContent = n.pendingTasks;
     } catch (e) {}
+  }
+
+  /* ---------- مدخل الرسالة (شكل تيليجرام) ---------- */
+
+  /*
+   * شغّال مع <textarea> مش <input> — عشان الرسالة الطويلة تلفّ على سطرين
+   * زي تيليجرام بدل ما تتمطّط أفقيًا. وبيكبر لوحده لحد ٤ سطور.
+   * Enter يبعت، Shift+Enter ينزل سطر.
+   */
+  function wireComposer(inputSel, sendFn) {
+    const el = $(inputSel);
+    if (!el) return;
+    const resize = () => {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 96) + 'px';
+    };
+    el.addEventListener('input', resize);
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (el.value.trim()) sendFn();
+      }
+    });
+    resize();
+  }
+
+  /* ---------- فقاعات الدردشة (شكل تيليجرام) ---------- */
+
+  /*
+   * مكوّن واحد لكل رسايل المشروع — كانت ٦ أنماط مختلفة في ٦ أماكن.
+   * تيليجرام معناها: الفقاعة بتاخد عرض المحتوى (مش الشاشة كلها)،
+   * الوقت جوه الفقاعة على الجنب، رسايلي على جنب وأنا غيري على الجنب التاني،
+   * اسم وأفاتار في الأعلى للمرسل التاني بس.
+   *
+   * o = {
+   *   body, at, name, avatar, mine, leader,
+   *   tone: 'normal' | 'gold' (إعلان) | 'teacher',
+   *   tail: true (فقاعة آخر مجموعة),
+   *   del: id → زرار مسح، delAttr: 'del' | 'dmdel' | 'rmdel'
+   * }
+   */
+  function bubble(o) {
+    var mine = !!o.mine;
+    var tone = o.tone || 'normal';
+    var cls = 'fb' + (mine ? ' mine' : '') + (tone !== 'normal' ? ' t-' + tone : '') +
+      (o.tail ? ' tail' : '') + (o.last ? ' last' : '');
+    var who = '';
+    if (!mine && (o.name || o.avatar) && o.showWho !== false) {
+      who = '<div class="b-who">' +
+        (o.avatar !== undefined ? '<span class="b-av">' + avaAny(o.avatar, o.name) + '</span>' : '') +
+        '<b>' + esc(o.name || '') + '</b>' +
+        (o.leader ? '<span class="b-badge">' + ico('award', 'ic-sm') + '</span>' : '') +
+        '</div>';
+    }
+    var delBtn = o.del
+      ? '<button class="b-del" data-' + (o.delAttr || 'del') + '="' + o.del + '" title="مسح">' +
+        ico('trash', 'ic-sm') + '</button>'
+      : '';
+    return '<div class="b"><div class="' + cls.trim() + '">' + who +
+      '<div class="b-txt">' + esc(o.body || '').replace(/\n/g, '<br>') + '</div>' +
+      '<div class="b-foot"><span class="b-time">' + when(o.at) + '</span>' + delBtn + '</div>' +
+      '</div></div>';
+  }
+
+  /* حاوية الدردشة — بتلف الفقاعات وبتضيف المسافة بين المجموعات */
+  function bubbleList(list, opts) {
+    opts = opts || {};
+    if (!list.length) return '';
+    return list.map(function (m, i) {
+      var o = Object.assign({}, m);
+      o.body = m.body;
+      o.at = m.at;
+      if (opts.mineKey) o.mine = !!m[opts.mineKey];
+      /* نفس المرسل ورا بعضه → آخر واحد بس هو اللي ليه ذيل */
+      var next = list[i + 1];
+      o.tail = !next || next.name !== m.name || !!next.mine !== !!o.mine;
+      /* والاسم/الأفاتار في الأول بس — زي تيليجرام */
+      var prev = list[i - 1];
+      o.showWho = !prev || prev.name !== m.name || !!prev.mine !== !!o.mine;
+      o.last = i === list.length - 1;
+      return bubble(o);
+    }).join('');
   }
 
   /* ---------- الأفاتار ---------- */
@@ -1660,21 +1736,18 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
     }
     if (d.dm && d.dm.length) {
       html += `
-        <div class="sec-head"><h3>رسايل المس</h3></div>` + d.dm.map((m) => `
-        <div class="msg">
-          <div style="font-size:11px;color:#9a6d1f;margin-bottom:3px"><b>مس أسماء</b></div>
-          <div class="m-body">${esc(m.body)}</div>
-          <div class="m-meta"><span></span><span>${when(m.at)}</span></div>
-        </div>`).join('');
+        <div class="sec-head"><h3>رسايل المس</h3></div>
+        <div class="notif-chat">` + bubbleList(d.dm.map((m) => ({
+          body: m.body, at: m.at, name: 'مس أسماء', avatar: '',
+          mine: false, tone: 'teacher',
+        }))) + `</div>`;
     }
     html += d.items.map((a) => `
-      <div class="msg">
-        <div class="m-body">${esc(a.body)}</div>
-        <div class="m-meta">
-          <span>${a.scope === 'leaders' ? 'لقادة المجموعات' : 'للجميع'}</span>
-          <span>${when(a.at)}</span>
-        </div>
-      </div>`).join('');
+      <div class="notif-chat">` + bubble({
+        body: a.body, at: a.at,
+        name: a.scope === 'leaders' ? 'لقادة المجموعات' : 'للجميع',
+        avatar: '', mine: false, tone: 'gold', tail: true, last: true,
+      }) + `</div>`).join('');
     box.innerHTML = html;
 
     const gs = $('[data-go-submit]', box);
@@ -1715,11 +1788,10 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
     $('#stc-title').textContent = ch.kind;
 
     box.innerHTML = `
-      <div id="sc-msgs"><p style="text-align:center;color:#6b7a94;padding:20px">بنحمّل…</p></div>
-      <div style="display:flex;gap:8px;margin-top:12px;position:sticky;bottom:0;background:#f4f6fb;padding:8px 0">
-        <input id="sc-in" placeholder="اكتب رسالة…" maxlength="2000"
-          style="flex:1;padding:13px 15px;border-radius:13px;border:1.5px solid #e3e8f2;font-family:inherit;font-size:14px">
-        <button class="btn primary" id="sc-send" style="width:auto;padding:0 20px">إرسال</button>
+      <div class="chat-scroll" id="sc-msgs"><p style="text-align:center;color:#6b7a94;padding:20px">بنحمّل…</p></div>
+      <div class="composer">
+        <textarea class="composer-in" id="sc-in" rows="1" maxlength="2000" placeholder="اكتب رسالة…"></textarea>
+        <button class="composer-send" id="sc-send" title="إرسال">${ico('send','ic')}</button>
       </div>`;
 
     let d;
@@ -1728,16 +1800,13 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       return;
     }
     $('#sc-msgs').innerHTML = d.msgs.length
-      ? d.msgs.map((m) => `
-        <div class="msg ${m.mine ? 'mine' : ''}">
-          <div class="msg-who">
-            <span class="msg-av">${avaAny(m.avatar, m.name)}</span>
-            <b style="color:${m.from === 'teacher' ? '#9a6d1f' : '#12203a'}">${esc(m.name)}</b>
-            ${m.leader ? '<span class="chip gold">' + ico('award','ic-sm') + ' قائد</span>' : ''}
-          </div>
-          <div class="m-body">${esc(m.body)}</div>
-          <div class="m-meta"><span></span><span>${when(m.at)}</span></div>
-        </div>`).join('')
+      ? bubbleList(d.msgs.map((m) => ({
+          body: m.body, at: m.at, name: m.name,
+          avatar: m.from === 'teacher' ? '' : m.avatar,
+          mine: m.mine,
+          tone: m.from === 'teacher' ? 'teacher' : 'normal',
+          leader: m.leader,
+        })))
       : `<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش رسايل لسه — ابدأ انت</p></div>`;
 
     const send = async () => {
@@ -1749,7 +1818,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       } catch (e) { toast(e.message); }
     };
     $('#sc-send').onclick = send;
-    $('#sc-in').onkeydown = (e) => { if (e.key === 'Enter') send(); };
+    wireComposer('#sc-in', send);
   }
 
   /* ---------- التسليم ---------- */

@@ -1003,6 +1003,77 @@ async function api(method, p, body, t) {
       /\.avatar\.lead,\s*\.avatar\.lead:has[^{]*\{[^}]*overflow:visible/.test(css));
   }
 
+  /* ══════════ ٣٥) فقاعات الدردشة — شكل تيليجرام ══════════
+     المستخدم رفض الكروت البيضا بعرض الشاشة: «عايز كل واجهة الدردشة
+     تكون شبه تيليجرام». الفقاعة لازم تلف المحتوى، رسايلي على جنب،
+     واسم المرسل جوه الفقاعة مش بره. */
+  console.log('\n[٣٥] فقاعات الدردشة — تيليجرام');
+  {
+    const app = fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
+    const css = fs.readFileSync(path.join(ROOT, 'css/app.css'), 'utf8');
+
+    /* مكوّن واحد لكل الأسطح بدل ٦ أنماط */
+    ok('فيه دالة bubble واحدة', /function bubble\(o\)/.test(app));
+    ok('فيه bubbleList بتلف الرسايل', /function bubbleList\(list, opts\)/.test(app));
+    ok('مفيش class="msg" فاضل في الرندرة', !/class="msg[\s"]/.test(app));
+
+    /* الفقاعة بتلف المحتوى مش الشاشة */
+    ok('الفقاعة max-width ٧٨٪', /\.fb\{[\s\S]{0,300}?max-width:78%/.test(css));
+    ok('الفقاعة min-width محدود', /\.fb\{[\s\S]{0,300}?min-width:92px/.test(css));
+
+    /* رسايلي على جنب، الباقي على الجنب التاني */
+    ok('رسايلي بتنزاح للناحية التانية', /\.b > \.fb\.mine\{[^}]*margin-inline-start:auto/.test(css));
+    ok('رسايلي بلون مختلف', /\.fb\.mine\{[^}]*background:var\(--navy-700\)/.test(css));
+
+    /* الاسم والأفاتار جوه الفقاعة */
+    ok('اسم المرسل جوه الفقاعة', /class="b-who"/.test(app) && /\.b-who\{/.test(css));
+    ok('أفاتار المرسل جوه الفقاعة', /class="b-av"/.test(app) && /\.b-av\{/.test(css));
+    ok('اسم المرسل مش بيظهر لرسايلي', /if \(!mine && \(o\.name \|\| o\.avatar\) && o\.showWho !== false\)/.test(app));
+
+    /* الوقت جوه الفقاعة */
+    ok('الوقت جوه الفقاعة', /\.b-foot\{[\s\S]{0,200}?\}/.test(css) &&
+      app.indexOf('b-foot') < app.indexOf('</div></div>', app.indexOf('function bubble')) + 40);
+
+    /* الذيل على آخر فقاعة بس */
+    ok('الاسم بيظهر في أول فقاعة بس', /o\.showWho = !prev \|\| prev\.name !== m\.name/.test(app) &&
+      /o\.showWho !== false/.test(app));
+    ok('الذيل على الفقاعة الأخيرة بس', /o\.tail = !next \|\| next\.name !== m\.name \|\| !!next\.mine !== !!o\.mine/.test(app));
+    ok('الذيل بيترسم بـ::after', /\.fb\.tail::after\{[\s\S]{0,200}?pointer-events:none/.test(css));
+    ok('ذيل رسايلي على اليمين', /\.fb\.tail\.mine::after\{[^}]*right:-7px/.test(css));
+    ok('ذيل غيري على الشمال', /\.fb\.tail:not\(\.mine\)::after\{[^}]*left:-7px/.test(css));
+
+    /* الإعلان دهبي حتى لو أنا اللي كاتبه — كان .mine بيغطي على .t-gold */
+    ok('إعلاني دهبي برضه', /\.fb\.t-gold\.mine\{[^}]*background:#fff9ec/.test(css));
+
+    /* المدخل بشكل تيليجرام */
+    ok('مدخل دايري زي تيليجرام', /\.composer-in\{[\s\S]{0,400}?border-radius:20px/.test(css));
+    ok('زرار الإرسال دايرة', /\.composer-send\{[\s\S]{0,300}?border-radius:50%/.test(css));
+    ok('wireComposer موجودة', /function wireComposer\(inputSel, sendFn\)/.test(app));
+    ok('الإنتر بيبعت', /e\.key === 'Enter' && !e\.shiftKey/.test(app));
+    ok('المدخل بيكبر لحد ٩٦', /Math\.min\(el\.scrollHeight, 96\)/.test(app));
+
+    /* كل الأسطح الستة */
+    const surfaces = [
+      ['دردشة المجموعة', /wireComposer\('#ch-in'/.test(app)],
+      ['دردشة المس', /wireComposer\('#dm-in'/.test(app)],
+      ['دردشة الطالب الواحد', /wireComposer\('#rm-in'/.test(app)],
+      ['قناة الطالب', /wireComposer\('#sc-in'/.test(app)],
+      ['الإعلانات دهبية', /tone: 'gold'/.test(app)],
+      ['إشعارات الطالب', /notif-chat/.test(app)],
+    ];
+    surfaces.forEach(([n, t]) => ok(n + ' بشكل تيليجرام', t));
+
+    /* wireComposer بتعمل Enter — أي onkeydown تاني على نفس الحقل
+       بيبعت الرسالة مرتين (باج حقيقي كان موجود في ٤ أسطح). */
+    ok('مفيش Enter مزدوج على المدخلات',
+      !/\$\('#(ch|dm|rm|sc)-in'\)\.onkeydown/.test(app));
+
+    /* مفيش input قديم فاضل */
+    ok('مفيش input للدردشة فاضل', !/<input[^>]*id="(ch|dm|rm|sc)-in"/.test(app));
+    /* خلفية الدردشة */
+    ok('خلفية شاشة الدردشة فاتحة', /\.chat-scroll\{[\s\S]{0,300}?background:#eef2f9/.test(css));
+  }
+
   console.log(`\n=== النتيجة: ${pass} نجح · ${fail} فشل ===`);
   if (fail) {
     console.log('فشل: ' + fails.join(' · '));

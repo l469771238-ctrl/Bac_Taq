@@ -29,3 +29,7 @@ zworkplace/uploads/*
 zworkplace/backups/
 zworkplace/data/*.db*
 __pycache__/
+
+# تسليم للمستخدم — مش جزء من التطبيق
+teacher-avatar.png
+teacher.svg
