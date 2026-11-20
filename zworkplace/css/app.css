@@ -486,6 +486,59 @@ input,textarea,select{font-family:inherit}
   border-radius:28px;font-size:30px;
   background:var(--grad-brand);color:#fff;
 }
+/* الأيقونة SVG بتملا المربع بالظبط — مهما كان مقاسه (20 / 30 / 32 / 36 / 44)
+   بدون حشو أبيض، عشان متبانش صغيرة جوه الهيدر ولا في الكشف. */
+.avatar>svg.av{width:100%;height:100%;display:block;border-radius:inherit}
+.avatar:has(>svg.av){background:transparent;padding:0;overflow:hidden}
+
+/* القائد: قبل الأيقونات كان بيتميّز إن مربعه فيه كأس بدل الحروف.
+   بعد ما كل الطلبة بقى عندهم أيقونات، لازم يفضل باين — إطار دهبي
+   + نقطة صغيرة تحت. الأيقونة نفسها بتفضل زي ما الطالب اختارها. */
+.avatar.lead{
+  position:relative;
+  box-shadow:0 0 0 2px var(--gold), 0 0 0 5px rgba(246,183,60,.20);
+}
+/* .avatar عنده overflow:hidden فكان هيقص الشارة اللي تحت.
+   الـSVG نفسه مدوّر (rect rx=9) فمفيش حاجة هتطلع بره المربع. */
+.avatar.lead, .avatar.lead:has(>svg.av){overflow:visible}
+.avatar.lead::after{
+  content:'';position:absolute;bottom:-2px;left:-2px;
+  width:9px;height:9px;border-radius:50%;
+  background:var(--gold);border:2px solid #fff;
+  pointer-events:none;
+}
+
+/* شبكة اختيار الأيقونة — ٤ في السطر، ٢٦ شكل = ٧ سطور مقاس مناسب للموبايل */
+/* ٥ أعمدة: ٢٦ شكل في ٦ سطور. ٤ أعمدة كانت بتعمل ٧ سطور = ٦٠٠+
+   بكسل فشاشة التسجيل تبقى طويلة بلا داعي، و٦ أعمدة كانت بتصغّر
+   الخلية لـ٤٦px وده صغير على الإصبع. */
+.av-grid{
+  display:grid;grid-template-columns:repeat(5,1fr);
+  gap:8px;margin-top:2px;
+}
+.av-pick{
+  position:relative;aspect-ratio:1;
+  border:2.5px solid transparent;border-radius:15px;
+  background:#f4f6fb;padding:0;cursor:pointer;
+  display:grid;place-items:center;
+  transition:border-color .15s,transform .12s,box-shadow .15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.av-pick svg{width:100%;height:100%;display:block;border-radius:12px}
+.av-pick:active{transform:scale(.94)}
+.av-pick.on{
+  border-color:var(--gold);
+  box-shadow:0 0 0 3px rgba(246,183,60,.22);
+}
+.av-pick.on::after{
+  content:'';position:absolute;inset:auto 4px 4px auto;
+  width:9px;height:9px;border-radius:50%;
+  background:var(--gold);box-shadow:0 0 0 2px #fff;
+  pointer-events:none;
+}
+@media (max-width:340px){
+  .av-grid{grid-template-columns:repeat(4,1fr);gap:7px}
+}
 
 /* ══════════ الحوارات ══════════ */
 .sheet-bg{
@@ -729,6 +782,26 @@ input,textarea,select{font-family:inherit}
    على hidden، والنتيجة عدّاد «0» بينور من غير ما يكون فيه حاجة. */
 [hidden]{display:none !important}
 .st-lead[hidden]{display:none}
+
+/* أفاتار الطالب في الهيدر — أول عنصر، بينوّر الأيقونة اللي اختارها.
+   المربع ده ليه خلفية فاتحة عشان الأيقونة (اللي جوّاها خلفية باستيل)
+   تبان كويسة على النيفي الغامق. */
+.st-av{
+  width:52px;height:52px;flex-shrink:0;
+  border-radius:17px;padding:0;overflow:hidden;
+  background:rgba(255,255,255,.12);
+  border:2px solid rgba(255,255,255,.22);
+  display:grid;place-items:center;
+  color:#fff;font-size:15px;font-weight:800;
+  margin-left:12px;
+  transition:transform .13s ease,border-color .15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.st-av:active{transform:scale(.94);border-color:rgba(255,255,255,.45)}
+.st-av svg{width:100%;height:100%;display:block}
+@media (max-height:600px){
+  .st-av{width:44px;height:44px;border-radius:14px;margin-left:10px}
+}
 
 /* على الشاشات القصيرة نقلّل شوية */
 @media (max-height:680px){

@@ -202,6 +202,25 @@ function migrate(db) {
     CREATE INDEX IF NOT EXISTS ix_files_group     ON files(group_id);
     CREATE INDEX IF NOT EXISTS ix_sessions_exp    ON sessions(expires_at);
   `);
+
+  /* ═══════ ترقيات للقواعد الموجودة ═══════
+     قاعدة السيرفر شغالة عند المس أسماء وفيها بيانات فعلية —
+     لازم أي عمود جديد يتضاف من غير ما نلمس اللي موجود.
+     CREATE TABLE IF NOT EXISTS مش بيضيف أعمدة، فالترقية هنا. */
+  addColumn(db, 'students', 'avatar', "TEXT NOT NULL DEFAULT ''");
+}
+
+/** يضيف عمود لو مش موجود — آمن لو اتنادى أكتر من مرة */
+function addColumn(db, table, column, decl) {
+  try {
+    const cols = db.prepare('PRAGMA table_info(' + table + ')').all();
+    if (cols.some((c) => c.name === column)) return false;
+    db.exec('ALTER TABLE ' + table + ' ADD COLUMN ' + column + ' ' + decl);
+    return true;
+  } catch (e) {
+    /* لو فشل (قاعدة قديمة جدًا أو مقفولة) منكسرش التشغيل */
+    return false;
+  }
 }
 
 /**

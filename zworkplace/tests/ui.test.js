@@ -843,6 +843,100 @@ async function api(method, p, body, t) {
       'حرف واحد كان بيخلي ٦٨ طالب كلهم «م»');
   }
 
+
+  /* ══════════ ٢٩) الأيقونات — ٢٦ شكل بدون أي صورة ══════════ */
+  console.log('\n[٢٩] مكتبة الأيقونات');
+  {
+    const src = fs.readFileSync(path.join(ROOT, 'js/avatars.js'), 'utf8');
+    const win = { ZAvatar: null };
+    new Function('window', src)(win);
+    const Z = win.ZAvatar;
+
+    ok('ZAvatar موجود', !!Z && typeof Z.svg === 'function');
+    ok('٢٦ شكل', Z.list.length === 26, String(Z.list.length));
+    ok('مفيش مفاتيح مكررة', new Set(Z.list).size === Z.list.length);
+
+    // كل شكل: خلفية + مسار + خط بلون
+    const broken = [];
+    const bgs = new Set();
+    for (const k of Z.list) {
+      const s = Z.svg(k);
+      const rect = /<rect[^>]*fill="(#[0-9a-f]{6})"/i.exec(s);
+      if (rect) bgs.add(rect[1].toLowerCase());
+      if (!rect || !/<path d="/.test(s) || !/stroke="#[0-9a-f]{6}"/i.test(s)) broken.push(k);
+    }
+    ok('كل شكل فيه خلفية + مسار + خط', broken.length === 0, broken.join(','));
+    ok('٥ خلفيات باستيل', bgs.size === 5, String(bgs.size));
+
+    // كل شكل ليه تسمية عربية
+    const noLabel = Z.list.filter((k) => Z.label(k) === k || !/[\u0600-\u06FF]/.test(Z.label(k)));
+    ok('كل شكل ليه اسم عربي', noLabel.length === 0, noLabel.join(','));
+
+    // التسميات كلها مختلفة — مفيش شكلين بنفس الاسم
+    const labels = Z.list.map((k) => Z.label(k));
+    ok('الأسماء مختلفة', new Set(labels).size === labels.length);
+
+    /* الثغرة اللي كانت بتكسر الرسم: has('constructor') كانت true
+       لأن كل كائن عادي عنده constructor في الـprototype. */
+    const proto = ['constructor', 'toString', '__proto__', 'hasOwnProperty', 'valueOf'];
+    const leaked = proto.filter((k) => Z.has(k));
+    ok('has() مش بتتأثر بالـprototype', leaked.length === 0, leaked.join(','));
+    ok('مفتاح غلط مرفوض', Z.has('hack') === false && Z.has('') === false);
+
+    // الشكل القديم (الحرفين) لازم يفضل شغال لما مفيش أيقونة
+    const app = fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
+    ok('ava() بترجّع SVG لو الشكل موجود', /function ava\([\s\S]{0,300}?Z\.has\(k\)\) return Z\.svg/.test(app));
+    ok('ava() بترجّع الحرفين لو مفيش', /function ava\([\s\S]{0,400}?return esc\(initials\(name\)\)/.test(app));
+
+    // ترتيب السكربتات — avatars قبل app وإلا ZAvatar مش موجود وقت الرسم
+    const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const iIcons = html.indexOf('js/icons.js');
+    const iAv = html.indexOf('js/avatars.js');
+    const iApp = html.indexOf('js/app.js');
+    ok('أفاتارز بتيجي قبل app.js', iIcons > -1 && iAv > iIcons && iApp > iAv,
+      `icons=${iIcons} avatars=${iAv} app=${iApp}`);
+
+    // عناصر الواجهة موجودة
+    const need = ['su-av', 'su-avatar', 'st-avatar'];
+    const missing = need.filter((i) => !html.includes(`id="${i}"`));
+    ok('عناصر الأيقونة في الصفحة', missing.length === 0, missing.join(','));
+
+    // السيرفر: عمود في الداتابيز + مسارين + تحقق
+    const dbsrc = fs.readFileSync(path.join(ROOT, 'server/db.js'), 'utf8');
+    ok('عمود avatar في الداتابيز', /addColumn\(db,\s*'students',\s*'avatar'/.test(dbsrc));
+    const srv = fs.readFileSync(path.join(ROOT, 'server/index.js'), 'utf8');
+    ok('مسار تغيير الأيقونة', /route\('POST', '\/api\/student\/avatar'/.test(srv));
+    ok('مسار قراءة الأيقونة', /route\('GET', '\/api\/student\/avatar'/.test(srv));
+    ok('السيرفر بيرفض أي مفتاح غلط', /AVATAR_KEYS\.indexOf\(key\) < 0/.test(srv));
+    ok('الأيقونة بتتبعت مع التسجيل', /AVATAR_KEYS\.indexOf\(pick\) >= 0 \? pick : ''/.test(srv));
+    // العدد في السيرفر لازم يطابق العدد في المتصفح — لو اختلف يبقى فيه شكل
+    // بيتبعت ومش بيتقبل، أو العكس
+    const srvList = (srv.match(/const AVATAR_KEYS = \[([\s\S]*?)\];/) || [])[1];
+    const srvKeys = srvList ? srvList.match(/'[a-z]+'/g).map((x) => x.slice(1, -1)) : [];
+    ok('قايمة السيرفر = قايمة المتصفح', srvKeys.join(',') === Z.list.join(','),
+      `سيرفر=${srvKeys.length} متصفح=${Z.list.length}`);
+
+    /* String({toString:1}) بترمي TypeError → ٥٠٠. أي قيمة مش نص لازم
+       تتجاهل بأمان بدل ما توقّع الطلب. */
+    const strCoerce = (srv.match(/String\(body\.avatar/g) || []).length;
+    ok('الأيقونة بتتقري كنص بس', strCoerce === 0, `فيه ${strCoerce} استخدام String(body.avatar)`);
+    ok('النوع بيتفحص قبل التحويل',
+      (srv.match(/typeof body\.avatar === 'string'/g) || []).length >= 2);
+
+    /* القائد كان بيتميّز بإن مربعه فيه كأس بدل الحروف. بعد الأيقونات
+       كل الطلبة بقى عندهم شكل، فالكأس مش هتفرّق — لازم تمييز مختلف. */
+    const css = fs.readFileSync(path.join(ROOT, 'css/app.css'), 'utf8');
+    /* شبكة الاختيار لازم تبقى معقولة الطول — ٤ أعمدة كانت بتعمل
+       ٧ سطور = ٦٠٠+ بكسل على أضيق شاشة. */
+    const gridCols = /\.av-grid\{[\s\S]{0,200}?grid-template-columns:repeat\((\d+)/.exec(css);
+    ok('شبكة الأيقونات ٥ أعمدة', !!gridCols && Number(gridCols[1]) >= 5,
+      gridCols ? `repeat(${gridCols[1]})` : 'مش لاقيها');
+
+    ok('فيه كلاس تمييز للقائد', /\.avatar\.lead\s*\{/.test(css));
+    ok('شارة القائد مش هتتقص', /\.avatar\.lead[^{]*\{[^}]*overflow:visible/.test(css) ||
+      /\.avatar\.lead,\s*\.avatar\.lead:has[^{]*\{[^}]*overflow:visible/.test(css));
+  }
+
   console.log(`\n=== النتيجة: ${pass} نجح · ${fail} فشل ===`);
   if (fail) {
     console.log('فشل: ' + fails.join(' · '));

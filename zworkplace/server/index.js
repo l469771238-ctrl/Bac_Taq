@@ -199,6 +199,7 @@ function studentView(st) {
     name: st.full_name,
     status: st.status,
     isLeader: !!st.is_leader,
+    avatar: st.avatar || '',
     group: g ? { id: g.id, name: g.name, gender: g.gender, classId: g.class_id, className: g.class_name } : null,
   };
 }
@@ -208,7 +209,7 @@ function classTree() {
   const groups = db.prepare('SELECT * FROM groups ORDER BY id').all();
   const members = db
     .prepare(
-      `SELECT id, code, full_name, gender, is_leader, group_id, status
+      `SELECT id, code, full_name, gender, is_leader, group_id, status, avatar
          FROM students WHERE group_id IS NOT NULL ORDER BY is_leader DESC, full_name`
     )
     .all();
@@ -230,6 +231,7 @@ function classTree() {
             gender: m.gender,
             isLeader: !!m.is_leader,
             status: m.status,
+            avatar: m.avatar || '',
           })),
           leader: (mem.find((m) => m.is_leader) || {}).id || null,
           ready: mem.some((m) => m.is_leader),
@@ -503,7 +505,7 @@ route('GET', '/api/teacher/requests', async (req, res, body, p, u) => {
   const status = u.searchParams.get('status') || 'pending';
   const rows = db
     .prepare(
-      `SELECT id, code, full_name, status, created_at, decided_at, note
+      `SELECT id, code, full_name, status, created_at, decided_at, note, avatar
          FROM students WHERE status = ? ORDER BY created_at DESC`
     )
     .all(status);
@@ -511,6 +513,7 @@ route('GET', '/api/teacher/requests', async (req, res, body, p, u) => {
     rows: rows.map((r) => ({
       id: r.id, code: r.code, name: r.full_name, status: r.status,
       at: r.created_at, decidedAt: r.decided_at, note: r.note,
+      avatar: r.avatar || '',
     })),
     counts: {
       pending: db.prepare("SELECT COUNT(*) n FROM students WHERE status='pending'").get().n,
@@ -616,7 +619,7 @@ route('GET', '/api/teacher/messages', async (req, res) => {
   const ann = db.prepare("SELECT * FROM messages WHERE kind='announce' ORDER BY id DESC LIMIT 100").all();
   const chats = db
     .prepare(
-      `SELECT m.student_id, s.full_name, s.code, MAX(m.id) AS last_id, COUNT(*) AS n
+      `SELECT m.student_id, s.full_name, s.code, s.avatar, MAX(m.id) AS last_id, COUNT(*) AS n
          FROM messages m JOIN students s ON s.id = m.student_id
         WHERE m.kind='chat' GROUP BY m.student_id ORDER BY last_id DESC`
     )
@@ -626,7 +629,7 @@ route('GET', '/api/teacher/messages', async (req, res) => {
       id: m.id, body: m.body, scope: m.scope, at: m.created_at,
       to: m.scope === 'all' ? 'كل الأعضاء' : 'قادة المجموعات بس',
     })),
-    chats: chats.map((c) => ({ studentId: c.student_id, name: c.full_name, code: c.code, count: c.n, at: Date.now() })),
+    chats: chats.map((c) => ({ studentId: c.student_id, name: c.full_name, code: c.code, avatar: c.avatar || '', count: c.n, at: Date.now() })),
   });
 });
 
@@ -746,12 +749,16 @@ route('POST', '/api/register', async (req, res, body) => {
 
   const h = A.hash(pass);
   const gender = body.gender === 'girl' ? 'girl' : 'boy';
+  /* الأفاتار بيتبعت مع التسجيل نفسه — قيمة واحدة من الـ٢٦ المسموحين،
+     وأي حاجة تانية بتتجاهل (بترجع فاضي = الحرفين). */
+  const pick = typeof body.avatar === 'string' ? body.avatar.trim() : '';
+  const av = AVATAR_KEYS.indexOf(pick) >= 0 ? pick : '';
   const r = db
     .prepare(
-      `INSERT INTO students (code, full_name, pass_hash, pass_salt, status, note, created_at)
-       VALUES (?,?,?,?, 'pending', '', ?)`
+      `INSERT INTO students (code, full_name, pass_hash, pass_salt, status, note, created_at, avatar)
+       VALUES (?,?,?,?, 'pending', '', ?, ?)`
     )
-    .run(code, ros.name, h.hash, h.salt, Date.now());
+    .run(code, ros.name, h.hash, h.salt, Date.now(), av);
   void gender;
   json(res, 201, { state: 'pending', id: Number(r.lastInsertRowid), name: ros.name, message: 'طلبك اتبعت للمس أسماء' });
 });
@@ -804,6 +811,30 @@ route('GET', '/api/student/feed', async (req, res) => {
     announcements: ann.map((m) => ({ id: m.id, body: m.body, scope: m.scope, at: m.created_at })),
     chat: chats.map((m) => ({ id: m.id, body: m.body, at: m.created_at })),
   });
+});
+
+/* ───── اختيار الأفاتار ─────
+   الشكل مخزّن كمفتاح نصي قصير («star» · «cat» …) مش صورة.
+   يعني ٨ بايت للطالب بدل ٣-١٥ كيلو، ومفيش رفع ولا ضغط ولا مساحة. */
+const AVATAR_KEYS = ['star','moon','sun','leaf','flower','wave','book','pencil','flask','rocket','bulb','globe','shield','bolt','crown','flame','cat','bird','fish','paw','heart','diamond','key','flag','music','trophy'];
+
+route('POST', '/api/student/avatar', async (req, res, body) => {
+  const st = needStudent(req, res);
+  if (!st) return;
+  /* String({toString:1}) بترمي TypeError → ٥٠٠. الأيقونة المفروض
+     تكون نص أصلاً، فأي حاجة مش نص بتتجاهل على طول. */
+  const key = typeof body.avatar === 'string' ? body.avatar.trim() : '';
+  if (key && AVATAR_KEYS.indexOf(key) < 0) {
+    return json(res, 400, { error: 'الأفاتار ده مش موجود' });
+  }
+  db.prepare('UPDATE students SET avatar = ? WHERE id = ?').run(key, st.id);
+  json(res, 200, { ok: true, avatar: key, keys: AVATAR_KEYS });
+});
+
+route('GET', '/api/student/avatar', async (req, res) => {
+  const st = needStudent(req, res);
+  if (!st) return;
+  json(res, 200, { avatar: st.avatar || '', keys: AVATAR_KEYS });
 });
 
 route('POST', '/api/student/chat', async (req, res, body) => {
@@ -867,7 +898,7 @@ route('GET', '/api/student/files', async (req, res) => {
 
   const files = db
     .prepare(
-      `SELECT f.*, s.full_name, s.code
+      `SELECT f.*, s.full_name, s.code, s.avatar
          FROM files f JOIN students s ON s.id = f.student_id
         WHERE f.group_id = ? ORDER BY f.id DESC`
     )
@@ -887,7 +918,7 @@ route('GET', '/api/student/files', async (req, res) => {
       size: f.size,
       mime: f.mime,
       at: f.created_at,
-      owner: { id: f.student_id, name: f.full_name, code: f.code, mine: f.student_id === st.id },
+      owner: { id: f.student_id, name: f.full_name, code: f.code, avatar: f.avatar || '', mine: f.student_id === st.id },
     })),
     tasks: tasks.map((t) => {
       const sub = subByTask[t.id];
@@ -1241,7 +1272,7 @@ route('GET', '/api/student/chat/:scope/:id', async (req, res, body, p) => {
 
   const rows = db
     .prepare(
-      `SELECT m.*, s.full_name, s.code, s.is_leader
+      `SELECT m.*, s.full_name, s.code, s.is_leader, s.avatar
          FROM chat_msgs m LEFT JOIN students s ON s.id = m.student_id
         WHERE m.scope = ? AND m.target_id = ? ORDER BY m.id`
     )
@@ -1258,6 +1289,7 @@ route('GET', '/api/student/chat/:scope/:id', async (req, res, body, p) => {
       name: m.from_teacher ? 'مس أسماء' : m.full_name,
       code: m.code || '',
       leader: !!m.is_leader,
+      avatar: m.avatar || '',
       mine: !m.from_teacher && m.student_id === st.id,
     })),
   });
@@ -1355,7 +1387,7 @@ route('GET', '/api/teacher/chatroom/:scope/:id', async (req, res, body, p) => {
   const id = Number(p.id);
   const rows = db
     .prepare(
-      `SELECT m.*, s.full_name, s.code, s.is_leader
+      `SELECT m.*, s.full_name, s.code, s.is_leader, s.avatar
          FROM chat_msgs m LEFT JOIN students s ON s.id = m.student_id
         WHERE m.scope = ? AND m.target_id = ? ORDER BY m.id`
     )
@@ -1375,6 +1407,7 @@ route('GET', '/api/teacher/chatroom/:scope/:id', async (req, res, body, p) => {
       from: m.from_teacher ? 'teacher' : 'student',
       name: m.from_teacher ? 'مس أسماء' : m.full_name,
       leader: !!m.is_leader,
+      avatar: m.avatar || '',
     })),
   });
 });
