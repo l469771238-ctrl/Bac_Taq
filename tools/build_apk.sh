@@ -21,7 +21,7 @@ case "$app" in
     APP="$ROOT/bactaq/android"; WEB="$ROOT/bactaq/web"; APK_NAME="Bac-Taq"; KS_ALIAS="bactaq"
     NEED_PDF=1 ;;
   zworkplace)
-    APP="$ROOT/zworkplace/android"; WEB="$ROOT/zworkplace"; APK_NAME="Z-Project"; KS_ALIAS="zwork"
+    APP="$ROOT/zworkplace/android"; WEB="$ROOT/zworkplace"; APK_NAME="Z-Project-Workspace"; KS_ALIAS="zwork"
     NEED_PDF=0 ;;
   *) echo "unknown app: $app (use bactaq|zworkplace)"; exit 2 ;;
 esac
@@ -59,6 +59,8 @@ rm -rf "$WORK/assets/web/tests" "$WORK/assets/web/node_modules" "$WORK/assets/we
        "$WORK/assets/web/README.md" "$WORK/assets/web/.gitignore" "$WORK/assets/web/img/icon-1024.png" \
        "$WORK/assets/web/img/logo@2x.png" \
        "$WORK/assets/web/server" "$WORK/assets/web/data" "$WORK/assets/web/samples" "$WORK/assets/web/data-import" \
+       "$WORK/assets/web/android" "$WORK/assets/web/Dockerfile" "$WORK/assets/web/render.yaml" \
+       "$WORK/assets/web/package.json" "$WORK/assets/web/.dockerignore" "$WORK/assets/web/DEPLOY.md" "$WORK/assets/web/uploads" "$WORK/assets/web/backups" \
        "$WORK/assets/web/.env"
 
 echo "==> compile resources"

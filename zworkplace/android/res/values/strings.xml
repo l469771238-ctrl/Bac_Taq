@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Z Project Workspace</string>
+    <!-- عنوان السيرفر — يتغيّر وقت البناء بـ ZAPI_BASE -->
+    <string name="zapi_base">https://z-project.onrender.com</string>
+</resources>

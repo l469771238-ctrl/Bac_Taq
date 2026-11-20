@@ -57,9 +57,27 @@
 
   /* ---------------- الشبكة ---------------- */
 
+  /**
+   * عنوان السيرفر.
+   * في المتصفح: نفس الأصل (فاضي).
+   * في الأندرويد: التطبيق بيحقنه في window.ZAPI أو بيوفره عبر ZNative.
+   * بنقراه كل مرة — مش بنحفظه — عشان التطبيق يقدر يغيّره من غير إعادة تحميل.
+   */
   function apiBase() {
-    const b = (typeof window !== 'undefined' && window.ZAPI) ? String(window.ZAPI) : '';
-    return b.replace(/\/+$/, '');
+    if (typeof window === 'undefined') return '';
+    let b = '';
+    if (window.ZAPI) b = String(window.ZAPI);
+    else if (window.ZNative && typeof window.ZNative.base === 'function') {
+      try { b = String(window.ZNative.base()); } catch (e) { b = ''; }
+    }
+    // التطبيق بيمرر العنوان في الرابط كخطة احتياطية
+    if (!b && window.location && window.location.search) {
+      try {
+        const q = new URLSearchParams(window.location.search);
+        if (q.get('zapi')) b = q.get('zapi');
+      } catch (e) {}
+    }
+    return String(b).replace(/\/+$/, '');
   }
   function api(method, path, body) {
     const opt = { method, headers: {} };
