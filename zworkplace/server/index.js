@@ -111,15 +111,19 @@ function json(res, code, obj) {
 function readBody(req, limit = MAX_JSON) {
   return new Promise((resolve, reject) => {
     let size = 0;
+    let tooBig = false;
     const chunks = [];
     req.on('data', (c) => {
       size += c.length;
-      if (size > limit) {
-        reject(Object.assign(new Error('الملف أكبر من المسموح'), { status: 413 }));
-        req.destroy();
+      if (size > limit && !tooBig) {
+        tooBig = true;
+        /* ما ننفّذش req.destroy() هنا: بيقفل الاتصال قبل ما الرد
+           يوصل، والمتصفح بيوري 'فشل الاتصال' بدل رسالة مفهومة.
+           بنرفض بس ونسيب الرد يتكتب (الـres بيكمّل القراءة ويرمي). */
+        reject(Object.assign(new Error('البيانات أكبر من المسموح (١ ميجا)'), { status: 413 }));
         return;
       }
-      chunks.push(c);
+      if (!tooBig) chunks.push(c);
     });
     req.on('end', () => {
       const buf = Buffer.concat(chunks);
@@ -173,7 +177,11 @@ function needStudent(req, res) {
   return st;
 }
 
-const clean = (v, max = 80) => String(v == null ? '' : v).trim().slice(0, max);
+/* بنشيل رموز التحكم (\u0000- و \u007f) — كانت بتتحفظ في
+   الأسماء وتظهر مربعات فاضية للمستخدم. */
+const CTRL = /[\u0000-\u001f\u007f\u200b-\u200f\ufeff\ufffd]/g;
+const clean = (v, max = 80) =>
+  String(v == null ? '' : v).replace(CTRL, '').trim().slice(0, max);
 
 /* ---------------- شكل البيانات اللي بتروح للواجهة ---------------- */
 
@@ -829,7 +837,13 @@ route('POST', '/api/files', async (req, res) => {
   const st = needStudent(req, res);
   if (!st) return;
   if (!st.group_id) return json(res, 400, { error: 'لسه مش في مجموعة — كلّم المس أسماء' });
-  const name = F.safeName(decodeURIComponent(req.headers['x-filename'] || 'ملف'));
+  /* decodeURIComponent بترمي 'URI malformed' على أي % غلط —
+     وملفات زي «تقرير 100%.pdf» كان رفعها بيرجّع 500 ويفشل.
+     لو الفك فشل، بناخد الاسم زي ما هو. */
+  const rawName = req.headers['x-filename'] || 'ملف';
+  let decoded = rawName;
+  try { decoded = decodeURIComponent(rawName); } catch (e) { decoded = rawName; }
+  const name = F.safeName(decoded);
   const mime = String(req.headers['content-type'] || 'application/octet-stream');
   const meta = await F.receive(req, { mime });
   const r = db
@@ -1165,7 +1179,13 @@ route('POST', '/api/teacher/files', async (req, res) => {
   if (!studentId) return json(res, 400, { error: 'اختار الطالب' });
   const st = db.prepare('SELECT * FROM students WHERE id = ?').get(studentId);
   if (!st || !st.group_id) return json(res, 400, { error: 'الطالب مش في مجموعة' });
-  const name = F.safeName(decodeURIComponent(req.headers['x-filename'] || 'ملف'));
+  /* decodeURIComponent بترمي 'URI malformed' على أي % غلط —
+     وملفات زي «تقرير 100%.pdf» كان رفعها بيرجّع 500 ويفشل.
+     لو الفك فشل، بناخد الاسم زي ما هو. */
+  const rawName = req.headers['x-filename'] || 'ملف';
+  let decoded = rawName;
+  try { decoded = decodeURIComponent(rawName); } catch (e) { decoded = rawName; }
+  const name = F.safeName(decoded);
   const mime = String(req.headers['content-type'] || 'application/octet-stream');
   const meta = await F.receive(req, { mime });
   const r = db
@@ -1578,8 +1598,12 @@ function match(pattern, pathname) {
   if (a.length !== b.length) return null;
   const params = {};
   for (let i = 0; i < a.length; i++) {
-    if (a[i].startsWith(':')) params[a[i].slice(1)] = decodeURIComponent(b[i]);
-    else if (a[i] !== b[i]) return null;
+    if (a[i].startsWith(':')) {
+      /* decodeURIComponent بترمي URIError على أي % غلط —
+         وده كان بيوقّع السيرفر كله من طلب واحد. */
+      try { params[a[i].slice(1)] = decodeURIComponent(b[i]); }
+      catch (e) { return null; }
+    } else if (a[i] !== b[i]) return null;
   }
   return params;
 }
@@ -1604,13 +1628,19 @@ const server = http.createServer(async (req, res) => {
 
   for (const r of routes) {
     if (r.method !== req.method) continue;
-    const p = match(r.pattern, pathname);
+    let p;
+    /* match() ممكن ترمي على باراميتر مشفّر غلط — لو حصل،
+       نتجاهل المسار ده بدل ما نوقّع السيرفر كله. */
+    try { p = match(r.pattern, pathname); } catch (e) { continue; }
     if (!p) continue;
     try {
       const rawUpload = pathname === '/api/files' || pathname === '/api/teacher/files';
-      const body = !rawUpload && ['POST', 'PUT', 'PATCH'].includes(req.method)
+      let body = !rawUpload && ['POST', 'PUT', 'PATCH'].includes(req.method)
         ? await readBody(req)
         : {};
+      /* JSON.parse ممكن يرجّع null أو مصفوفة أو رقم —
+         وكل المعالجات بتفترض كائن. */
+      if (!body || typeof body !== 'object' || Array.isArray(body)) body = {};
       await r.fn(req, res, body, p, u);
     } catch (e) {
       if (!res.headersSent) {
@@ -1621,6 +1651,15 @@ const server = http.createServer(async (req, res) => {
     return;
   }
   json(res, 404, { error: 'المسار مش موجود' });
+});
+
+/* أي استثناء مش متوقّع في أي مكان ما يقفلش السيرفر.
+   قبل كده طلب واحد فيه '%' غلط كان بيوقّف الخدمة لكل الطلبة. */
+process.on('uncaughtException', (e) => {
+  console.error('⚠️ استثناء مش متوقّع:', e && e.message);
+});
+process.on('unhandledRejection', (e) => {
+  console.error('⚠️ وعد مرفوض:', e && (e.message || e));
 });
 
 

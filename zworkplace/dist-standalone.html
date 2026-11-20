@@ -4,7 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0e2f6b">
-<title>Z Project Workspace</title>
+<meta name="description" content="مساحة عمل الفصل — مجموعات، ملفات، مطلوبات، ودردشة.">
+<title>مساحة عمل الفصل</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="img/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="img/icon-512.png">
+<link rel="apple-touch-icon" href="img/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="مساحة العمل">
+<meta name="mobile-web-app-capable" content="yes">
 <style>
 /* ══════════════════════════════════════════════════════════════
    Z Project Workspace — على نمط Bac-Taq
@@ -582,8 +591,12 @@ input,textarea,select{font-family:inherit}
 .m-meta{font-size:11.5px;font-weight:600;color:var(--ink-3);margin-top:2px;display:block}
 
 /* ══════════ الأعضاء ══════════ */
-.mem{display:flex;align-items:center;gap:10px;padding:9px 0;font-size:13.5px;font-weight:600}
+.mem{display:flex;align-items:center;gap:10px;padding:9px 0;font-size:13.5px;font-weight:600;min-width:0}
 .mem + .mem{border-top:1px solid #eaeff8}
+/* الاسم الطويل (٢٤ حرف) كان بيمدّد الصف ويطلع بره الشاشة */
+.mem > b, .mem b{
+  min-width:0;overflow-wrap:anywhere;word-break:break-word;
+}
 
 /* ══════════ الرسايل ══════════ */
 .msg{
@@ -677,6 +690,9 @@ input,textarea,select{font-family:inherit}
   letter-spacing:-.2px;color:var(--ink);
   text-align:center;line-height:1.3;
   max-width:100%;
+  /* الأسماء الطويلة («مساحة الملفات») كانت بتطلع بره المربع
+     على الشاشات الضيقة (٣٢٠ بكسل) */
+  overflow-wrap:anywhere;word-break:break-word;
 }
 
 /* نفس ألوان البلاطات القديمة */
@@ -697,6 +713,12 @@ input,textarea,select{font-family:inherit}
 /* ══════════ رأس الطالب — البطاقة جوه الهيدر ══════════ */
 .st-top{align-items:flex-start}
 .st-head{min-width:0;flex:1}
+/* «عبدالرحمن محمد عبدالرحمن» (٢٤ حرف) لازم يلفّ جوه الهيدر
+   مش يطلع بره الشاشة */
+.st-head h2{
+  overflow-wrap:anywhere;word-break:break-word;
+  font-size:23px;line-height:1.25;
+}
 .st-meta{
   display:flex;align-items:center;gap:7px;
   margin-top:7px;font-size:12px;font-weight:700;
@@ -730,6 +752,19 @@ input,textarea,select{font-family:inherit}
   .sq .sq-ico{width:46px;height:46px;border-radius:15px}
   .sq b{font-size:13.5px}
   .pad-grid{gap:10px;padding:12px}
+}
+
+/* الشاشات القصيرة جدًا (آيفون SE وأقدم) — الاسم الطويل بياخد
+   سطرين في الهيدر، فالـ٤ مربعات محتاجة مساحة أقل عشان تفضل كلها ظاهرة
+   من غير نزول (شرط أساسي: مفيش scroll في الشاشة الرئيسية). */
+@media (max-height:600px){
+  .th-top{padding:calc(14px + var(--safe-top)) 16px 16px}
+  .th-top h2, .st-head h2{font-size:19px}
+  .st-head h2{line-height:1.2}
+  .sq .sq-ico{width:38px;height:38px;border-radius:12px}
+  .sq b{font-size:12.5px}
+  .pad-grid{gap:8px;padding:9px}
+  .th-greet{font-size:11px}
 }
 
 </style>
@@ -822,8 +857,8 @@ input,textarea,select{font-family:inherit}
    <div class="home-inner">
     <div class="brand">
       <div class="brand-mark">Z</div>
-      <h1>Z Project Workspace</h1>
-      <p>مساحة عمل الفصل</p>
+      <h1>مساحة عمل الفصل</h1>
+      <p>لمس أسماء وطلبتها</p>
     </div>
 
     <div class="home-actions">
@@ -1119,11 +1154,25 @@ input,textarea,select{font-family:inherit}
 
 <div class="toast" id="toast"></div>
 <script>
-/* تركيب الأيقونات على العناصر اللي عندها data-icon */
-document.querySelectorAll('[data-icon]').forEach(function(el){
-  var n = el.getAttribute('data-icon');
-  el.insertAdjacentHTML('afterbegin', window.icon(n));
-});
+/* تركيب الأيقونات على العناصر اللي عندها data-icon.
+   بيتنفّذ مرة عند التحميل ومرة تانية لو الحالة اتغيّرت — ومستحيل
+   يرمي خطأ لو icons.js اتأخر، عشان مايمنعش app.js من التشغيل. */
+(function () {
+  function paint() {
+    if (typeof window.icon !== 'function') return;
+    document.querySelectorAll('[data-icon]').forEach(function (el) {
+      if (el.querySelector('svg')) return;
+      var n = el.getAttribute('data-icon');
+      var svg = window.icon(n);
+      if (svg) el.insertAdjacentHTML('afterbegin', svg);
+    });
+  }
+  paint();
+  window.Zicons = { paint: paint };
+  // لو icons.js وصل بعد السكربت ده، نرسم تاني
+  document.addEventListener('DOMContentLoaded', paint);
+  window.addEventListener('load', paint);
+})();
 </script>
 <script>
 'use strict';

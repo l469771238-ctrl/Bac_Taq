@@ -42,7 +42,8 @@ import shutil, zipfile, sys
 tmp = '/tmp/zipbuild'
 shutil.rmtree(tmp, ignore_errors=True)
 os.makedirs(tmp)
-for item in ['index.html', 'css', 'js', 'fonts', 'server', 'tests', 'dist-standalone.html']:
+for item in ['index.html', 'manifest.webmanifest', 'favicon.ico', 'css', 'js', 'fonts', 'img',
+             'server', 'tests', 'dist-standalone.html']:
     src = os.path.join(root, item)
     if os.path.isdir(src):
         shutil.copytree(src, os.path.join(tmp, item),

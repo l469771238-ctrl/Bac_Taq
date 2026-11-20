@@ -526,8 +526,8 @@ async function api(method, p, body, t) {
     const t = await makeDom();
     const { window } = t;
     const h1 = window.document.querySelector('.brand h1').textContent.trim();
-    eq('اسم البرنامج', h1, 'Z Project Workspace');
-    ok('العنوان في التاب', window.document.title.includes('Z Project Workspace'));
+    eq('اسم البرنامج', h1, 'مساحة عمل الفصل');
+    ok('العنوان في التاب', window.document.title.includes('مساحة عمل الفصل'));
   }
 
   /* ---------- ١١ز. نص الكود المدرسي ---------- */
@@ -747,6 +747,83 @@ async function api(method, p, body, t) {
     ok('زرار الإعدادات مربوط', /\$\('#th-settings'\)\.onclick/.test(app));
     ok('زرار الخروج مربوط', /\$\('#th-logout'\)\.onclick/.test(app));
     ok('الخروج بيمسح التوكن', /th-logout[\s\S]{0,400}setToken\(''\)/.test(app));
+  }
+
+  /* ══════════ ٢٥) السيرفر ما بيقعش من طلب واحد ══════════
+     decodeURIComponent بترمي URIError على أي % غلط.
+     طلب واحد لـ/api/files/%zz كان بيوقّف السيرفر كله. */
+  console.log('\n[٢٥] السيرفر صامد');
+  {
+    const srv = fs.readFileSync(path.join(ROOT, 'server/index.js'), 'utf8');
+
+    // match() لازم تحمي الـdecode
+    const matchFn = srv.match(/function match\(pattern, pathname\)[\s\S]{0,900}?\n}/);
+    ok('match() موجودة', !!matchFn);
+    if (matchFn) {
+      ok('match() بتحمي decodeURIComponent', /try\s*\{\s*params\[/.test(matchFn[0]),
+        'لازم try/catch حوالين decodeURIComponent');
+      ok('match() بترجّع null عند الفشل', /catch[^}]*return null/.test(matchFn[0]));
+    }
+
+    // حماية حول الاستدعاء
+    ok('الاستدعاء محمي', /try\s*\{\s*p = match\(/.test(srv));
+
+    // موت السيرفر من استثناء
+    ok('uncaughtException متعالَج', srv.includes("process.on('uncaughtException'"));
+    ok('unhandledRejection متعالَج', srv.includes("process.on('unhandledRejection'"));
+
+    // رفع الملفات
+    ok('رفع الملفات بيفك الاسم بأمان',
+      /rawName[\s\S]{0,140}catch \(e\) \{ decoded = rawName; \}/.test(srv));
+    // كل استدعاء حقيقي (مش كومنت) لازم يكون جوه try
+    const code = srv.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    const calls = (code.match(/decodeURIComponent\s*\(/g) || []).length;
+    const guarded = (code.match(/try\s*\{[^}]*decodeURIComponent/g) || []).length;
+    ok('كل decodeURIComponent محمي', calls === guarded, `استدعاءات: ${calls} · محمية: ${guarded}`);
+  }
+
+  /* ══════════ ٢٦) التطبيق قابل للتثبيت ══════════ */
+  console.log('\n[٢٦] التطبيق قابل للتثبيت (PWA)');
+  {
+    const mf = path.join(ROOT, 'manifest.webmanifest');
+    ok('ملف manifest موجود', fs.existsSync(mf));
+    if (fs.existsSync(mf)) {
+      const m = JSON.parse(fs.readFileSync(mf, 'utf8'));
+      ok('فيه اسم عربي', /[\u0600-\u06FF]/.test(m.name || ''));
+      ok('display standalone', m.display === 'standalone');
+      ok('start_url', m.start_url === '/');
+      ok('فيه أيقونات', Array.isArray(m.icons) && m.icons.length >= 2);
+      ok('فيه maskable', (m.icons || []).some((i) => i.purpose === 'maskable'));
+      (m.icons || []).forEach((i) => {
+        ok('أيقونة ' + i.sizes + ' موجودة', fs.existsSync(path.join(ROOT, i.src)));
+      });
+    }
+    const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    ok('الـHTML بيوصل للـmanifest', html.includes('rel="manifest"'));
+    ok('أيقونة أبل', html.includes('apple-touch-icon'));
+
+    // الـzip لازم يضم الملفات دي
+    const build = fs.readFileSync(path.join(ROOT, '..', 'tools/shots/build_sa.py'), 'utf8');
+    ok('الـbuild بيضم img', build.includes("'img'"));
+    ok('الـbuild بيضم manifest', build.includes("'manifest.webmanifest'"));
+  }
+
+  /* ══════════ ٢٧) نصوص عربية في كل الواجهة ══════════ */
+  console.log('\n[٢٧] مفيش نص إنجليزي ظاهر');
+  {
+    const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const clean = html.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<style[\s\S]*?<\/style>/g, '');
+    const texts = [...clean.matchAll(/>([^<>{}]{3,80})</g)].map((m) => m[1].trim())
+      .filter((t) => t && /[a-zA-Z]{3,}/.test(t) && !/^[\s\d.,:;×–—-]*$/.test(t));
+    ok('مفيش نص إنجليزي في الصفحة', texts.length === 0, texts.join(' | '));
+
+    // عنوان التاب
+    const title = (html.match(/<title>([^<]*)<\/title>/) || [])[1] || '';
+    ok('عنوان التاب عربي', /[\u0600-\u06FF]/.test(title), title);
+
+    // الاسم في الشاشة الأولى
+    const h1 = (html.match(/<h1>([^<]*)<\/h1>/) || [])[1] || '';
+    ok('اسم البرنامج عربي', /[\u0600-\u06FF]/.test(h1), h1);
   }
 
   console.log(`\n=== النتيجة: ${pass} نجح · ${fail} فشل ===`);
