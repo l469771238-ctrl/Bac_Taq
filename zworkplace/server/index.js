@@ -13,6 +13,7 @@ const { open } = require('./db');
 const A = require('./auth');
 
 const ROOT = path.join(__dirname, '..');
+const BUILD = '2026-11-20-fonts';   // بيتغيّر مع كل تحديث — بيبان في /api/health
 /*
  * alwaysdata بيحدد IP وPORT لكل موقع وبيبعتهم كمتغيرات بيئة.
  * غيرهما (Render/SnapDeploy) بيبعت PORT بس. لو مفيش حاجة، بنقع على 3100.
@@ -1417,6 +1418,7 @@ route('GET', '/api/health', async (req, res) => {
   json(res, 200, {
     ok: true,
     version: '1.0',
+    build: BUILD,
     uptime: Math.round(process.uptime()),
     roster: db.prepare('SELECT COUNT(*) n FROM roster').get().n,
     students: db.prepare('SELECT COUNT(*) n FROM students').get().n,
@@ -1473,10 +1475,18 @@ function serveStatic(req, res, pathname) {
       return;
     }
     const ext = path.extname(file).toLowerCase();
+    /*
+     * الكاش: كان 'max-age=3600' على CSS و JS — يعني بعد أي تحديث
+     * المتصفح بيفضل يعرض النسخة القديمة لمدة ساعة كاملة. ده كان بيخلي
+     * المستخدم يحسب إن الرفع مش شغال. دلوقتي no-store على كل حاجة،
+     * عشان أي تعديل يبان على طول.
+     */
     res.writeHead(200, {
       'Content-Type': MIME[ext] || 'application/octet-stream',
       'Content-Length': st.size,
-      'Cache-Control': ext === '.html' ? 'no-store' : 'public, max-age=3600',
+      'Cache-Control': 'no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'ETag': '"' + st.size + '-' + Math.round(st.mtimeMs) + '"',
     });
     fs.createReadStream(file).pipe(res);
   });

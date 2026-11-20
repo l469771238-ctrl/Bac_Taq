@@ -52,6 +52,12 @@ for item in ['index.html', 'css', 'js', 'fonts', 'server', 'tests', 'dist-standa
 os.makedirs(os.path.join(tmp, 'data'), exist_ok=True)
 shutil.copy2(os.path.join(root, 'data', 'students.csv'), os.path.join(tmp, 'data'))
 
+# ═══ ملفات التشغيل في جذر الـzip ═══
+# من غيرهم السيرفر مش بيلاقي نقطة البداية لما الملفات تترفع في /home/container
+shutil.copy2(os.path.join(root, '..', 'tools', 'zip-index.js'),
+             os.path.join(tmp, 'index.js'))
+shutil.copy2(os.path.join(root, 'package.json'), os.path.join(tmp, 'package.json'))
+
 zp = os.path.join(os.path.dirname(root), 'dist', 'zworkplace-update.zip')
 os.makedirs(os.path.dirname(zp), exist_ok=True)
 with zipfile.ZipFile(zp, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as z:
