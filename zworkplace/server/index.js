@@ -17,7 +17,16 @@ const ROOT = path.join(__dirname, '..');
  * alwaysdata بيحدد IP وPORT لكل موقع وبيبعتهم كمتغيرات بيئة.
  * غيرهما (Render/SnapDeploy) بيبعت PORT بس. لو مفيش حاجة، بنقع على 3100.
  */
-const PORT = Number(process.env.PORT || process.env.ZPORT || 3100);
+/*
+ * كل استضافة بتسمّي البورت باسم مختلف:
+ *   Waifly / Pterodactyl → SERVER_PORT
+ *   alwaysdata          → PORT
+ *   Render / غيره        → PORT
+ * بنجرّبهم كلهم بالترتيب.
+ */
+const PORT = Number(
+  process.env.PORT || process.env.SERVER_PORT || process.env.ZPORT || 3100
+);
 const HOST = process.env.IP || process.env.HOST || '0.0.0.0';
 const MAX_JSON = 4 * 1024 * 1024;
 const MIN_GROUP = 3;
