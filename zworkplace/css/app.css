@@ -3,10 +3,22 @@
    أزرق متدرّج غني · كروت بيضا · حواف كبيرة · ظلال ناعمة
    ══════════════════════════════════════════════════════════════ */
 
-@font-face{font-family:'Cairo';src:url('../fonts/cairo-arabic-400-normal.woff2') format('woff2');font-weight:400;font-display:swap}
-@font-face{font-family:'Cairo';src:url('../fonts/cairo-arabic-600-normal.woff2') format('woff2');font-weight:600;font-display:swap}
-@font-face{font-family:'Cairo';src:url('../fonts/cairo-arabic-700-normal.woff2') format('woff2');font-weight:700;font-display:swap}
-@font-face{font-family:'Cairo';src:url('../fonts/cairo-arabic-800-normal.woff2') format('woff2');font-weight:800;font-display:swap}
+/* ══════════ الخطوط ══════════
+   نص: IBM Plex Sans Arabic — أوضح خط عربي في الأحجام الصغيرة،
+        وفيه أرقام لاتينية كاملة (خط Cairo مفيهوش أرقام).
+   عنوان: Alexandria — هندسي ثقيل، بيقف جنب النص من غير ما يشد العين. */
+
+@font-face{font-family:'ZText';src:url('../fonts/ibm-plex-sans-arabic-arabic-400-normal.woff2') format('woff2');font-weight:400;font-display:swap;unicode-range:U+0600-06FF,U+0750-077F,U+FB50-FDFF,U+FE70-FEFF}
+@font-face{font-family:'ZText';src:url('../fonts/ibm-plex-sans-arabic-arabic-600-normal.woff2') format('woff2');font-weight:600;font-display:swap;unicode-range:U+0600-06FF,U+0750-077F,U+FB50-FDFF,U+FE70-FEFF}
+@font-face{font-family:'ZText';src:url('../fonts/ibm-plex-sans-arabic-arabic-700-normal.woff2') format('woff2');font-weight:700;font-display:swap;unicode-range:U+0600-06FF,U+0750-077F,U+FB50-FDFF,U+FE70-FEFF}
+@font-face{font-family:'ZText';src:url('../fonts/ibm-plex-sans-arabic-latin-400-normal.woff2') format('woff2');font-weight:400;font-display:swap;unicode-range:U+0000-00FF}
+@font-face{font-family:'ZText';src:url('../fonts/ibm-plex-sans-arabic-latin-600-normal.woff2') format('woff2');font-weight:600;font-display:swap;unicode-range:U+0000-00FF}
+@font-face{font-family:'ZText';src:url('../fonts/ibm-plex-sans-arabic-latin-700-normal.woff2') format('woff2');font-weight:700;font-display:swap;unicode-range:U+0000-00FF}
+
+@font-face{font-family:'ZHead';src:url('../fonts/alexandria-arabic-600-normal.woff2') format('woff2');font-weight:600;font-display:swap;unicode-range:U+0600-06FF,U+0750-077F,U+FB50-FDFF,U+FE70-FEFF}
+@font-face{font-family:'ZHead';src:url('../fonts/alexandria-arabic-700-normal.woff2') format('woff2');font-weight:700;font-display:swap;unicode-range:U+0600-06FF,U+0750-077F,U+FB50-FDFF,U+FE70-FEFF}
+@font-face{font-family:'ZHead';src:url('../fonts/alexandria-arabic-800-normal.woff2') format('woff2');font-weight:800;font-display:swap;unicode-range:U+0600-06FF,U+0750-077F,U+FB50-FDFF,U+FE70-FEFF}
+@font-face{font-family:'ZHead';src:url('../fonts/alexandria-latin-800-normal.woff2') format('woff2');font-weight:800;font-display:swap;unicode-range:U+0000-00FF}
 
 :root{
   /* نفس ألوان Bac-Taq */
@@ -46,7 +58,7 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;margin:0}
 body{
-  font-family:'Cairo',system-ui,-apple-system,'Segoe UI',sans-serif;
+  font-family:'ZText',system-ui,-apple-system,'Segoe UI',sans-serif;
   background:#dfe5f1;color:var(--ink);overflow:hidden;
   -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
@@ -98,7 +110,8 @@ input,textarea,select{font-family:inherit}
 
 .brand h1{
   margin:0;font-size:33px;font-weight:800;
-  letter-spacing:.3px;color:#fff;
+  letter-spacing:-.2px;color:#fff;
+  font-family:'ZHead','ZText',sans-serif;
 }
 .brand p{
   margin:8px 0 0;font-size:14px;font-weight:600;
@@ -141,6 +154,7 @@ input,textarea,select{font-family:inherit}
 .top h2{
   margin:0;font-size:17.5px;font-weight:800;
   flex:1;letter-spacing:-.2px;color:var(--ink);
+  font-family:'ZHead','ZText',sans-serif;
 }
 .back{
   width:44px;height:44px;border-radius:15px;
@@ -177,6 +191,7 @@ input,textarea,select{font-family:inherit}
 .th-top h2{
   margin:5px 0 0;font-size:25px;font-weight:800;
   letter-spacing:-.3px;color:#fff;
+  font-family:'ZHead','ZText',sans-serif;
 }
 .th-top .icon-btn{
   background:rgba(255,255,255,.14);
@@ -201,6 +216,7 @@ input,textarea,select{font-family:inherit}
 .sec-head h3{
   margin:0;font-size:17px;font-weight:800;
   color:var(--ink);letter-spacing:-.2px;
+  font-family:'ZHead','ZText',sans-serif;
 }
 
 /* ══════════ المقدمة ══════════ */
@@ -209,6 +225,7 @@ input,textarea,select{font-family:inherit}
 .intro h3{
   margin:10px 0 7px;font-size:20px;
   font-weight:800;letter-spacing:-.25px;line-height:1.4;color:var(--ink);
+  font-family:'ZHead','ZText',sans-serif;
 }
 .intro p{margin:0;color:var(--ink-3);font-size:13.5px;font-weight:600;line-height:1.7}
 
@@ -413,7 +430,7 @@ input,textarea,select{font-family:inherit}
   display:flex;align-items:center;justify-content:space-between;
   margin-bottom:16px;position:relative;z-index:1;
 }
-.my-card .mc-name{font-size:21px;font-weight:800;letter-spacing:-.3px}
+.my-card .mc-name{font-size:21px;font-weight:800;letter-spacing:-.3px;font-family:'ZHead','ZText',sans-serif}
 .my-card .mc-group{
   font-size:11.5px;font-weight:700;padding:6px 12px;border-radius:999px;
   background:rgba(255,255,255,.16);color:#fff;
@@ -438,6 +455,7 @@ input,textarea,select{font-family:inherit}
 .center-wrap h3{
   margin:0 0 9px;font-size:21px;
   font-weight:800;letter-spacing:-.3px;
+  font-family:'ZHead','ZText',sans-serif;
 }
 .center-wrap p{
   margin:0 0 24px;font-size:14px;font-weight:600;

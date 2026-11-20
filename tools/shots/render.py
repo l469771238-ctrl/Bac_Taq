@@ -18,10 +18,17 @@ S = 2                      # كثافة البكسل @2x
 W, H = CW*S, CH*S
 
 F = os.path.join(HERE, 'fonts')
-A4, A6 = F+'/cairo-400.ttf', F+'/cairo-600.ttf'
-A7, A8 = F+'/cairo-700.ttf', F+'/cairo-800.ttf'
-L4, L6 = F+'/latin-400.ttf', F+'/latin-600.ttf'
-L7, L8 = F+'/latin-700.ttf', F+'/latin-800.ttf'
+# النص — IBM Plex Sans Arabic
+A4 = F+'/ibm-plex-sans-arabic-arabic-400.ttf'
+A6 = F+'/ibm-plex-sans-arabic-arabic-600.ttf'
+A7 = F+'/ibm-plex-sans-arabic-arabic-700.ttf'
+# العناوين — Alexandria
+A8 = F+'/alexandria-arabic-800.ttf'
+# أرقام لاتينية — IBM Plex
+L4 = F+'/ibm-plex-sans-arabic-latin-400.ttf'
+L6 = F+'/ibm-plex-sans-arabic-latin-600.ttf'
+L7 = F+'/ibm-plex-sans-arabic-latin-700.ttf'
+L8 = F+'/alexandria-latin-800.ttf'
 
 ICONS = os.path.join(HERE, '..', '..', 'zworkplace', 'js', 'icons.js')
 
