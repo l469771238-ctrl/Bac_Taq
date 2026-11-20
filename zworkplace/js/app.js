@@ -44,40 +44,6 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
   function setToken(v) {
     try { if (v) localStorage.setItem(TOK, v); else localStorage.removeItem(TOK); } catch (e) {}
   }
-  /* حرفين من أول كلمتين — «محمد احمد محمد» → «ما».
-     حرف واحد كان بيخلي ٦٨ طالب (٢٥% من الكشف) كلهم «م» وده
-     مش بيفرّق بينهم في المجموعة الواحدة. */
-  function initials(name) {
-    const p = String(name || '').split(' ').filter(Boolean);
-    if (!p.length) return '؟';
-    if (p.length === 1) return p[0][0] || '؟';
-    return (p[0][0] || '') + (p[1][0] || '');
-  }
-  /* الأفاتار: وش كرتوني لو الطالب اختار واحد، وإلا الحرفين.
-     الشكل SVG مرسوم في المتصفح — صفر بايت على السيرفر وصفر رفع. */
-  function ava(key, name, cls) {
-    const Z = window.ZAvatar;
-    const k = String(key || '');
-    if (Z && Z.has(k)) return Z.svg(k, cls || '');
-    return esc(initials(name));
-  }
-  /* أفاتار المس أسماء — ثابت، مش بتختاره ومش بيتخزن.
-     اسم المعلمة الحقيقي مش في قاعدة البيانات كأفاتار، فبنستخدم
-     الأفاتار المميز ده في كل مكان بتظهر فيه. */
-  function avaTeacher(cls) {
-    const Z = window.ZAvatar;
-    return Z && Z.teacher ? Z.teacher.replace('class="av"', 'class="av ' + (cls || '') + '"') : '';
-  }
-  /* هل ده اسم المعلمة؟ */
-  function isTeacherName(n) {
-    const t = String(n || '').trim();
-    return t === 'مس أسماء' || t === 'مس اسماء' || t === 'أسماء' || t === 'اسماء';
-  }
-  /* يرسم أفاتار لأي اسم — لو «مس أسماء» بيرجّع أفاتارها الثابت */
-  function avaAny(key, name, cls) {
-    if (isTeacherName(name)) return avaTeacher(cls);
-    return ava(key, name, cls);
-  }
   function when(ts) {
     if (!ts) return '';
     const d = new Date(ts);
@@ -136,13 +102,6 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       }
     );
   }
-
-  /* أفاتار المعلمة في الهيدر — ثابت، مش بتختاره.
-     بيترسم مرة واحدة مع تحميل الصفحة. */
-  (function paintTeacherAvatar() {
-    const el = document.getElementById('th-avatar');
-    if (el && window.ZAvatar) el.innerHTML = window.ZAvatar.teacher;
-  })();
 
   /* ---------------- التنقل ---------------- */
 
@@ -249,11 +208,8 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
         $('#su-pass').value = '';
         $('#su-pass2').value = '';
         $('#su-err').textContent = '';
-        $('#su-avatar').value = '';
         $('#su-gender-val').value = '';
         $$('.seg-b', $('#su-gender')).forEach((b) => b.classList.remove('on'));
-        /* الشبكة فاضية لحد ما تختار النوع — بعدها بتبني المناسب */
-        $('#su-av').innerHTML = '<p class="av-hint">اختار ولد ولا بنت الأول</p>';
         show('screen-signup');
       } else if (r.action === 'login') {
         $('#li-code').value = r.code;
@@ -290,13 +246,11 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
     show('screen-pending');
   }
 
-  /* اختيار النوع → نبني شبكة الأفاتارات المناسبة */
+  /* اختيار النوع */
   $$('#su-gender .seg-b').forEach((b) => (b.onclick = () => {
     const g = b.dataset.g;           /* 'boy' | 'girl' */
     $$('#su-gender .seg-b').forEach((x) => x.classList.toggle('on', x === b));
     $('#su-gender-val').value = g;
-    $('#su-avatar').value = '';       /* أي اختيار قديم مابقاش صالح */
-    buildAvatarGrid($('#su-av'), '', g, (k) => { $('#su-avatar').value = k; });
   }));
 
   $('#su-send').onclick = async () => {
@@ -313,7 +267,6 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
         code: joinData.code,
         password: p1,
         gender: $('#su-gender-val').value || '',
-        avatar: $('#su-avatar').value || '',
       });
       showPending('pending', 'طلبك اتبعت للمس أسماء — أول ما توافق هتقدر تدخل.');
     } catch (e) {
@@ -540,7 +493,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
           ${d.rows.length}${rosterQ ? ' نتيجة' : ' من ' + d.total} طالب</p>
         ${d.rows.map((r) => `
           <div class="mem" style="padding:11px 0;border-bottom:1px dashed #e6ecf5">
-            <div class="avatar" style="width:32px;height:32px;font-size:10.5px;border-radius:9px;letter-spacing:-.3px">${ava(r.avatar, r.name)}</div>
+
             <div style="flex:1;min-width:0">
               <b style="font-size:13px">${esc(r.name)}</b>
               <small style="font-size:11px;color:#6b7a94;display:block;direction:ltr;text-align:right">${esc(r.code)}</small>
@@ -644,9 +597,6 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       </div>
       ${g.members.map((m) => `
         <div class="mem">
-          <div class="avatar ${m.isLeader ? 'lead' : ''}" style="width:32px;height:32px;font-size:10.5px;border-radius:10px;letter-spacing:-.3px">
-            ${ava(m.avatar, m.name)}
-          </div>
           <div style="flex:1;min-width:0">
             <b>${esc(m.name)}</b>
             <small>${esc(m.code)}</small>
@@ -841,7 +791,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       return `
       <div class="card">
         <div class="row">
-          <div class="avatar girl">${ava(r.avatar, r.name)}</div>
+
           <div class="grow">
             <b>${esc(r.name)}</b>
             <small>${esc(r.code)} · ${when(r.at)}</small>
@@ -1038,7 +988,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
     box.innerHTML = students.map((s) => `
       <div class="card" data-chat="${s.id}" style="cursor:pointer">
         <div class="row">
-          <div class="avatar ${s.group && s.group.gender === 'girls' ? 'girl' : ''}">${ava(s.avatar, s.name)}</div>
+
           <div class="grow"><b>${esc(s.name)}</b><small>${esc(s.code)} · ${s.group ? esc(s.group.name) : 'بدون مجموعة'}</small></div>
           <span style="color:#93a1b8;font-size:19px">›</span>
         </div>
@@ -1111,7 +1061,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       </p>` + students.map((x) => `
       <div class="card" data-dm="${x.id}" style="cursor:pointer">
         <div class="row">
-          <div class="avatar ${x.group && x.group.gender === 'girls' ? 'girl' : ''}">${ava(x.avatar, x.name)}</div>
+
           <div class="grow"><b>${esc(x.name)}</b>
             <small>${esc(x.code)} · ${x.group ? esc(x.group.name) : 'بدون مجموعة'}</small></div>
           <span style="color:#93a1b8;font-size:19px">›</span>
@@ -1222,8 +1172,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
                 return `
                 <div style="padding:9px 0;border-top:1px dashed #e6ecf5">
                   <div class="row" style="gap:9px">
-                    <div class="avatar ${m.isLeader ? 'lead' : ''}" style="width:30px;height:30px;font-size:10px;border-radius:9px;letter-spacing:-.3px">
-                      ${ava(m.avatar, m.name)}</div>
+
                     <div style="flex:1;min-width:0">
                       <b style="font-size:12.5px">${esc(m.name)}</b>
                       <small style="font-size:10.5px;color:#6b7a94">
@@ -1273,7 +1222,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
 
     sheet(`
       <div class="row" style="margin-bottom:14px">
-        <div class="avatar ${m.isLeader ? 'lead' : ''}">${ava(m.avatar, m.name)}</div>
+
         <div style="flex:1;min-width:0">
           <b style="font-size:16px">${esc(m.name)}</b>
           <small style="font-size:11.5px;color:#6b7a94;display:block">${esc(m.code)} · ${esc(cls.name)} · ${esc(grp.name)}</small>
@@ -1521,7 +1470,6 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
   }
 
   $('#st-bell').onclick = () => studentNav('notify');
-  $('#st-avatar').onclick = () => pickAvatar();
 
   async function renderStudent() {
     let d;
@@ -1532,9 +1480,6 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
     const s = d.student;
     st.student = s;
     $('#st-hello').textContent = 'أهلاً بيك';
-    const avEl = $('#st-avatar');
-    avEl.innerHTML = ava(s.avatar, s.name);
-    avEl.title = s.avatar ? 'غيّر شكلك' : 'اختار شكلك';
     $('#st-name').textContent = s.name;
     $('#st-code').textContent = s.code;
     $('#st-group').textContent = s.group ? s.group.name : 'لسه من غير مجموعة';
@@ -1606,9 +1551,8 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
     var cls = 'fb' + (mine ? ' mine' : '') + (tone !== 'normal' ? ' t-' + tone : '') +
       (o.tail ? ' tail' : '') + (o.last ? ' last' : '');
     var who = '';
-    if (!mine && (o.name || o.avatar) && o.showWho !== false) {
+    if (!mine && o.name && o.showWho !== false) {
       who = '<div class="b-who">' +
-        (o.avatar !== undefined ? '<span class="b-av">' + avaAny(o.avatar, o.name) + '</span>' : '') +
         '<b>' + esc(o.name || '') + '</b>' +
         (o.leader ? '<span class="b-badge">' + ico('award', 'ic-sm') + '</span>' : '') +
         '</div>';
@@ -1642,68 +1586,6 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       return bubble(o);
     }).join('');
   }
-
-  /* ---------- الأفاتار ---------- */
-
-  /* يبني شبكة الـ٢٦ شكل ويوصّل الاختيار.
-     المختار بيتحفظ في input مخفي، وبيروح مع التسجيل أو لوحده. */
-  /* يبني شبكة الأفاتارات مفلترة حسب النوع.
-     gender: 'boy' | 'girl' | '' — فاضي يعني الكل. */
-  function buildAvatarGrid(box, current, gender, onPick) {
-    const Z = window.ZAvatar;
-    if (!Z || !box) return;
-    const keys = gender ? Z.forGender(gender) : Z.list;
-    box.innerHTML = keys
-      .map(
-        (k) =>
-          `<button type="button" class="av-pick${k === current ? ' on' : ''}" data-av="${k}" aria-label="${esc(Z.label(k))}">${Z.svg(k)}</button>`
-      )
-      .join('');
-    box.addEventListener('click', (e) => {
-      const b = e.target.closest('[data-av]');
-      if (!b) return;
-      $$('.av-pick', box).forEach((x) => x.classList.toggle('on', x === b));
-      if (onPick) onPick(b.dataset.av);
-    });
-  }
-
-  /* اختيار الشكل من جوه التطبيق */
-  function pickAvatar() {
-    const cur = (st.student && st.student.avatar) || '';
-    const g = (st.student && st.student.gender) || '';
-    sheet(`
-      <h3 style="margin-bottom:4px">اختار شكلك</h3>
-      <p style="font-size:12.5px;color:#6b7a94;line-height:1.6;margin:0 0 14px">
-        الأفاتار بدل الصورة — بيظهر لمس أسماء ولزمايلك في المجموعة.
-      </p>
-      <div class="av-grid" id="avm-grid"></div>
-      <div class="acts" style="margin-top:16px">
-        <button class="btn primary" id="avm-save">احفظ</button>
-        <button class="btn gray" data-close>إلغاء</button>
-      </div>`);
-
-    let picked = cur;
-    buildAvatarGrid($('#avm-grid'), cur, g, (k) => (picked = k));
-
-    $('#avm-save').onclick = async () => {
-      const btn = $('#avm-save');
-      btn.disabled = true;
-      try {
-        const r = await api('POST', '/api/student/avatar', { avatar: picked });
-        if (st.student) st.student.avatar = r.avatar;
-        closeSheet();
-        toast('اتحفظ شكلك');
-        renderStudent();
-      } catch (e) {
-        toast(e.message);
-      } finally {
-        btn.disabled = false;
-      }
-    };
-  }
-  window.ZPickAvatar = pickAvatar;
-  /* للاختبار والتشخيص بس — الواجهة مش بتستخدمه */
-  window.ZAvatarAny = avaAny;
 
   /* ---------- إشعارات ---------- */
 
@@ -1934,7 +1816,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
     box.innerHTML = Object.values(byOwner).map((g) => `
       <div class="cls open">
         <div class="cls-head" style="cursor:default">
-          <div class="avatar ${g.owner.mine ? 'lead' : ''}">${ava(g.owner.avatar, g.owner.name)}</div>
+
           <div style="flex:1;min-width:0">
             <b style="font-size:14px">${esc(g.owner.name)}${g.owner.mine ? ' (انت)' : ''}</b>
             <small style="font-size:11px;color:#6b7a94;display:block">${g.files.length} ملف</small>

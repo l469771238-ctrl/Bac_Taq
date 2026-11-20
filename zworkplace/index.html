@@ -16,7 +16,6 @@
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="css/app.css">
 <script src="js/icons.js"></script>
-<script src="js/avatars.js"></script>
 </head>
 <body>
 
@@ -90,7 +89,7 @@
       <input id="su-pass2" type="password" autocomplete="new-password" placeholder="اكتبها تاني">
     </label>
 
-    <!-- النوع — عشان نعرض الأفاتارات المناسبة بس -->
+    <!-- النوع -->
     <div class="field">
       <span>انت ولد ولا بنت؟</span>
       <div class="seg" id="su-gender">
@@ -99,13 +98,7 @@
       </div>
     </div>
 
-    <!-- الأفاتار — وش كرتوني، مش صورة. صفر مساحة على السيرفر. -->
-    <div class="field">
-      <span>اختار شكلك</span>
-      <div class="av-grid" id="su-av"></div>
-      <input type="hidden" id="su-avatar" value="">
-      <input type="hidden" id="su-gender-val" value="">
-    </div>
+    <input type="hidden" id="su-gender-val" value="">
 
     <div class="err" id="su-err"></div>
     <button class="btn primary" id="su-send">ابعت طلب الانضمام</button>
@@ -162,8 +155,6 @@
 <!-- ═══════════ المس: الرئيسية ═══════════ -->
 <section id="screen-teacher" class="screen">
   <header class="th-top">
-    <!-- أفاتار المعلمة — ثابت، مش بتختاره -->
-    <div class="th-av" id="th-avatar" aria-hidden="true"></div>
     <div class="th-me">
       <div class="th-greet">مساحة العمل</div>
       <h2>مس أسماء</h2>
@@ -262,7 +253,6 @@
 <!-- ═══════════ الطالب: الرئيسية ═══════════ -->
 <section id="screen-student" class="screen">
   <header class="th-top st-top">
-    <button class="st-av" id="st-avatar" title="غيّر شكلك"></button>
     <div class="st-head">
       <div class="th-greet" id="st-hello">أهلاً بيك</div>
       <h2 id="st-name">—</h2>

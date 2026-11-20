@@ -836,171 +836,15 @@ async function api(method, p, body, t) {
     ok('عدد الكشف ٢٧٣', data.length === 273, String(data.length));
     ok('كل الأكواد فريدة', new Set(data.map((r) => String(r.code))).size === data.length);
 
-    // الأفاتار لازم يفرّق — مش حرف واحد
-    const src = fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
-    const fn = src.match(/function initials\(name\)[\s\S]{0,400}?\n  }/);
-    ok('initials() بترجّع حرفين', !!fn && /p\[0\]\[0\][\s\S]{0,60}p\[1\]\[0\]/.test(fn[0]),
-      'حرف واحد كان بيخلي ٦٨ طالب كلهم «م»');
   }
 
-
-  /* ══════════ ٢٩) الأيقونات — ٢٦ شكل بدون أي صورة ══════════ */
-  console.log('\n[٢٩] مكتبة الأيقونات');
+  /* تم إزالة الأفاتارات؛ النوع يظل متاحاً للتسجيل. */
   {
-    const src = fs.readFileSync(path.join(ROOT, 'js/avatars.js'), 'utf8');
-    const win = { ZAvatar: null };
-    new Function('window', src)(win);
-    const Z = win.ZAvatar;
-
-    ok('ZAvatar موجود', !!Z && typeof Z.svg === 'function');
-    ok('٢٨ أفاتار', Z.list.length === 28, String(Z.list.length));
-    ok('١٤ ولد + ١٤ بنت', Z.boys.length === 14 && Z.girls.length === 14,
-      `${Z.boys.length}+${Z.girls.length}`);
-    ok('مفيش مفاتيح مكررة', new Set(Z.list).size === Z.list.length);
-
-    /* كل أفاتار Avataaars = SVG فيه مسارات + viewBox.
-       الوش والعينين والشعر كلهم paths مش أشكال هندسية. */
-    const broken = [];
-    const skins = new Set();
-    for (const k of Z.list) {
-      const s = Z.svg(k);
-      if (!/<svg[^>]*viewBox="0 0 280 280"/.test(s)) broken.push(k + ':viewBox');
-      const paths = (s.match(/<path/g) || []).length;
-      if (paths < 6) broken.push(k + ':' + paths + 'paths');
-      /* ألوان البشرة شفناها في fill */
-      const m = s.match(/fill="(#[0-9a-f]{6})"/gi) || [];
-      m.forEach((x) => skins.add(x.toLowerCase()));
-    }
-    ok('كل أفاتار SVG كامل بمسارات', broken.length === 0, broken.join(','));
-    ok('فيه تنوع ألوان', skins.size >= 10, String(skins.size));
-
-    /* أفاتار المعلمة — ثابت ومميز، ومش من ضمن الـ٢٨ اللي بيختاروا منهم */
-    ok('فيه أفاتار ثابت للمعلمة', !!Z.teacher && Z.teacher.length > 2000);
-    ok('أفاتار المعلمة SVG كامل', /<svg[^>]*viewBox="0 0 280 280"/.test(Z.teacher));
-    ok('أفاتار المعلمة مش في قايمة الطلبة', Z.has('teacher') === false &&
-      Z.list.indexOf('teacher') < 0);
-    /* دهبي في الحجاب — علامة التطبيق */
-    ok('أفاتار المعلمة دهبي', /e8c274/i.test(Z.teacher));
-
-    /* لازم يكون فيه حجاب فعلًا في البنات. الحجاب في Avataaars
-       ليه شكل مميز: قماشة بتلف حوالين الوش — بنلاقيها من
-       إن مساحة كبيرة من الـSVG ليها نفس لون الـhatColor
-       ومفيش شعر تحتها. أسهل فحص: عدد البنات اللي فيهم
-       لون غامق كبير حوالين الراس. */
-    const hijabLike = Z.girls.filter((k) => {
-      const s = Z.svg(k);
-      /* الحجاب = على الأقل ٣ مسارات بنفس اللون مخصصين للراس */
-      const fills = {};
-      (s.match(/fill="(#[0-9a-f]{6})"/gi) || []).forEach((f) => {
-        const c = f.slice(6).toLowerCase();
-        fills[c] = (fills[c] || 0) + 1;
-      });
-      /* شعر عادي = مسارين للشعر. الحجاب = طبقاته أكتر */
-      return /hatColor|hijab/i.test(s) || Object.values(fills).some((n) => n >= 1) && s.length > 3000;
-    });
-    ok('البنات فيهم أشكال مختلفة', Z.girls.length === 14 &&
-      new Set(Z.girls.map((k) => Z.svg(k).length)).size >= 10,
-      'عدد الأحجام المختلفة: ' + new Set(Z.girls.map((k) => Z.svg(k).length)).size);
-
-    /* أفاتار المعلمة لازم يظهر جنب اسم «مس أسماء» في الواجهة */
-    const appSrc = fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
-    const htmlSrc = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-    ok('الواجهة عندها avaTeacher', /function avaTeacher\(/.test(appSrc));
-    ok('الواجهة بتعرف اسم المعلمة', /function isTeacherName\(/.test(appSrc));
-    ok('هيدر المس فيه أفاتار', /id="th-avatar"/.test(htmlSrc));
-    ok('الواجهة بترسم أفاتار المعلمة في الهيدر', /paintTeacherAvatar/.test(appSrc));
-
-    // كل أفاتار ليه تسمية عربية
-    const noLabel = Z.list.filter((k) => Z.label(k) === k || !/[\u0600-\u06FF]/.test(Z.label(k)));
-    ok('كل أفاتار ليه اسم عربي', noLabel.length === 0, noLabel.join(','));
-
-    /* الثغرة اللي كانت بتكسر الرسم: has('constructor') كانت true
-       لأن كل كائن عادي عنده constructor في الـprototype. */
-    const proto = ['constructor', 'toString', '__proto__', 'hasOwnProperty', 'valueOf'];
-    const leaked = proto.filter((k) => Z.has(k));
-    ok('has() مش بتتأثر بالـprototype', leaked.length === 0, leaked.join(','));
-    ok('مفتاح غلط مرفوض', Z.has('hack') === false && Z.has('') === false);
-
-    // الشكل القديم (الحرفين) لازم يفضل شغال لما مفيش أيقونة
-    const app = fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
-    ok('ava() بترجّع SVG لو الشكل موجود', /function ava\([\s\S]{0,300}?Z\.has\(k\)\) return Z\.svg/.test(app));
-    ok('ava() بترجّع الحرفين لو مفيش', /function ava\([\s\S]{0,400}?return esc\(initials\(name\)\)/.test(app));
-
-    // ترتيب السكربتات — avatars قبل app وإلا ZAvatar مش موجود وقت الرسم
     const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-    const iIcons = html.indexOf('js/icons.js');
-    const iAv = html.indexOf('js/avatars.js');
-    const iApp = html.indexOf('js/app.js');
-    ok('أفاتارز بتيجي قبل app.js', iIcons > -1 && iAv > iIcons && iApp > iAv,
-      `icons=${iIcons} avatars=${iAv} app=${iApp}`);
-
-    // عناصر الواجهة موجودة
-    const need = ['su-av', 'su-avatar', 'st-avatar'];
-    const missing = need.filter((i) => !html.includes(`id="${i}"`));
-    ok('عناصر الأيقونة في الصفحة', missing.length === 0, missing.join(','));
-
-    // السيرفر: عمود في الداتابيز + مسارين + تحقق
-    const dbsrc = fs.readFileSync(path.join(ROOT, 'server/db.js'), 'utf8');
-    ok('عمود avatar في الداتابيز', /addColumn\(db,\s*'students',\s*'avatar'/.test(dbsrc));
-    const srv = fs.readFileSync(path.join(ROOT, 'server/index.js'), 'utf8');
-    ok('مسار تغيير الأيقونة', /route\('POST', '\/api\/student\/avatar'/.test(srv));
-    ok('مسار قراءة الأيقونة', /route\('GET', '\/api\/student\/avatar'/.test(srv));
-    ok('السيرفر بيرفض أي مفتاح غلط', /AVATAR_KEYS\.indexOf\(key\) < 0/.test(srv));
-    ok('الأفاتار بيتبعت مع التسجيل', /AVATAR_KEYS\.indexOf\(pick\) >= 0 && matchesGender/.test(srv));
-    // العدد في السيرفر لازم يطابق العدد في المتصفح — لو اختلف يبقى فيه شكل
-    // بيتبعت ومش بيتقبل، أو العكس
-    const srvB = /for \(let i = 1; i <= (\d+); i\+\+\) AVATAR_KEYS\.push\('b' \+ i\)/.exec(srv);
-    const srvG = /for \(let i = 1; i <= (\d+); i\+\+\) AVATAR_KEYS\.push\('g' \+ i\)/.exec(srv);
-    const srvKeys = [];
-    if (srvB && srvG) {
-      for (let i = 1; i <= Number(srvB[1]); i++) srvKeys.push('b' + i);
-      for (let i = 1; i <= Number(srvG[1]); i++) srvKeys.push('g' + i);
-    }
-    ok('قايمة السيرفر = قايمة المتصفح', srvKeys.join(',') === Z.list.join(','),
-      `سيرفر=${srvKeys.length} متصفح=${Z.list.length}`);
-
-    /* String({toString:1}) بترمي TypeError → ٥٠٠. أي قيمة مش نص لازم
-       تتجاهل بأمان بدل ما توقّع الطلب. */
-    const strCoerce = (srv.match(/String\(body\.avatar/g) || []).length;
-    ok('الأيقونة بتتقري كنص بس', strCoerce === 0, `فيه ${strCoerce} استخدام String(body.avatar)`);
-    ok('النوع بيتفحص قبل التحويل',
-      (srv.match(/typeof body\.avatar === 'string'/g) || []).length >= 2);
-
-    /* ══ النوع والفلترة ══
-       الطالب بيختار ولد/بنت، والشبكة بتعرض ١٤ بس. السيرفر لازم
-       يرفض أفاتار مش مطابق للنوع — ولد بحجاب مش مقبول. */
-    ok('ZAvatar.forGender موجود', typeof Z.forGender === 'function');
-    ok('forGender(boy) = ١٤ ولد', Z.forGender('boy').length === 14 &&
-      Z.forGender('boy').every((k) => k[0] === 'b'));
-    ok('forGender(girl) = ١٤ بنت', Z.forGender('girl').length === 14 &&
-      Z.forGender('girl').every((k) => k[0] === 'g'));
-    ok('kind() بتعرف النوع', Z.kind('b1') === 'boy' && Z.kind('g1') === 'girl');
-
-    ok('السيرفر بيرفض أفاتار مش مطابق', /matchesGender\(key, st\.gender\)/.test(srv));
-    ok('السيرفر بيخزن النوع مع التسجيل', /INSERT INTO students[^`]*gender/.test(srv));
-    ok('void gender اتشال (النوع بقى بيتخزن)', !/void gender/.test(srv));
-    ok('الكشف بيرجّع النوع', /gender: st\.gender \|\| ''/.test(srv));
-    ok('قايمة الأفاتارات مفلترة حسب النوع', /st\.gender === 'girl' \? AVATAR_KEYS\.filter/.test(srv));
-
-    /* شبكة الواجهة لازم تفلتر — لو بنت اختارت «بنت» متشوفش ولاد */
-    ok('الشبكة بتاخد النوع', /function buildAvatarGrid\(box, current, gender, onPick\)/.test(app));
-    ok('الشبكة بتفلتر بـforGender', /Z\.forGender\(gender\)/.test(app));
-    ok('التسجيل بيبعت النوع', /gender: \$\('#su-gender-val'\)\.value/.test(app));
-    /* أزرار النوع في الصفحة */
-    ok('أزرار ولد/بنت موجودة', /id="su-gender"/.test(html) && /data-g="boy"/.test(html) && /data-g="girl"/.test(html));
-
-    /* القائد كان بيتميّز بإن مربعه فيه كأس بدل الحروف. بعد الأيقونات
-       كل الطلبة بقى عندهم شكل، فالكأس مش هتفرّق — لازم تمييز مختلف. */
-    const css = fs.readFileSync(path.join(ROOT, 'css/app.css'), 'utf8');
-    /* شبكة الاختيار لازم تبقى معقولة الطول — ٤ أعمدة كانت بتعمل
-       ٧ سطور = ٦٠٠+ بكسل على أضيق شاشة. */
-    const gridCols = /\.av-grid\{[\s\S]{0,200}?grid-template-columns:repeat\((\d+)/.exec(css);
-    ok('شبكة الأيقونات ٥ أعمدة', !!gridCols && Number(gridCols[1]) >= 5,
-      gridCols ? `repeat(${gridCols[1]})` : 'مش لاقيها');
-
-    ok('فيه كلاس تمييز للقائد', /\.avatar\.lead\s*\{/.test(css));
-    ok('شارة القائد مش هتتقص', /\.avatar\.lead[^{]*\{[^}]*overflow:visible/.test(css) ||
-      /\.avatar\.lead,\s*\.avatar\.lead:has[^{]*\{[^}]*overflow:visible/.test(css));
+    const app = fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
+    ok('لا مكتبة أفاتارات', !/js\/avatars\.js/.test(html) && !fs.existsSync(path.join(ROOT, 'js/avatars.js')));
+    ok('لا اختيار أفاتار', !/su-avatar|su-av|st-avatar|th-avatar/.test(html));
+    ok('النوع متاح في التسجيل', /id="su-gender"/.test(html) && /gender: \$\('#su-gender-val'\)\.value/.test(app));
   }
 
   /* ══════════ ٣٥) فقاعات الدردشة — شكل تيليجرام ══════════
@@ -1027,8 +871,8 @@ async function api(method, p, body, t) {
 
     /* الاسم والأفاتار جوه الفقاعة */
     ok('اسم المرسل جوه الفقاعة', /class="b-who"/.test(app) && /\.b-who\{/.test(css));
-    ok('أفاتار المرسل جوه الفقاعة', /class="b-av"/.test(app) && /\.b-av\{/.test(css));
-    ok('اسم المرسل مش بيظهر لرسايلي', /if \(!mine && \(o\.name \|\| o\.avatar\) && o\.showWho !== false\)/.test(app));
+    ok('مفيش أفاتار في الفقاعة', !/class="b-av"/.test(app));
+    ok('اسم المرسل مش بيظهر لرسايلي', /if \(!mine && o\.name && o\.showWho !== false\)/.test(app));
 
     /* الوقت جوه الفقاعة */
     ok('الوقت جوه الفقاعة', /\.b-foot\{[\s\S]{0,200}?\}/.test(css) &&
