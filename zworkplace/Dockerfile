@@ -12,10 +12,10 @@ COPY fonts ./fonts
 COPY index.html ./
 COPY data ./data
 
-ENV PORT=10000
+ENV PORT=7860
 ENV NODE_ENV=production
 
-EXPOSE 10000
+EXPOSE 7860
 
 # السيرفر بيحمّل كشف الأسماء من data/students.csv أول تشغيل
 CMD ["node", "server/index.js"]

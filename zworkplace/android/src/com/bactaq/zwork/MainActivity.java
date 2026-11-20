@@ -57,11 +57,26 @@ public class MainActivity extends Activity {
         root.setBackgroundColor(Color.parseColor("#0D1B33"));
         setContentView(root);
 
-        String saved = prefs.getString(KEY_BASE, "").trim();
-        if (saved.isEmpty()) {
+        /*
+         * ترتيب الأولوية:
+         *   ١. اللينك المدمج وقت البناء (الوضع الطبيعي — الطالب مش بيشوف أي شاشة)
+         *   ٢. لينك اتغيّر من داخل التطبيق (لو المس ضغط "غيّر العنوان" مرة)
+         *   ٣. مفيش حاجة خالص → شاشة الإعداد (وضع المطوّر بس)
+         *
+         * الطالب العادي: بياخد رقم ١ دايمًا ويدخل على طول.
+         */
+        String baked = getString(R.string.zapi_base).trim();
+        String override = prefs.getString(KEY_BASE, "").trim();
+
+        String base;
+        if (!override.isEmpty()) base = override;
+        else if (!baked.isEmpty() && !baked.contains("example.com")) base = baked;
+        else base = "";
+
+        if (base.isEmpty()) {
             showSetup("");
         } else {
-            openApp(saved);
+            openApp(base);
         }
     }
 
