@@ -200,6 +200,7 @@ function studentView(st) {
     status: st.status,
     isLeader: !!st.is_leader,
     avatar: st.avatar || '',
+    gender: st.gender || '',
     group: g ? { id: g.id, name: g.name, gender: g.gender, classId: g.class_id, className: g.class_name } : null,
   };
 }
@@ -748,18 +749,18 @@ route('POST', '/api/register', async (req, res, body) => {
   if (!ros) return json(res, 404, { error: 'الكود ده مش في كشف الأسماء — كلّم المس أسماء' });
 
   const h = A.hash(pass);
+  /* النوع بيتبعت مع التسجيل — بنستخدمه عشان نفلتر الأفاتارات،
+     مش عشان نمنع حد. القيمة الافتراضية 'boy' لو مبعوتش. */
   const gender = body.gender === 'girl' ? 'girl' : 'boy';
-  /* الأفاتار بيتبعت مع التسجيل نفسه — قيمة واحدة من الـ٢٦ المسموحين،
-     وأي حاجة تانية بتتجاهل (بترجع فاضي = الحرفين). */
+  /* الأفاتار: لازم يكون من الـ٢٨ ويطابق النوع. أي حاجة تانية بتتجاهل. */
   const pick = typeof body.avatar === 'string' ? body.avatar.trim() : '';
-  const av = AVATAR_KEYS.indexOf(pick) >= 0 ? pick : '';
+  const av = AVATAR_KEYS.indexOf(pick) >= 0 && matchesGender(pick, gender) ? pick : '';
   const r = db
     .prepare(
-      `INSERT INTO students (code, full_name, pass_hash, pass_salt, status, note, created_at, avatar)
-       VALUES (?,?,?,?, 'pending', '', ?, ?)`
+      `INSERT INTO students (code, full_name, pass_hash, pass_salt, status, note, created_at, avatar, gender)
+       VALUES (?,?,?,?, 'pending', '', ?, ?, ?)`
     )
-    .run(code, ros.name, h.hash, h.salt, Date.now(), av);
-  void gender;
+    .run(code, ros.name, h.hash, h.salt, Date.now(), av, gender);
   json(res, 201, { state: 'pending', id: Number(r.lastInsertRowid), name: ros.name, message: 'طلبك اتبعت للمس أسماء' });
 });
 
@@ -816,7 +817,20 @@ route('GET', '/api/student/feed', async (req, res) => {
 /* ───── اختيار الأفاتار ─────
    الشكل مخزّن كمفتاح نصي قصير («star» · «cat» …) مش صورة.
    يعني ٨ بايت للطالب بدل ٣-١٥ كيلو، ومفيش رفع ولا ضغط ولا مساحة. */
-const AVATAR_KEYS = ['star','moon','sun','leaf','flower','wave','book','pencil','flask','rocket','bulb','globe','shield','bolt','crown','flame','cat','bird','fish','paw','heart','diamond','key','flag','music','trophy'];
+/* ٢٨ أفاتار بشري — ١٤ ولد و١٤ بنت.
+   لازم يطابق ZAvatar.list في js/avatars.js (فيه اختبار بيتأكد). */
+const AVATAR_KEYS = [];
+for (let i = 1; i <= 14; i++) AVATAR_KEYS.push('b' + i);
+for (let i = 1; i <= 14; i++) AVATAR_KEYS.push('g' + i);
+/* الأفاتار لازم يطابق نوع الطالب — ولد ميلبس حجاب بيبقى غلط */
+const isBoyKey = (k) => /^b\d+$/.test(k);
+const isGirlKey = (k) => /^g\d+$/.test(k);
+/* gender مخزّن كـ'boy'/'girl' — لو مش معروف بنسمح بأي حاجة (توافق مع الحسابات القديمة) */
+function matchesGender(key, gender) {
+  if (gender === 'boy') return isBoyKey(key);
+  if (gender === 'girl') return isGirlKey(key);
+  return true;
+}
 
 route('POST', '/api/student/avatar', async (req, res, body) => {
   const st = needStudent(req, res);
@@ -827,14 +841,24 @@ route('POST', '/api/student/avatar', async (req, res, body) => {
   if (key && AVATAR_KEYS.indexOf(key) < 0) {
     return json(res, 400, { error: 'الأفاتار ده مش موجود' });
   }
+  /* الأفاتار لازم يطابق نوع الطالب — ولد مش هياخد حجاب */
+  if (key && !matchesGender(key, st.gender)) {
+    return json(res, 400, { error: 'الأفاتار ده مش مناسب لحسابك' });
+  }
   db.prepare('UPDATE students SET avatar = ? WHERE id = ?').run(key, st.id);
-  json(res, 200, { ok: true, avatar: key, keys: AVATAR_KEYS });
+  json(res, 200, { ok: true, avatar: key, keys: AVATAR_KEYS, gender: st.gender });
 });
 
 route('GET', '/api/student/avatar', async (req, res) => {
   const st = needStudent(req, res);
   if (!st) return;
-  json(res, 200, { avatar: st.avatar || '', keys: AVATAR_KEYS });
+  json(res, 200, {
+    avatar: st.avatar || '',
+    gender: st.gender || '',
+    keys: st.gender === 'girl' ? AVATAR_KEYS.filter(isGirlKey)
+        : st.gender === 'boy' ? AVATAR_KEYS.filter(isBoyKey)
+        : AVATAR_KEYS,
+  });
 });
 
 route('POST', '/api/student/chat', async (req, res, body) => {

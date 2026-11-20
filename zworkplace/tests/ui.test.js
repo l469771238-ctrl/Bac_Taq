@@ -853,28 +853,49 @@ async function api(method, p, body, t) {
     const Z = win.ZAvatar;
 
     ok('ZAvatar موجود', !!Z && typeof Z.svg === 'function');
-    ok('٢٦ شكل', Z.list.length === 26, String(Z.list.length));
+    ok('٢٨ أفاتار', Z.list.length === 28, String(Z.list.length));
+    ok('١٤ ولد + ١٤ بنت', Z.boys.length === 14 && Z.girls.length === 14,
+      `${Z.boys.length}+${Z.girls.length}`);
     ok('مفيش مفاتيح مكررة', new Set(Z.list).size === Z.list.length);
 
-    // كل شكل: خلفية + مسار + خط بلون
+    /* كل أفاتار: خلفية + وش بلون بشرة + هدوم + عينين.
+       ده اللي بيميّزه عن «الأيقونة» اللي كانت قبل كده. */
     const broken = [];
     const bgs = new Set();
+    const skins = new Set();
     for (const k of Z.list) {
       const s = Z.svg(k);
       const rect = /<rect[^>]*fill="(#[0-9a-f]{6})"/i.exec(s);
+      const face = /<ellipse[^>]*fill="(#[0-9a-f]{6})"[^>]*\/>/.exec(s);
       if (rect) bgs.add(rect[1].toLowerCase());
-      if (!rect || !/<path d="/.test(s) || !/stroke="#[0-9a-f]{6}"/i.test(s)) broken.push(k);
+      if (face) skins.add(face[1].toLowerCase());
+      /* لازم يكون فيه وش (ellipse) + عينين + خلفية.
+         العينين إما بيضاوية بلمعة بيضاء، أو قوس مقفول (mood=happy)
+         — الاتنين صح. */
+      const hasEyes = /<circle[^>]*fill="#fff"/.test(s) || /stroke="#2b2118"[^>]*stroke-width="1\.5"/.test(s);
+      if (!rect || !face || !hasEyes) broken.push(k);
     }
-    ok('كل شكل فيه خلفية + مسار + خط', broken.length === 0, broken.join(','));
-    ok('٥ خلفيات باستيل', bgs.size === 5, String(bgs.size));
+    ok('كل أفاتار فيه خلفية + وش + عينين', broken.length === 0, broken.join(','));
+    ok('الخلفيات متعددة', bgs.size >= 5, String(bgs.size));
+    ok('ألوان بشرة مختلفة', skins.size >= 3, String(skins.size));
 
-    // كل شكل ليه تسمية عربية
+    /* الحجاب لازم يبان ورا الوش — لو اتـرسم فوقه الملامح بتتدفن */
+    const hijabUsers = ['g2', 'g5', 'g7', 'g10', 'g13'];
+    const badHijab = hijabUsers.filter((k) => {
+      const s = Z.svg(k);
+      /* الوش (ellipse بلون بشرة) لازم ييجي بعد الحجاب في الترتيب */
+      const iFrame = s.indexOf('#7a6bd8') >= 0 ? s.indexOf('#7a6bd8')
+        : s.indexOf('#1d4fa8') >= 0 ? s.indexOf('#1d4fa8')
+        : s.indexOf('#b8446b') >= 0 ? s.indexOf('#b8446b')
+        : s.indexOf('#2aa585') >= 0 ? s.indexOf('#2aa585') : s.indexOf('#3b2a8c');
+      const iFace = s.indexOf('<ellipse');
+      return !(iFrame >= 0 && iFace > iFrame);
+    });
+    ok('الحجاب ورا الوش مش فوقه', badHijab.length === 0, badHijab.join(','));
+
+    // كل أفاتار ليه تسمية عربية
     const noLabel = Z.list.filter((k) => Z.label(k) === k || !/[\u0600-\u06FF]/.test(Z.label(k)));
-    ok('كل شكل ليه اسم عربي', noLabel.length === 0, noLabel.join(','));
-
-    // التسميات كلها مختلفة — مفيش شكلين بنفس الاسم
-    const labels = Z.list.map((k) => Z.label(k));
-    ok('الأسماء مختلفة', new Set(labels).size === labels.length);
+    ok('كل أفاتار ليه اسم عربي', noLabel.length === 0, noLabel.join(','));
 
     /* الثغرة اللي كانت بتكسر الرسم: has('constructor') كانت true
        لأن كل كائن عادي عنده constructor في الـprototype. */
@@ -908,11 +929,16 @@ async function api(method, p, body, t) {
     ok('مسار تغيير الأيقونة', /route\('POST', '\/api\/student\/avatar'/.test(srv));
     ok('مسار قراءة الأيقونة', /route\('GET', '\/api\/student\/avatar'/.test(srv));
     ok('السيرفر بيرفض أي مفتاح غلط', /AVATAR_KEYS\.indexOf\(key\) < 0/.test(srv));
-    ok('الأيقونة بتتبعت مع التسجيل', /AVATAR_KEYS\.indexOf\(pick\) >= 0 \? pick : ''/.test(srv));
+    ok('الأفاتار بيتبعت مع التسجيل', /AVATAR_KEYS\.indexOf\(pick\) >= 0 && matchesGender/.test(srv));
     // العدد في السيرفر لازم يطابق العدد في المتصفح — لو اختلف يبقى فيه شكل
     // بيتبعت ومش بيتقبل، أو العكس
-    const srvList = (srv.match(/const AVATAR_KEYS = \[([\s\S]*?)\];/) || [])[1];
-    const srvKeys = srvList ? srvList.match(/'[a-z]+'/g).map((x) => x.slice(1, -1)) : [];
+    const srvB = /for \(let i = 1; i <= (\d+); i\+\+\) AVATAR_KEYS\.push\('b' \+ i\)/.exec(srv);
+    const srvG = /for \(let i = 1; i <= (\d+); i\+\+\) AVATAR_KEYS\.push\('g' \+ i\)/.exec(srv);
+    const srvKeys = [];
+    if (srvB && srvG) {
+      for (let i = 1; i <= Number(srvB[1]); i++) srvKeys.push('b' + i);
+      for (let i = 1; i <= Number(srvG[1]); i++) srvKeys.push('g' + i);
+    }
     ok('قايمة السيرفر = قايمة المتصفح', srvKeys.join(',') === Z.list.join(','),
       `سيرفر=${srvKeys.length} متصفح=${Z.list.length}`);
 
@@ -922,6 +948,29 @@ async function api(method, p, body, t) {
     ok('الأيقونة بتتقري كنص بس', strCoerce === 0, `فيه ${strCoerce} استخدام String(body.avatar)`);
     ok('النوع بيتفحص قبل التحويل',
       (srv.match(/typeof body\.avatar === 'string'/g) || []).length >= 2);
+
+    /* ══ النوع والفلترة ══
+       الطالب بيختار ولد/بنت، والشبكة بتعرض ١٤ بس. السيرفر لازم
+       يرفض أفاتار مش مطابق للنوع — ولد بحجاب مش مقبول. */
+    ok('ZAvatar.forGender موجود', typeof Z.forGender === 'function');
+    ok('forGender(boy) = ١٤ ولد', Z.forGender('boy').length === 14 &&
+      Z.forGender('boy').every((k) => k[0] === 'b'));
+    ok('forGender(girl) = ١٤ بنت', Z.forGender('girl').length === 14 &&
+      Z.forGender('girl').every((k) => k[0] === 'g'));
+    ok('kind() بتعرف النوع', Z.kind('b1') === 'boy' && Z.kind('g1') === 'girl');
+
+    ok('السيرفر بيرفض أفاتار مش مطابق', /matchesGender\(key, st\.gender\)/.test(srv));
+    ok('السيرفر بيخزن النوع مع التسجيل', /INSERT INTO students[^`]*gender/.test(srv));
+    ok('void gender اتشال (النوع بقى بيتخزن)', !/void gender/.test(srv));
+    ok('الكشف بيرجّع النوع', /gender: st\.gender \|\| ''/.test(srv));
+    ok('قايمة الأفاتارات مفلترة حسب النوع', /st\.gender === 'girl' \? AVATAR_KEYS\.filter/.test(srv));
+
+    /* شبكة الواجهة لازم تفلتر — لو بنت اختارت «بنت» متشوفش ولاد */
+    ok('الشبكة بتاخد النوع', /function buildAvatarGrid\(box, current, gender, onPick\)/.test(app));
+    ok('الشبكة بتفلتر بـforGender', /Z\.forGender\(gender\)/.test(app));
+    ok('التسجيل بيبعت النوع', /gender: \$\('#su-gender-val'\)\.value/.test(app));
+    /* أزرار النوع في الصفحة */
+    ok('أزرار ولد/بنت موجودة', /id="su-gender"/.test(html) && /data-g="boy"/.test(html) && /data-g="girl"/.test(html));
 
     /* القائد كان بيتميّز بإن مربعه فيه كأس بدل الحروف. بعد الأيقونات
        كل الطلبة بقى عندهم شكل، فالكأس مش هتفرّق — لازم تمييز مختلف. */

@@ -90,11 +90,21 @@
       <input id="su-pass2" type="password" autocomplete="new-password" placeholder="اكتبها تاني">
     </label>
 
-    <!-- الأيقونة — ٢٦ شكل جاهز، مش صورة. صفر مساحة على السيرفر. -->
+    <!-- النوع — عشان نعرض الأفاتارات المناسبة بس -->
     <div class="field">
-      <span>اختار أيقونتك</span>
+      <span>انت ولد ولا بنت؟</span>
+      <div class="seg" id="su-gender">
+        <button type="button" class="seg-b" data-g="boy">ولد</button>
+        <button type="button" class="seg-b" data-g="girl">بنت</button>
+      </div>
+    </div>
+
+    <!-- الأفاتار — وش كرتوني، مش صورة. صفر مساحة على السيرفر. -->
+    <div class="field">
+      <span>اختار شكلك</span>
       <div class="av-grid" id="su-av"></div>
       <input type="hidden" id="su-avatar" value="">
+      <input type="hidden" id="su-gender-val" value="">
     </div>
 
     <div class="err" id="su-err"></div>
@@ -250,7 +260,7 @@
 <!-- ═══════════ الطالب: الرئيسية ═══════════ -->
 <section id="screen-student" class="screen">
   <header class="th-top st-top">
-    <button class="st-av" id="st-avatar" title="غيّر أيقونتك"></button>
+    <button class="st-av" id="st-avatar" title="غيّر شكلك"></button>
     <div class="st-head">
       <div class="th-greet" id="st-hello">أهلاً بيك</div>
       <h2 id="st-name">—</h2>

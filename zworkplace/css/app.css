@@ -509,9 +509,8 @@ input,textarea,select{font-family:inherit}
 }
 
 /* شبكة اختيار الأيقونة — ٤ في السطر، ٢٦ شكل = ٧ سطور مقاس مناسب للموبايل */
-/* ٥ أعمدة: ٢٦ شكل في ٦ سطور. ٤ أعمدة كانت بتعمل ٧ سطور = ٦٠٠+
-   بكسل فشاشة التسجيل تبقى طويلة بلا داعي، و٦ أعمدة كانت بتصغّر
-   الخلية لـ٤٦px وده صغير على الإصبع. */
+/* ٥ أعمدة. مفلترة حسب النوع = ١٤ شكل في ٣ سطور بس (٢٠٠px)،
+   ولو مفيش فلتر = ٢٨ في ٦ سطور. */
 .av-grid{
   display:grid;grid-template-columns:repeat(5,1fr);
   gap:8px;margin-top:2px;
@@ -535,6 +534,27 @@ input,textarea,select{font-family:inherit}
   width:9px;height:9px;border-radius:50%;
   background:var(--gold);box-shadow:0 0 0 2px #fff;
   pointer-events:none;
+}
+/* نص إرشادي جوه الشبكة — قبل ما الطالب يختار النوع */
+.av-hint{
+  grid-column:1/-1;text-align:center;
+  font-size:12.5px;color:var(--ink-3);font-weight:600;
+  padding:22px 0;margin:0;
+}
+
+/* أزرار ولد/بنت — مقسّم بسيط، مساحة ضغط كبيرة */
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.seg-b{
+  padding:14px 10px;border-radius:14px;
+  border:2px solid #e7ecf7;background:#f4f6fb;
+  font-size:14px;font-weight:800;color:var(--ink-2);
+  cursor:pointer;transition:all .15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.seg-b:active{transform:scale(.97)}
+.seg-b.on{
+  border-color:var(--navy-700);background:#fff;
+  color:var(--navy-700);box-shadow:0 0 0 4px rgba(14,47,107,.07);
 }
 @media (max-width:340px){
   .av-grid{grid-template-columns:repeat(4,1fr);gap:7px}

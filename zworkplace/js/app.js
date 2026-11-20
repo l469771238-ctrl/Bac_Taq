@@ -53,7 +53,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
     if (p.length === 1) return p[0][0] || '؟';
     return (p[0][0] || '') + (p[1][0] || '');
   }
-  /* الأفاتار: شكل جاهز لو الطالب اختار واحد، وإلا الحرفين.
+  /* الأفاتار: وش كرتوني لو الطالب اختار واحد، وإلا الحرفين.
      الشكل SVG مرسوم في المتصفح — صفر بايت على السيرفر وصفر رفع. */
   function ava(key, name, cls) {
     const Z = window.ZAvatar;
@@ -226,7 +226,10 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
         $('#su-pass2').value = '';
         $('#su-err').textContent = '';
         $('#su-avatar').value = '';
-        buildAvatarGrid($('#su-av'), '', (k) => { $('#su-avatar').value = k; });
+        $('#su-gender-val').value = '';
+        $$('.seg-b', $('#su-gender')).forEach((b) => b.classList.remove('on'));
+        /* الشبكة فاضية لحد ما تختار النوع — بعدها بتبني المناسب */
+        $('#su-av').innerHTML = '<p class="av-hint">اختار ولد ولا بنت الأول</p>';
         show('screen-signup');
       } else if (r.action === 'login') {
         $('#li-code').value = r.code;
@@ -263,6 +266,15 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
     show('screen-pending');
   }
 
+  /* اختيار النوع → نبني شبكة الأفاتارات المناسبة */
+  $$('#su-gender .seg-b').forEach((b) => (b.onclick = () => {
+    const g = b.dataset.g;           /* 'boy' | 'girl' */
+    $$('#su-gender .seg-b').forEach((x) => x.classList.toggle('on', x === b));
+    $('#su-gender-val').value = g;
+    $('#su-avatar').value = '';       /* أي اختيار قديم مابقاش صالح */
+    buildAvatarGrid($('#su-av'), '', g, (k) => { $('#su-avatar').value = k; });
+  }));
+
   $('#su-send').onclick = async () => {
     const p1 = $('#su-pass').value;
     const p2 = $('#su-pass2').value;
@@ -276,6 +288,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       await api('POST', '/api/register', {
         code: joinData.code,
         password: p1,
+        gender: $('#su-gender-val').value || '',
         avatar: $('#su-avatar').value || '',
       });
       showPending('pending', 'طلبك اتبعت للمس أسماء — أول ما توافق هتقدر تدخل.');
@@ -1502,7 +1515,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
     $('#st-hello').textContent = 'أهلاً بيك';
     const avEl = $('#st-avatar');
     avEl.innerHTML = ava(s.avatar, s.name);
-    avEl.title = s.avatar ? 'غيّر أيقونتك' : 'اختار أيقونتك';
+    avEl.title = s.avatar ? 'غيّر شكلك' : 'اختار شكلك';
     $('#st-name').textContent = s.name;
     $('#st-code').textContent = s.code;
     $('#st-group').textContent = s.group ? s.group.name : 'لسه من غير مجموعة';
@@ -1529,14 +1542,17 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
     } catch (e) {}
   }
 
-  /* ---------- الأيقونة ---------- */
+  /* ---------- الأفاتار ---------- */
 
   /* يبني شبكة الـ٢٦ شكل ويوصّل الاختيار.
      المختار بيتحفظ في input مخفي، وبيروح مع التسجيل أو لوحده. */
-  function buildAvatarGrid(box, current, onPick) {
+  /* يبني شبكة الأفاتارات مفلترة حسب النوع.
+     gender: 'boy' | 'girl' | '' — فاضي يعني الكل. */
+  function buildAvatarGrid(box, current, gender, onPick) {
     const Z = window.ZAvatar;
     if (!Z || !box) return;
-    box.innerHTML = Z.list
+    const keys = gender ? Z.forGender(gender) : Z.list;
+    box.innerHTML = keys
       .map(
         (k) =>
           `<button type="button" class="av-pick${k === current ? ' on' : ''}" data-av="${k}" aria-label="${esc(Z.label(k))}">${Z.svg(k)}</button>`
@@ -1550,13 +1566,14 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
     });
   }
 
-  /* اختيار الأيقونة من جوه التطبيق */
+  /* اختيار الشكل من جوه التطبيق */
   function pickAvatar() {
     const cur = (st.student && st.student.avatar) || '';
+    const g = (st.student && st.student.gender) || '';
     sheet(`
-      <h3 style="margin-bottom:4px">اختار أيقونتك</h3>
+      <h3 style="margin-bottom:4px">اختار شكلك</h3>
       <p style="font-size:12.5px;color:#6b7a94;line-height:1.6;margin:0 0 14px">
-        أيقونة بدل الصورة — بتظهر لمس أسماء ولزمايلك في المجموعة.
+        الأفاتار بدل الصورة — بيظهر لمس أسماء ولزمايلك في المجموعة.
       </p>
       <div class="av-grid" id="avm-grid"></div>
       <div class="acts" style="margin-top:16px">
@@ -1565,7 +1582,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       </div>`);
 
     let picked = cur;
-    buildAvatarGrid($('#avm-grid'), cur, (k) => (picked = k));
+    buildAvatarGrid($('#avm-grid'), cur, g, (k) => (picked = k));
 
     $('#avm-save').onclick = async () => {
       const btn = $('#avm-save');
@@ -1574,7 +1591,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
         const r = await api('POST', '/api/student/avatar', { avatar: picked });
         if (st.student) st.student.avatar = r.avatar;
         closeSheet();
-        toast('اتحفظت الأيقونة');
+        toast('اتحفظ شكلك');
         renderStudent();
       } catch (e) {
         toast(e.message);
