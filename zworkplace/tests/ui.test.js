@@ -826,6 +826,23 @@ async function api(method, p, body, t) {
     ok('اسم البرنامج عربي', /[\u0600-\u06FF]/.test(h1), h1);
   }
 
+  /* ══════════ ٢٨) الأسماء ثلاثية والأفاتار بيفرّق ══════════ */
+  console.log('\n[٢٨] الأسماء ثلاثية');
+  {
+    const data = JSON.parse(fs.readFileSync(path.join(ROOT, '..', 'data/students.json'), 'utf8'));
+    const notTri = data.filter((r) => String(r.name).trim().split(/\s+/).filter(Boolean).length !== 3);
+    ok('كل الأسماء في الكشف ثلاثية', notTri.length === 0,
+      notTri.slice(0, 3).map((r) => r.name).join(' | '));
+    ok('عدد الكشف ٢٧٣', data.length === 273, String(data.length));
+    ok('كل الأكواد فريدة', new Set(data.map((r) => String(r.code))).size === data.length);
+
+    // الأفاتار لازم يفرّق — مش حرف واحد
+    const src = fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
+    const fn = src.match(/function initials\(name\)[\s\S]{0,400}?\n  }/);
+    ok('initials() بترجّع حرفين', !!fn && /p\[0\]\[0\][\s\S]{0,60}p\[1\]\[0\]/.test(fn[0]),
+      'حرف واحد كان بيخلي ٦٨ طالب كلهم «م»');
+  }
+
   console.log(`\n=== النتيجة: ${pass} نجح · ${fail} فشل ===`);
   if (fail) {
     console.log('فشل: ' + fails.join(' · '));
