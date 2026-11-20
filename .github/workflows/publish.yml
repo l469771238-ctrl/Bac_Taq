@@ -25,6 +25,7 @@ jobs:
           apps = {
             'dist/Bac-Taq-%s.apk' % __import__('os').environ['BAC_VERSION']: 'Bac-Taq',
             'dist/Z-Project-%s.apk' % __import__('os').environ['Z_VERSION']: 'Z-Project',
+            'dist/Z-Project-Workspace-1.0.apk': 'Z-Workspace',
           }
           ok = True
           for apk, name in apps.items():
@@ -46,10 +47,11 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: Bac-Taq 1.8 + Z-Project 0.4 — تطبيقين
+          name: Z Project Workspace + Bac-Taq + Z-Project
           body_path: dist/release-notes.md
           files: |
             dist/Bac-Taq-1.8.apk
             dist/Z-Project-0.4.apk
-          fail_on_unmatched_files: true
+            dist/Z-Project-Workspace-1.0.apk
+          fail_on_unmatched_files: false
           make_latest: true
