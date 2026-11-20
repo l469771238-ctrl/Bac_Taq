@@ -1,4 +1,7 @@
 'use strict';
+
+/* اختصار للأيقونات داخل القوالب */
+const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
 /**
  * Z-Project Workplace — الواجهة
  * كل الشاشات في صفحة واحدة، والتنقل يدوي عشان يبقى سريع وخفيف.
@@ -225,7 +228,7 @@
     btn.disabled = true;
     try {
       const r = await api('POST', '/api/register', { code: joinData.code, password: p1 });
-      $('#pd-title').textContent = 'طلبك اتبعت ✅';
+      $('#pd-title').textContent = 'طلبك اتبعت';
       $('#pd-msg').textContent = 'مستني موافقة المس أسماء — أول ما توافق هتقدر تدخل.';
       show('screen-pending');
       void r;
@@ -327,7 +330,7 @@
     box.innerHTML = `
       <div class="card">
         <div class="row" style="margin-bottom:12px">
-          <div class="avatar" style="background:#e8eefb">👥</div>
+          <div class="avatar">${ico("users")}</div>
           <div class="grow">
             <b>حد المجموعة</b>
             <small>أقصى عدد طلاب في المجموعة الواحدة</small>
@@ -371,7 +374,7 @@
     $('#set-save').onclick = async () => {
       try {
         const r = await api('PATCH', '/api/teacher/settings', { maxGroup: val });
-        toast('اتحفظ ✅ الحد بقى ' + r.maxGroup + ' أعضاء');
+        toast('اتحفظ — الحد بقى ' + r.maxGroup + ' أعضاء');
       } catch (e) { toast(e.message); }
     };
   }
@@ -388,7 +391,7 @@
     if (!st.classes.length) {
       box.innerHTML = `
         <div class="empty">
-          <div class="e-ico">🗂️</div>
+          <div class="e-ico">${ico("grid","ic-xl")}</div>
           <p>مالكيش فصول لسه.<br>ابدأي بفصل، وبعدها مجموعات جواه.</p>
           <button class="btn primary" style="margin-top:18px" id="org-first">＋ إنشاء فصل</button>
         </div>`;
@@ -403,7 +406,7 @@
       return `
       <div class="cls ${open ? 'open' : ''}" data-cls="${c.id}">
         <div class="cls-head" data-toggle="${c.id}">
-          <div class="cls-ico">🏫</div>
+          <div class="cls-ico">${ico("school")}</div>
           <div class="grow" style="flex:1;min-width:0">
             <b style="font-size:15px">${esc(c.name)}</b>
             <small style="font-size:11.5px;color:#6b7a94;display:block">
@@ -445,7 +448,7 @@
       ${g.members.map((m) => `
         <div class="mem">
           <div class="avatar ${m.isLeader ? 'lead' : ''}" style="width:32px;height:32px;font-size:12.5px;border-radius:10px">
-            ${m.isLeader ? '★' : esc(initials(m.name))}
+            ${m.isLeader ? ico('award','ic-sm') : esc(initials(m.name))}
           </div>
           <div style="flex:1;min-width:0">
             <b>${esc(m.name)}</b>
@@ -461,7 +464,7 @@
   async function toggleLeader(sid, remove) {
     try {
       await api('POST', `/api/teacher/students/${sid}/leader`, { leader: !remove });
-      toast(remove ? 'الشارة اتشالت' : 'الشارة اتمنحت ★');
+      toast(remove ? 'الشارة اتشالت' : 'الشارة اتمنحت');
       renderOrganize();
     } catch (e) { toast(e.message); }
   }
@@ -483,7 +486,7 @@
         try {
           await api('POST', '/api/teacher/classes', { name });
           closeSheet();
-          toast('الفصل اتعمل ✅');
+          toast('الفصل اتعمل');
           renderOrganize();
         } catch (e) { toast(e.message); }
       };
@@ -521,7 +524,7 @@
         try {
           await api('POST', `/api/teacher/classes/${classId}/groups`, { name, gender });
           closeSheet();
-          toast('المجموعة اتعملت ✅');
+          toast('المجموعة اتعملت');
           st.openClasses.add(classId);
           renderOrganize();
         } catch (e) { toast(e.message); }
@@ -547,11 +550,11 @@
     try {
       data = await api('GET', '/api/teacher/requests?status=' + st.reqStatus);
     } catch (e) {
-      box.innerHTML = `<div class="empty"><div class="e-ico">⚠️</div><p>${esc(e.message)}</p></div>`;
+      box.innerHTML = `<div class="empty"><div class="e-ico">${ico("alert","ic-xl")}</div><p>${esc(e.message)}</p></div>`;
       return;
     }
     if (!data.rows.length) {
-      box.innerHTML = `<div class="empty"><div class="e-ico">${st.reqStatus === 'pending' ? '🔔' : '📭'}</div>
+      box.innerHTML = `<div class="empty"><div class="e-ico">${ico(st.reqStatus === 'pending' ? 'bell' : 'inbox','ic-xl')}</div>
         <p>${st.reqStatus === 'pending' ? 'مفيش طلبات مستنية دلوقتي' : 'مفيش حاجة هنا'}</p></div>`;
       renderTeacherHome();
       return;
@@ -632,7 +635,7 @@
         const cls = st.classes.find((c) => c.id === Number($('#ap-cls').value));
         const g = cls && cls.groups.find((x) => x.id === gid);
         $('#ap-note').textContent = g && !g.ready
-          ? '★ المجموعة دي مفيهاش قائد — قبول الطالب هنا هيمنحه شارة القيادة تلقائيًا.'
+          ? ico('alert','ic-sm') + ' المجموعة دي مفيهاش قائد — قبول الطالب هنا هيمنحه شارة القيادة تلقائيًا.'
           : '';
       };
       $('#ap-cls').onchange = fillGroups;
@@ -646,7 +649,7 @@
         try {
           await api('POST', `/api/teacher/requests/${id}/approve`, { classId, groupId });
           closeSheet();
-          toast('اتقبل واتحط في المجموعة ✅');
+          toast('اتقبل واتحط في المجموعة');
           loadRequests();
         } catch (e) { toast(e.message); }
       };
@@ -694,7 +697,7 @@
             <span>${esc(a.to)} · ${when(a.at)}</span>
             <button class="chip red" data-del="${a.id}">حذف</button>
           </div>
-        </div>`).join('') : '<div class="empty"><div class="e-ico">📢</div><p>مفيش إعلانات لسه</p></div>'}`;
+        </div>`).join('') : '<div class="empty"><div class="e-ico">${ico("bell","ic-xl")}</div><p>مفيش إعلانات لسه</p></div>'}`;
 
     let scope = 'all';
     $$('#an-seg button').forEach((b) => (b.onclick = () => {
@@ -723,7 +726,7 @@
     }
     const students = data.rows.filter((s) => s.status === 'active');
     if (!students.length) {
-      box.innerHTML = '<div class="empty"><div class="e-ico">💬</div><p>مفيش طلاب مفعّلين لسه</p></div>';
+      box.innerHTML = '<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش طلاب مفعّلين لسه</p></div>';
       return;
     }
     box.innerHTML = students.map((s) => `
@@ -754,7 +757,7 @@
         ${d.msgs.length ? d.msgs.map((m) => `
           <div class="msg mine"><div class="m-body">${esc(m.body)}</div>
             <div class="m-meta"><span>${when(m.at)}</span><span>المس</span></div></div>`).join('')
-          : '<div class="empty"><div class="e-ico">💬</div><p>مفيش رسايل لسه — ابدأي</p></div>'}
+          : '<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش رسايل لسه — ابدأي</p></div>'}
       </div>
       <div style="display:flex;gap:8px;margin-top:12px">
         <input id="ch-in" placeholder="اكتبي رسالة…" style="flex:1;padding:13px 15px;border-radius:13px;border:1.5px solid #e3e8f2;font-family:inherit;font-size:14px">
@@ -775,7 +778,7 @@
     if (box2 && box2.scrollIntoView) box2.scrollIntoView({ block: 'end' });
   }
 
-  /* ---------------- دردشة عضو (المس ↔ الطالب) ---------------- */
+  /* ---------------- دردشة عضو (المس مع الطالب) ---------------- */
   /*
    * دي الدردشة الخاصة الوحيدة في التطبيق: المس مع طالب واحد.
    * مفيش أي طريقة يخلي طالبين يتكلموا مع بعض — مش موجودة في الكود أصلًا.
@@ -791,7 +794,7 @@
     }
     const students = d.rows.filter((x) => x.status === 'active');
     if (!students.length) {
-      box.innerHTML = '<div class="empty"><div class="e-ico">💬</div><p>مفيش طلاب مفعّلين لسه</p></div>';
+      box.innerHTML = '<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش طلاب مفعّلين لسه</p></div>';
       return;
     }
     box.innerHTML = `
@@ -830,7 +833,7 @@
             <div class="m-meta"><span>${when(m.at)}</span>
               <button class="chip red" data-dmdel="${m.id}" style="font-size:10px">مسح</button></div>
           </div>`).join('')
-          : '<div class="empty"><div class="e-ico">💬</div><p>مفيش رسايل — اكتبي أول واحدة</p></div>'}
+          : '<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش رسايل — اكتبي أول واحدة</p></div>'}
       </div>
       <div style="display:flex;gap:8px;margin-top:12px">
         <input id="dm-in" placeholder="اكتبي رسالة…" maxlength="2000"
@@ -868,7 +871,7 @@
       box.innerHTML = `<div class="empty"><p>${esc(e.message)}</p></div>`; return;
     }
     if (!d.classes.length) {
-      box.innerHTML = `<div class="empty"><div class="e-ico">📁</div>
+      box.innerHTML = `<div class="empty"><div class="e-ico">${ico("folder","ic-xl")}</div>
         <p>مفيش فصول لسه<br><small>اعملي فصل ومجموعات من لوحة التنظيم الأول</small></p></div>`;
       return;
     }
@@ -894,14 +897,14 @@
     box.innerHTML = d.classes.map((c) => `
       <div class="cls ${st.openClasses.has('f' + c.id) ? 'open' : ''}">
         <div class="cls-head" data-fcls="${c.id}">
-          <div class="cls-ico">🏫</div>
+          <div class="cls-ico">${ico("school")}</div>
           <div style="flex:1;min-width:0">
             <b style="font-size:15px">${esc(c.name)}</b>
             <small style="font-size:11.5px;color:#6b7a94;display:block">
               ${c.groups.length} مجموعة · ${c.groups.reduce((n, g) => n + g.members.reduce((k, m) => k + m.files.length, 0), 0)} ملف
             </small>
           </div>
-          <button class="chip blue" data-zipcls="${c.id}" style="z-index:2">⬇ تنزيل الكل</button>
+          <button class="chip blue" data-zipcls="${c.id}" style="z-index:2">${ico("download","ic-sm")} تنزيل الكل</button>
         </div>
         <div class="cls-body">
           ${c.groups.map((g) => `
@@ -909,7 +912,7 @@
               <div class="grp-head">
                 <span class="chip ${g.gender === 'girls' ? 'gray' : 'blue'}">${g.gender === 'girls' ? 'بنات' : 'ولاد'}</span>
                 <span class="grp-name">${esc(g.name)}</span>
-                <button class="chip gold" data-zipgrp="${g.id}">⬇ تنزيل</button>
+                <button class="chip gold" data-zipgrp="${g.id}">${ico("download","ic-sm")} تنزيل</button>
               </div>
               ${g.members.map((m) => {
                 const missing = m.tasks.filter((t) => !t.done).length;
@@ -917,11 +920,11 @@
                 <div style="padding:9px 0;border-top:1px dashed #e6ecf5">
                   <div class="row" style="gap:9px">
                     <div class="avatar ${m.isLeader ? 'lead' : ''}" style="width:30px;height:30px;font-size:12px;border-radius:9px">
-                      ${m.isLeader ? '★' : esc(initials(m.name))}</div>
+                      ${m.isLeader ? ico('award','ic-sm') : esc(initials(m.name))}</div>
                     <div style="flex:1;min-width:0">
                       <b style="font-size:12.5px">${esc(m.name)}</b>
                       <small style="font-size:10.5px;color:#6b7a94">
-                        ${m.files.length} ملف · ${m.tasks.length ? (missing ? missing + ' ناقص' : 'كل المطلوب ✓') : 'مفيش مطلوب'}
+                        ${m.files.length} ملف · ${m.tasks.length ? (missing ? missing + ' ناقص' : 'كل المطلوب اتسلّم') : 'مفيش مطلوب'}
                       </small>
                     </div>
                     <button class="chip gray" data-prof="${m.id}">ملفه</button>
@@ -967,7 +970,7 @@
 
     sheet(`
       <div class="row" style="margin-bottom:14px">
-        <div class="avatar ${m.isLeader ? 'lead' : ''}">${m.isLeader ? '★' : esc(initials(m.name))}</div>
+        <div class="avatar ${m.isLeader ? 'lead' : ''}">${m.isLeader ? ico('award','ic-sm') : esc(initials(m.name))}</div>
         <div style="flex:1;min-width:0">
           <b style="font-size:16px">${esc(m.name)}</b>
           <small style="font-size:11.5px;color:#6b7a94;display:block">${esc(m.code)} · ${esc(cls.name)} · ${esc(grp.name)}</small>
@@ -977,7 +980,7 @@
       <div class="sec-head"><h3>ملفاته (${m.files.length})</h3></div>
       ${m.files.length ? m.files.map((f) => `
         <div class="mem" style="border:0;padding:7px 0">
-          <div style="width:30px;text-align:center">📄</div>
+          <div style="width:30px;display:grid;place-items:center;color:var(--ink-4)">${ico("file","ic-sm")}</div>
           <div style="flex:1;min-width:0">
             <b style="font-size:12.5px;word-break:break-all">${esc(f.name)}</b>
             <small style="font-size:10.5px;color:#6b7a94">${sizeTxt(f.size)} · ${when(f.at)}</small>
@@ -989,7 +992,7 @@
       <div class="sec-head" style="margin-top:16px"><h3>المطلوب منه (${m.tasks.length})</h3></div>
       ${m.tasks.length ? m.tasks.map((t) => `
         <div class="mem" style="border:0;padding:7px 0">
-          <div style="width:22px;text-align:center;color:${t.done ? '#2fa36b' : '#d94141'}">${t.done ? '✓' : '✕'}</div>
+          <div style="width:22px;text-align:center;color:${t.done ? '#2fa36b' : '#d94141'}">${t.done ? ico('check','ic-sm') : ico('close','ic-sm')}</div>
           <div style="flex:1;min-width:0"><b style="font-size:12.5px">${esc(t.title)}</b>
             ${t.link ? `<small style="font-size:10px;color:#3b6fd4;display:block;word-break:break-all">${esc(t.link)}</small>` : ''}
           </div>
@@ -998,7 +1001,7 @@
 
       <div class="sheet-acts" style="margin-top:16px">
         <button class="btn gold" id="p-addtask">＋ مطلوب جديد</button>
-        <button class="btn primary" id="p-zip">⬇ تنزيل ملفاته</button>
+        <button class="btn primary" id="p-zip">${ico("download","ic-sm")} تنزيل ملفاته</button>
       </div>`);
 
     $$('[data-pdl]').forEach((el) => (el.onclick = () => downloadFile(el.dataset.pdl)));
@@ -1027,7 +1030,7 @@
     box.innerHTML = d.classes.map((c) => `
       <div class="cls open">
         <div class="cls-head" style="cursor:default">
-          <div class="cls-ico">🏫</div>
+          <div class="cls-ico">${ico("school")}</div>
           <div style="flex:1"><b style="font-size:14.5px">${esc(c.name)}</b></div>
         </div>
         <div class="cls-body">
@@ -1045,7 +1048,7 @@
                       <b style="font-size:12.5px">${esc(t.title)}</b>
                       <div style="font-size:10.5px;color:#6b7a94;margin-top:2px">
                         ${t.doneCount}/${t.total} سلّموا
-                        ${t.pending.length ? ' · ناقص: ' + t.pending.map((x) => esc(x.name.split(' ')[0])).join('، ') : ' · الكل سلّم ✓'}
+                        ${t.pending.length ? ' · ناقص: ' + t.pending.map((x) => esc(x.name.split(' ')[0])).join('، ') : ' · الكل سلّم'}
                       </div>
                     </div>
                     <button class="chip red" data-deltask="${t.id}">مسح</button>
@@ -1094,7 +1097,7 @@
             studentId: target.studentId || undefined,
           });
           closeSheet();
-          toast('المطلوب اتضاف ✅');
+          toast('المطلوب اتضاف');
           renderFiles();
         } catch (e) { toast(e.message); }
       };
@@ -1124,7 +1127,7 @@
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 6000);
-      toast('اتنزّل ✅');
+      toast('اتنزّل');
     } catch (e) { toast(e.message); }
   }
 
@@ -1139,14 +1142,14 @@
       box.innerHTML = `<div class="empty"><p>${esc(e.message)}</p></div>`; return;
     }
     if (!d.channels.length) {
-      box.innerHTML = '<div class="empty"><div class="e-ico">💬</div><p>مفيش مجموعات لسه</p></div>';
+      box.innerHTML = '<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش مجموعات لسه</p></div>';
       return;
     }
     box.innerHTML = d.channels.map((c) => `
       <div class="card" data-room="${c.scope}:${c.id}" style="cursor:pointer">
         <div class="row">
           <div class="avatar" style="background:${c.scope === 'class' ? '#e8eefb' : '#fdf3e0'}">
-            ${c.scope === 'class' ? '🏫' : '👥'}</div>
+            ${ico(c.scope === 'class' ? 'school' : 'users','ic-sm')}</div>
           <div class="grow">
             <b>${esc(c.name)}</b>
             <small>${esc(c.kind)} · ${c.count} رسالة</small>
@@ -1176,12 +1179,12 @@
           <div class="msg ${m.from === 'teacher' ? 'mine' : ''}">
             <div style="font-size:11px;color:#6b7a94;margin-bottom:3px">
               <b style="color:${m.from === 'teacher' ? '#9a6d1f' : '#12203a'}">${esc(m.name)}</b>
-              ${m.leader ? ' <span class="chip gold">★</span>' : ''}
+              ${m.leader ? ' <span class="chip gold">' + ico('award','ic-sm') + '</span>' : ''}
             </div>
             <div class="m-body">${esc(m.body)}</div>
             <div class="m-meta"><span>${when(m.at)}</span>
               <button class="chip red" data-rmdel="${m.id}" style="font-size:10px">مسح</button></div>
-          </div>`).join('') : '<div class="empty"><div class="e-ico">💬</div><p>مفيش رسايل</p></div>'}
+          </div>`).join('') : '<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش رسايل</p></div>'}
       </div>
       <div style="display:flex;gap:8px;margin-top:12px">
         <input id="rm-in" placeholder="اكتبي رسالة…" style="flex:1;padding:13px 15px;border-radius:13px;border:1.5px solid #e3e8f2;font-family:inherit;font-size:14px">
@@ -1244,7 +1247,7 @@
       <div class="mc-grid">
         <div class="mc-cell"><span>كودك</span><b>${esc(s.code)}</b></div>
         <div class="mc-cell"><span>المجموعة</span><b>${s.group ? esc(s.group.name) : '—'}</b></div>
-        <div class="mc-cell"><span>دورك</span><b class="${s.isLeader ? 'gold' : ''}">${s.isLeader ? '★ قائد' : 'عضو'}</b></div>
+        <div class="mc-cell"><span>دورك</span><b class="${s.isLeader ? 'gold' : ''}">${s.isLeader ? ico('award','ic-sm') + ' قائد' : 'عضو'}</b></div>
         <div class="mc-cell"><span>الحساب</span><b>مفعّل</b></div>
       </div>`;
 
@@ -1274,7 +1277,7 @@
     }
 
     if (!d.items.length && !d.pendingTasks) {
-      box.innerHTML = '<div class="empty"><div class="e-ico">📭</div><p>مفيش إشعارات لسه</p></div>';
+      box.innerHTML = '<div class="empty"><div class="e-ico">${ico("inbox","ic-xl")}</div><p>مفيش إشعارات لسه</p></div>';
       return;
     }
 
@@ -1283,7 +1286,7 @@
       html += `
         <div class="card" style="background:#fff9ec;border:1.5px solid #f5e3bd">
           <div class="row">
-            <div class="avatar" style="background:#fdf3e0;color:#9a6d1f">📤</div>
+            <div class="avatar" style="background:#faf4e8;color:#96692a">${ico("upload","ic-sm")}</div>
             <div class="grow">
               <b>عندك ${d.pendingTasks} مطلوب لسه</b>
               <small>من أصل ${d.totalTasks} — افتح مساحة التسليم</small>
@@ -1328,7 +1331,7 @@
       }
       if (!d.channels.length) {
         tabs.innerHTML = '';
-        box.innerHTML = `<div class="empty"><div class="e-ico">💬</div><p>${esc(d.note || 'لسه مفيش قنوات')}</p></div>`;
+        box.innerHTML = `<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>${esc(d.note || 'لسه مفيش قنوات')}</p></div>`;
         return;
       }
       st.channels = d.channels;
@@ -1366,12 +1369,12 @@
         <div class="msg ${m.mine ? 'mine' : ''}">
           <div style="font-size:11px;color:#6b7a94;margin-bottom:3px;display:flex;gap:5px;align-items:center">
             <b style="color:${m.from === 'teacher' ? '#9a6d1f' : '#12203a'}">${esc(m.name)}</b>
-            ${m.leader ? '<span class="chip gold">★ قائد</span>' : ''}
+            ${m.leader ? '<span class="chip gold">' + ico('award','ic-sm') + ' قائد</span>' : ''}
           </div>
           <div class="m-body">${esc(m.body)}</div>
           <div class="m-meta"><span></span><span>${when(m.at)}</span></div>
         </div>`).join('')
-      : '<div class="empty"><div class="e-ico">💬</div><p>مفيش رسايل لسه — ابدأ انت</p></div>';
+      : '<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش رسايل لسه — ابدأ انت</p></div>';
 
     const send = async () => {
       const v = $('#sc-in').value.trim();
@@ -1395,7 +1398,7 @@
       box.innerHTML = `<div class="empty"><p>${esc(e.message)}</p></div>`; return;
     }
     if (!d.tasks.length) {
-      box.innerHTML = `<div class="empty"><div class="e-ico">📤</div>
+      box.innerHTML = `<div class="empty"><div class="e-ico">${ico("upload","ic-xl")}</div>
         <p>مفيش مطلوب منك دلوقتي<br><small>المس أسماء لما تحط مطلوب هيظهر هنا</small></p></div>`;
       return;
     }
@@ -1403,14 +1406,14 @@
       <div class="card" style="${t.done ? 'border-right:3px solid #2fa36b' : 'border-right:3px solid #e0b467'}">
         <div class="row">
           <div class="avatar" style="background:${t.done ? '#e6f6ee;color:#237c51' : '#fdf3e0;color:#9a6d1f'}">
-            ${t.done ? '✓' : '!'}</div>
+            ${t.done ? ico('check','ic-sm') : '!'}</div>
           <div class="grow">
             <b>${esc(t.title)}</b>
             <small>${t.scope === 'me' ? 'مطلوب منك انت' : 'مطلوب من المجموعة'} · ${t.done ? 'اتسلّم' : 'لسه'}</small>
           </div>
         </div>
         ${t.body ? `<p style="font-size:12.5px;color:#6b7a94;margin:9px 0 0;line-height:1.6">${esc(t.body)}</p>` : ''}
-        ${t.done && t.link ? `<p style="font-size:11.5px;color:#3b6fd4;margin:8px 0 0;word-break:break-all">🔗 ${esc(t.link)}</p>` : ''}
+        ${t.done && t.link ? `<p style="font-size:11.5px;color:#3b6fd4;margin:8px 0 0;word-break:break-all;display:flex;align-items:center;gap:5px">${ico("link","ic-sm")} ${esc(t.link)}</p>` : ''}
         <div class="acts">
           ${t.done ? `<button class="btn ghost" data-resub="${t.id}">استبدال</button>
                       <button class="btn danger" data-unsub="${t.id}">إلغاء التسليم</button>`
@@ -1435,7 +1438,7 @@
       <p class="sub">ارفع ملف، أو حط لينك درايف لو الملف أكبر من ١٢٠ ميجا</p>
 
       <button class="big-sub" id="sb-file">
-        <span style="font-size:22px">📎</span>
+        <span style="color:var(--ink-3)">${ico("paperclip","ic-lg")}</span>
         <div><b>ارفع ملف</b><i>أقصى حجم ١٢٠ ميجا</i></div>
       </button>
 
@@ -1454,7 +1457,7 @@
           onDone: async (f) => {
             try {
               await api('POST', `/api/student/submit/${taskId}`, { fileId: f.id });
-              toast('اتسلّم ✅');
+              toast('اتسلّم');
               renderSubmit();
             } catch (e) { toast(e.message); }
           },
@@ -1467,7 +1470,7 @@
         try {
           await api('POST', `/api/student/submit/${taskId}`, { link });
           closeSheet();
-          toast('اتسلّم ✅');
+          toast('اتسلّم');
           renderSubmit();
         } catch (e) { toast(e.message); }
       };
@@ -1484,7 +1487,7 @@
       box.innerHTML = `<div class="empty"><p>${esc(e.message)}</p></div>`; return;
     }
     if (!d.files.length) {
-      box.innerHTML = `<div class="empty"><div class="e-ico">📁</div>
+      box.innerHTML = `<div class="empty"><div class="e-ico">${ico("folder","ic-xl")}</div>
         <p>مفيش ملفات في مجموعتك لسه<br><small>ارفع أول ملف من الزرار فوق</small></p></div>`;
       return;
     }
@@ -1507,7 +1510,7 @@
         <div class="cls-body">
           ${g.files.map((f) => `
             <div class="mem">
-              <div class="card-ico" style="width:32px;height:32px;border-radius:9px;background:#eef2f9;display:grid;place-items:center;font-size:14px">📄</div>
+              <div class="card-ico" style="width:32px;height:32px;border-radius:9px;background:#eef2f9;display:grid;place-items:center;color:#3a5f96">${ico("file","ic-sm")}</div>
               <div style="flex:1;min-width:0">
                 <b style="font-size:12.5px;word-break:break-all">${esc(f.name)}</b>
                 <small style="font-size:10.5px;color:#6b7a94">${sizeTxt(f.size)} · ${when(f.at)}</small>
@@ -1531,7 +1534,7 @@
 
   $('#stf-up').onclick = () => pickAndUpload({
     max: 120 * 1024 * 1024,
-    onDone: () => { toast('اترفع ✅'); renderGroupFiles(); },
+    onDone: () => { toast('اترفع'); renderGroupFiles(); },
   });
 
   $('#st-logout').onclick = async () => {

@@ -3,15 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0d1b33">
+<meta name="theme-color" content="#16233c">
 <title>Z Project Workspace</title>
 <link rel="stylesheet" href="css/app.css">
+<script src="js/icons.js"></script>
 </head>
 <body>
 
 <!-- ═══════════ البداية ═══════════ -->
 <section id="screen-home" class="screen show">
   <div class="home">
+   <div class="home-inner">
     <div class="brand">
       <div class="brand-mark">Z</div>
       <h1>Z Project Workspace</h1>
@@ -20,25 +22,26 @@
 
     <div class="home-actions">
       <button class="big-btn gold" id="go-join">
-        <span class="bb-ico">📩</span>
+        <span class="bb-ico" data-icon="mail"></span>
         <span class="bb-txt"><b>طلب انضمام</b><i>لو معاك كود من المس أسماء</i></span>
       </button>
       <button class="big-btn blue" id="go-login">
-        <span class="bb-ico">🔑</span>
+        <span class="bb-ico" data-icon="key"></span>
         <span class="bb-txt"><b>تسجيل دخول</b><i>عندك حساب بالفعل</i></span>
       </button>
       <button class="big-btn ghost" id="go-teacher">
-        <span class="bb-ico">👩‍🏫</span>
+        <span class="bb-ico" data-icon="user"></span>
         <span class="bb-txt"><b>أنا مس أسماء</b><i>لوحة الإدارة</i></span>
       </button>
     </div>
+   </div>
   </div>
 </section>
 
 <!-- ═══════════ طلب انضمام ═══════════ -->
 <section id="screen-join" class="screen">
   <header class="top">
-    <button class="back" data-back>‹</button>
+    <button class="back" data-back data-icon="back"></button>
     <h2>طلب انضمام</h2>
   </header>
   <div class="scroll">
@@ -59,7 +62,7 @@
 <!-- ═══════════ التسجيل ═══════════ -->
 <section id="screen-signup" class="screen">
   <header class="top">
-    <button class="back" data-back>‹</button>
+    <button class="back" data-back data-icon="back"></button>
     <h2>إنشاء الحساب</h2>
   </header>
   <div class="scroll">
@@ -85,7 +88,7 @@
 <!-- ═══════════ تسجيل دخول الطالب ═══════════ -->
 <section id="screen-login" class="screen">
   <header class="top">
-    <button class="back" data-back>‹</button>
+    <button class="back" data-back data-icon="back"></button>
     <h2>تسجيل دخول</h2>
   </header>
   <div class="scroll">
@@ -102,12 +105,12 @@
 <!-- ═══════════ المس: كلمة المرور ═══════════ -->
 <section id="screen-tlogin" class="screen">
   <header class="top">
-    <button class="back" data-back>‹</button>
+    <button class="back" data-back data-icon="back"></button>
     <h2>أنا مس أسماء</h2>
   </header>
   <div class="scroll">
     <div class="intro center">
-      <div class="avatar big">👩‍🏫</div>
+      <div class="avatar big" data-icon="user"></div>
       <h3>مس أسماء</h3>
       <p>اكتبي كلمة المرور</p>
     </div>
@@ -121,8 +124,8 @@
 <!-- ═══════════ حالة الانتظار ═══════════ -->
 <section id="screen-pending" class="screen">
   <div class="center-wrap">
-    <div class="wait-ico">⏳</div>
-    <h3 id="pd-title">طلبك اتبعت ✅</h3>
+    <div class="wait-ico" data-icon="clock"></div>
+    <h3 id="pd-title">طلبك اتبعت</h3>
     <p id="pd-msg">مستني موافقة المس أسماء.</p>
     <button class="btn ghost" data-back>رجوع</button>
   </div>
@@ -136,8 +139,8 @@
       <h2>مس أسماء</h2>
     </div>
     <div style="display:flex;gap:8px">
-      <button class="icon-btn" id="th-settings" title="الإعدادات">⚙️</button>
-      <button class="icon-btn" id="th-logout" title="خروج">⏻</button>
+      <button class="icon-btn" id="th-settings" title="الإعدادات" data-icon="settings"></button>
+      <button class="icon-btn" id="th-logout" title="خروج" data-icon="logout"></button>
     </div>
   </header>
   <div class="scroll">
@@ -145,14 +148,14 @@
     <div class="sec-head"><h3>الأقسام</h3></div>
     <div class="tiles" id="th-tiles">
       <button class="tile t-blue" data-nav="organize">
-        <span class="t-ico">🗂️</span><b>لوحة التنظيم</b><i>فصول · مجموعات · شارات</i></button>
+        <span class="t-ico" data-icon="grid"></span><b>لوحة التنظيم</b><i>فصول · مجموعات · شارات</i></button>
       <button class="tile t-gold" data-nav="requests">
-        <span class="t-ico">🔔</span><b>الإشعارات</b><i>طلبات الانضمام</i>
+        <span class="t-ico" data-icon="bell"></span><b>الإشعارات</b><i>طلبات الانضمام</i>
         <span class="badge" id="th-badge" hidden>0</span></button>
       <button class="tile t-green" data-nav="comm">
-        <span class="t-ico">💬</span><b>التواصل</b><i>إعلانات · دردشة</i></button>
+        <span class="t-ico" data-icon="chat"></span><b>التواصل</b><i>إعلانات · دردشة</i></button>
       <button class="tile t-navy" data-nav="files">
-        <span class="t-ico">📁</span><b>مساحة الملفات</b><i>شغل المجموعات</i></button>
+        <span class="t-ico" data-icon="folder"></span><b>مساحة الملفات</b><i>شغل المجموعات</i></button>
     </div>
   </div>
 </section>
@@ -160,9 +163,9 @@
 <!-- ═══════════ المس: لوحة التنظيم ═══════════ -->
 <section id="screen-organize" class="screen sub">
   <header class="top">
-    <button class="back" data-nav="teacher">‹</button>
+    <button class="back" data-nav="teacher" data-icon="back"></button>
     <h2>لوحة التنظيم</h2>
-    <button class="icon-btn" id="org-add-class" title="فصل جديد">＋</button>
+    <button class="icon-btn" id="org-add-class" title="فصل جديد" data-icon="plus"></button>
   </header>
   <div class="scroll" id="org-body"></div>
 </section>
@@ -170,7 +173,7 @@
 <!-- ═══════════ المس: الإشعارات ═══════════ -->
 <section id="screen-requests" class="screen sub">
   <header class="top">
-    <button class="back" data-nav="teacher">‹</button>
+    <button class="back" data-nav="teacher" data-icon="back"></button>
     <h2>طلبات الانضمام</h2>
   </header>
   <div class="tabs" id="req-tabs">
@@ -184,7 +187,7 @@
 <!-- ═══════════ المس: التواصل ═══════════ -->
 <section id="screen-comm" class="screen sub">
   <header class="top">
-    <button class="back" data-nav="teacher">‹</button>
+    <button class="back" data-nav="teacher" data-icon="back"></button>
     <h2>التواصل</h2>
   </header>
   <div class="tabs" id="comm-tabs">
@@ -198,7 +201,7 @@
 <!-- ═══════════ المس: الإعدادات ═══════════ -->
 <section id="screen-settings" class="screen sub">
   <header class="top">
-    <button class="back" data-nav="teacher">‹</button>
+    <button class="back" data-nav="teacher" data-icon="back"></button>
     <h2>الإعدادات</h2>
   </header>
   <div class="scroll" id="set-body"></div>
@@ -207,7 +210,7 @@
 <!-- ═══════════ المس: النلفات ═══════════ -->
 <section id="screen-files" class="screen sub">
   <header class="top">
-    <button class="back" data-nav="teacher">‹</button>
+    <button class="back" data-nav="teacher" data-icon="back"></button>
     <h2>مساحة الملفات</h2>
   </header>
   <div class="scroll" id="files-body"></div>
@@ -222,9 +225,9 @@
     </div>
     <div style="display:flex;gap:8px">
       <button class="icon-btn" id="st-bell" title="الإشعارات" style="position:relative">
-        🔔<span class="badge" id="st-badge" hidden>0</span>
+        <span data-icon="bell"></span><span class="badge" id="st-badge" hidden>0</span>
       </button>
-      <button class="icon-btn" id="st-logout" title="خروج">⏻</button>
+      <button class="icon-btn" id="st-logout" title="خروج" data-icon="logout"></button>
     </div>
   </header>
   <div class="scroll">
@@ -232,14 +235,14 @@
     <div class="sec-head"><h3>مساحاتي</h3></div>
     <div class="tiles" id="st-tiles">
       <button class="tile t-blue" data-snav="chat">
-        <span class="t-ico">💬</span><b>مساحة الدردشة</b><i>مجموعتك · فصلك</i></button>
+        <span class="t-ico" data-icon="chat"></span><b>مساحة الدردشة</b><i>مجموعتك · فصلك</i></button>
       <button class="tile t-gold" data-snav="submit">
-        <span class="t-ico">📤</span><b>مساحة التسليم</b><i>المطلوب منك</i>
+        <span class="t-ico" data-icon="upload"></span><b>مساحة التسليم</b><i>المطلوب منك</i>
         <span class="badge" id="st-task-badge" hidden>0</span></button>
       <button class="tile t-green" data-snav="files">
-        <span class="t-ico">📁</span><b>ملفات مجموعتي</b><i>شغلنا كله</i></button>
+        <span class="t-ico" data-icon="folder"></span><b>ملفات مجموعتي</b><i>شغلنا كله</i></button>
       <button class="tile t-navy" data-snav="notify">
-        <span class="t-ico">📢</span><b>الإشعارات</b><i>إعلانات المس</i>
+        <span class="t-ico" data-icon="bell"></span><b>الإشعارات</b><i>إعلانات المس</i>
         <span class="badge" id="st-notif-badge" hidden>0</span></button>
     </div>
   </div>
@@ -248,7 +251,7 @@
 <!-- ═══════════ الطالب: الإشعارات ═══════════ -->
 <section id="screen-stnotify" class="screen sub">
   <header class="top">
-    <button class="back" data-snav="home">‹</button>
+    <button class="back" data-snav="home" data-icon="back"></button>
     <h2>مركز الإشعارات</h2>
   </header>
   <div class="scroll" id="stn-body"></div>
@@ -257,7 +260,7 @@
 <!-- ═══════════ الطالب: الدردشة ═══════════ -->
 <section id="screen-stchat" class="screen sub">
   <header class="top">
-    <button class="back" data-snav="home">‹</button>
+    <button class="back" data-snav="home" data-icon="back"></button>
     <h2 id="stc-title">الدردشة</h2>
   </header>
   <div class="tabs" id="stc-tabs"></div>
@@ -267,7 +270,7 @@
 <!-- ═══════════ الطالب: التسليم ═══════════ -->
 <section id="screen-stsubmit" class="screen sub">
   <header class="top">
-    <button class="back" data-snav="home">‹</button>
+    <button class="back" data-snav="home" data-icon="back"></button>
     <h2>مساحة التسليم</h2>
   </header>
   <div class="scroll" id="sts-body"></div>
@@ -276,9 +279,9 @@
 <!-- ═══════════ الطالب: ملفات المجموعة ═══════════ -->
 <section id="screen-stfiles" class="screen sub">
   <header class="top">
-    <button class="back" data-snav="home">‹</button>
+    <button class="back" data-snav="home" data-icon="back"></button>
     <h2>ملفات مجموعتي</h2>
-    <button class="icon-btn" id="stf-up" title="رفع">⤒</button>
+    <button class="icon-btn" id="stf-up" title="رفع" data-icon="upload"></button>
   </header>
   <div class="scroll" id="stf-body"></div>
 </section>
@@ -286,6 +289,13 @@
 <input type="file" id="pick-file" hidden>
 
 <div class="toast" id="toast"></div>
+<script>
+/* تركيب الأيقونات على العناصر اللي عندها data-icon */
+document.querySelectorAll('[data-icon]').forEach(function(el){
+  var n = el.getAttribute('data-icon');
+  el.insertAdjacentHTML('afterbegin', window.icon(n));
+});
+</script>
 <script src="js/app.js"></script>
 </body>
 </html>
