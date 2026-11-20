@@ -5,7 +5,10 @@ shots/
 probe_out/
 
 # قاعدة بيانات الفصل — بتتولد على السيرفر، مش بتتحفظ في git
-zworkplace/data/
+# كشف الأسماء محفوظ عن قصد: السيرفر محتاجه أول تشغيل عشان الطالب يلاقي اسمه.
+# الريبو خاص، فمفيش خطر إنه يتشاف.
+zworkplace/data/*
+!zworkplace/data/students.csv
 *.db
 *.db-wal
 *.db-shm
