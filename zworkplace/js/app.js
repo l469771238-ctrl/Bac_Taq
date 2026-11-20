@@ -61,6 +61,23 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
     if (Z && Z.has(k)) return Z.svg(k, cls || '');
     return esc(initials(name));
   }
+  /* أفاتار المس أسماء — ثابت، مش بتختاره ومش بيتخزن.
+     اسم المعلمة الحقيقي مش في قاعدة البيانات كأفاتار، فبنستخدم
+     الأفاتار المميز ده في كل مكان بتظهر فيه. */
+  function avaTeacher(cls) {
+    const Z = window.ZAvatar;
+    return Z && Z.teacher ? Z.teacher.replace('class="av"', 'class="av ' + (cls || '') + '"') : '';
+  }
+  /* هل ده اسم المعلمة؟ */
+  function isTeacherName(n) {
+    const t = String(n || '').trim();
+    return t === 'مس أسماء' || t === 'مس اسماء' || t === 'أسماء' || t === 'اسماء';
+  }
+  /* يرسم أفاتار لأي اسم — لو «مس أسماء» بيرجّع أفاتارها الثابت */
+  function avaAny(key, name, cls) {
+    if (isTeacherName(name)) return avaTeacher(cls);
+    return ava(key, name, cls);
+  }
   function when(ts) {
     if (!ts) return '';
     const d = new Date(ts);
@@ -119,6 +136,13 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       }
     );
   }
+
+  /* أفاتار المعلمة في الهيدر — ثابت، مش بتختاره.
+     بيترسم مرة واحدة مع تحميل الصفحة. */
+  (function paintTeacherAvatar() {
+    const el = document.getElementById('th-avatar');
+    if (el && window.ZAvatar) el.innerHTML = window.ZAvatar.teacher;
+  })();
 
   /* ---------------- التنقل ---------------- */
 
@@ -1459,7 +1483,8 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       <div id="rm-msgs">
         ${d.msgs.length ? d.msgs.map((m) => `
           <div class="msg ${m.from === 'teacher' ? 'mine' : ''}">
-            <div style="font-size:11px;color:#6b7a94;margin-bottom:3px">
+            <div class="msg-who">
+              <span class="msg-av">${avaAny(m.avatar, m.name)}</span>
               <b style="color:${m.from === 'teacher' ? '#9a6d1f' : '#12203a'}">${esc(m.name)}</b>
               ${m.leader ? ' <span class="chip gold">' + ico('award','ic-sm') + '</span>' : ''}
             </div>
@@ -1601,6 +1626,8 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
     };
   }
   window.ZPickAvatar = pickAvatar;
+  /* للاختبار والتشخيص بس — الواجهة مش بتستخدمه */
+  window.ZAvatarAny = avaAny;
 
   /* ---------- إشعارات ---------- */
 
@@ -1703,7 +1730,8 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
     $('#sc-msgs').innerHTML = d.msgs.length
       ? d.msgs.map((m) => `
         <div class="msg ${m.mine ? 'mine' : ''}">
-          <div style="font-size:11px;color:#6b7a94;margin-bottom:3px;display:flex;gap:5px;align-items:center">
+          <div class="msg-who">
+            <span class="msg-av">${avaAny(m.avatar, m.name)}</span>
             <b style="color:${m.from === 'teacher' ? '#9a6d1f' : '#12203a'}">${esc(m.name)}</b>
             ${m.leader ? '<span class="chip gold">' + ico('award','ic-sm') + ' قائد</span>' : ''}
           </div>

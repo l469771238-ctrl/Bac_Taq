@@ -8,6 +8,7 @@
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
+const zlib = require('node:zlib');
 
 const { open } = require('./db');
 const A = require('./auth');
@@ -1636,14 +1637,27 @@ function serveStatic(req, res, pathname) {
      * المستخدم يحسب إن الرفع مش شغال. دلوقتي no-store على كل حاجة،
      * عشان أي تعديل يبان على طول.
      */
-    res.writeHead(200, {
+    const headers = {
       'Content-Type': MIME[ext] || 'application/octet-stream',
-      'Content-Length': st.size,
       'Cache-Control': 'no-store, must-revalidate',
       'Pragma': 'no-cache',
       'ETag': '"' + st.size + '-' + Math.round(st.mtimeMs) + '"',
-    });
-    fs.createReadStream(file).pipe(res);
+    };
+
+    /* gzip للملفات النصية: js/avatars.js فيه ٢٨ صورة SVG = ١٠٤ كيلو خام
+       و١٥ كيلو مضغوط. من غير الضغط ده، أول تحميل على نت ضعيف بياخد وقت.
+       الصور والخطوط مضغوطة أصلاً فمش بنعيد ضغطها. */
+    const GZIP_EXT = ['.js', '.css', '.html', '.svg', '.json', '.webmanifest', '.txt'];
+    const wantsGz = GZIP_EXT.indexOf(ext) >= 0 &&
+      /\bgzip\b/.test(req.headers['accept-encoding'] || '') && st.size > 1024;
+
+    if (wantsGz) {
+      res.writeHead(200, Object.assign({}, headers, { 'Content-Encoding': 'gzip', Vary: 'Accept-Encoding' }));
+      fs.createReadStream(file).pipe(zlib.createGzip({ level: 6 })).pipe(res);
+    } else {
+      res.writeHead(200, Object.assign({}, headers, { 'Content-Length': st.size }));
+      fs.createReadStream(file).pipe(res);
+    }
   });
 }
 

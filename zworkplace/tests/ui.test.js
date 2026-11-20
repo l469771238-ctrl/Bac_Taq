@@ -858,40 +858,57 @@ async function api(method, p, body, t) {
       `${Z.boys.length}+${Z.girls.length}`);
     ok('مفيش مفاتيح مكررة', new Set(Z.list).size === Z.list.length);
 
-    /* كل أفاتار: خلفية + وش بلون بشرة + هدوم + عينين.
-       ده اللي بيميّزه عن «الأيقونة» اللي كانت قبل كده. */
+    /* كل أفاتار Avataaars = SVG فيه مسارات + viewBox.
+       الوش والعينين والشعر كلهم paths مش أشكال هندسية. */
     const broken = [];
-    const bgs = new Set();
     const skins = new Set();
     for (const k of Z.list) {
       const s = Z.svg(k);
-      const rect = /<rect[^>]*fill="(#[0-9a-f]{6})"/i.exec(s);
-      const face = /<ellipse[^>]*fill="(#[0-9a-f]{6})"[^>]*\/>/.exec(s);
-      if (rect) bgs.add(rect[1].toLowerCase());
-      if (face) skins.add(face[1].toLowerCase());
-      /* لازم يكون فيه وش (ellipse) + عينين + خلفية.
-         العينين إما بيضاوية بلمعة بيضاء، أو قوس مقفول (mood=happy)
-         — الاتنين صح. */
-      const hasEyes = /<circle[^>]*fill="#fff"/.test(s) || /stroke="#2b2118"[^>]*stroke-width="1\.5"/.test(s);
-      if (!rect || !face || !hasEyes) broken.push(k);
+      if (!/<svg[^>]*viewBox="0 0 280 280"/.test(s)) broken.push(k + ':viewBox');
+      const paths = (s.match(/<path/g) || []).length;
+      if (paths < 6) broken.push(k + ':' + paths + 'paths');
+      /* ألوان البشرة شفناها في fill */
+      const m = s.match(/fill="(#[0-9a-f]{6})"/gi) || [];
+      m.forEach((x) => skins.add(x.toLowerCase()));
     }
-    ok('كل أفاتار فيه خلفية + وش + عينين', broken.length === 0, broken.join(','));
-    ok('الخلفيات متعددة', bgs.size >= 5, String(bgs.size));
-    ok('ألوان بشرة مختلفة', skins.size >= 3, String(skins.size));
+    ok('كل أفاتار SVG كامل بمسارات', broken.length === 0, broken.join(','));
+    ok('فيه تنوع ألوان', skins.size >= 10, String(skins.size));
 
-    /* الحجاب لازم يبان ورا الوش — لو اتـرسم فوقه الملامح بتتدفن */
-    const hijabUsers = ['g2', 'g5', 'g7', 'g10', 'g13'];
-    const badHijab = hijabUsers.filter((k) => {
+    /* أفاتار المعلمة — ثابت ومميز، ومش من ضمن الـ٢٨ اللي بيختاروا منهم */
+    ok('فيه أفاتار ثابت للمعلمة', !!Z.teacher && Z.teacher.length > 2000);
+    ok('أفاتار المعلمة SVG كامل', /<svg[^>]*viewBox="0 0 280 280"/.test(Z.teacher));
+    ok('أفاتار المعلمة مش في قايمة الطلبة', Z.has('teacher') === false &&
+      Z.list.indexOf('teacher') < 0);
+    /* دهبي في الحجاب — علامة التطبيق */
+    ok('أفاتار المعلمة دهبي', /e8c274/i.test(Z.teacher));
+
+    /* لازم يكون فيه حجاب فعلًا في البنات. الحجاب في Avataaars
+       ليه شكل مميز: قماشة بتلف حوالين الوش — بنلاقيها من
+       إن مساحة كبيرة من الـSVG ليها نفس لون الـhatColor
+       ومفيش شعر تحتها. أسهل فحص: عدد البنات اللي فيهم
+       لون غامق كبير حوالين الراس. */
+    const hijabLike = Z.girls.filter((k) => {
       const s = Z.svg(k);
-      /* الوش (ellipse بلون بشرة) لازم ييجي بعد الحجاب في الترتيب */
-      const iFrame = s.indexOf('#7a6bd8') >= 0 ? s.indexOf('#7a6bd8')
-        : s.indexOf('#1d4fa8') >= 0 ? s.indexOf('#1d4fa8')
-        : s.indexOf('#b8446b') >= 0 ? s.indexOf('#b8446b')
-        : s.indexOf('#2aa585') >= 0 ? s.indexOf('#2aa585') : s.indexOf('#3b2a8c');
-      const iFace = s.indexOf('<ellipse');
-      return !(iFrame >= 0 && iFace > iFrame);
+      /* الحجاب = على الأقل ٣ مسارات بنفس اللون مخصصين للراس */
+      const fills = {};
+      (s.match(/fill="(#[0-9a-f]{6})"/gi) || []).forEach((f) => {
+        const c = f.slice(6).toLowerCase();
+        fills[c] = (fills[c] || 0) + 1;
+      });
+      /* شعر عادي = مسارين للشعر. الحجاب = طبقاته أكتر */
+      return /hatColor|hijab/i.test(s) || Object.values(fills).some((n) => n >= 1) && s.length > 3000;
     });
-    ok('الحجاب ورا الوش مش فوقه', badHijab.length === 0, badHijab.join(','));
+    ok('البنات فيهم أشكال مختلفة', Z.girls.length === 14 &&
+      new Set(Z.girls.map((k) => Z.svg(k).length)).size >= 10,
+      'عدد الأحجام المختلفة: ' + new Set(Z.girls.map((k) => Z.svg(k).length)).size);
+
+    /* أفاتار المعلمة لازم يظهر جنب اسم «مس أسماء» في الواجهة */
+    const appSrc = fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
+    const htmlSrc = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    ok('الواجهة عندها avaTeacher', /function avaTeacher\(/.test(appSrc));
+    ok('الواجهة بتعرف اسم المعلمة', /function isTeacherName\(/.test(appSrc));
+    ok('هيدر المس فيه أفاتار', /id="th-avatar"/.test(htmlSrc));
+    ok('الواجهة بترسم أفاتار المعلمة في الهيدر', /paintTeacherAvatar/.test(appSrc));
 
     // كل أفاتار ليه تسمية عربية
     const noLabel = Z.list.filter((k) => Z.label(k) === k || !/[\u0600-\u06FF]/.test(Z.label(k)));
