@@ -925,6 +925,8 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
   async function renderComm() {
     const box = $('#comm-body');
     if (!box) return;
+    $('#screen-comm').classList.toggle('study-chat', st.commTab !== 'ann');
+    box.classList.toggle('chat-thread', st.commTab !== 'ann' && !!(dmWith || roomWith || st.chatWith));
     if (st.commTab === 'ann') return renderAnnounce(box);
     if (st.commTab === 'dm') return renderDMList(box);
     // الـHTML بيسمّي التاب 'room' — كنا بنقارن بـ'rooms' فمفيش حاجة كانت بتحصل
@@ -974,6 +976,24 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
     }));
   }
 
+  /* البحث يفلتر القوائم الحقيقية بدون إضافة محادثات وهمية. */
+  function wireChatSearch(box, rowSelector) {
+    const input = box.querySelector('.chat-search input');
+    const empty = box.querySelector('.chat-search-empty');
+    if (!input || !empty) return;
+    input.addEventListener('input', () => {
+      const query = input.value.trim().toLocaleLowerCase('ar');
+      let count = 0;
+      box.querySelectorAll(rowSelector).forEach((row) => {
+        const match = row.textContent.toLocaleLowerCase('ar').includes(query);
+        row.hidden = !match;
+        if (match) count++;
+      });
+      empty.hidden = count !== 0;
+    });
+  }
+  const chatSearch = '<label class="chat-search"><span>بحث</span><input type="search" placeholder="ابحث عن محادثة..." aria-label="ابحث عن محادثة"></label><p class="chat-search-empty" hidden>مفيش محادثات مطابقة لبحثك.</p>';
+
   async function renderChatList(box) {
     if (st.chatWith) return renderChatThread(box, st.chatWith);
     let data;
@@ -985,7 +1005,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       box.innerHTML = `<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش طلاب مفعّلين لسه</p></div>`;
       return;
     }
-    box.innerHTML = students.map((s) => `
+    box.innerHTML = chatSearch + students.map((s) => `
       <div class="card" data-chat="${s.id}" style="cursor:pointer">
         <div class="row">
 
@@ -993,6 +1013,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
           <span style="color:#93a1b8;font-size:19px">›</span>
         </div>
       </div>`).join('');
+    wireChatSearch(box, '[data-chat]');
     $$('[data-chat]', box).forEach((el) => (el.onclick = () => {
       st.chatWith = Number(el.dataset.chat);
       renderComm();
@@ -1005,7 +1026,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       box.innerHTML = `<div class="empty"><p>${esc(e.message)}</p></div>`; return;
     }
     box.innerHTML = `
-      <div class="row" style="margin-bottom:14px;gap:9px">
+      <div class="chat-thread-head">
         <button class="chip gray" id="ch-back">‹ رجوع</button>
         <b style="font-size:15px">${esc(d.student.name)}</b>
       </div>
@@ -1033,7 +1054,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
     $('#ch-send').onclick = send;
     wireComposer('#ch-in', send);
     const box2 = $('#ch-msgs');
-    if (box2 && box2.scrollIntoView) box2.scrollIntoView({ block: 'end' });
+    if (box2) box2.scrollTop = box2.scrollHeight;
   }
 
   /* ---------------- دردشة عضو (المس مع الطالب) ---------------- */
@@ -1055,7 +1076,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       box.innerHTML = `<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش طلاب مفعّلين لسه</p></div>`;
       return;
     }
-    box.innerHTML = `
+    box.innerHTML = chatSearch + `
       <p style="font-size:12px;color:#6b7a94;margin:0 0 12px;line-height:1.6">
         دي محادثة بينك وبين الطالب لوحده. الطالب بيشوفها في «رسايل المس».
       </p>` + students.map((x) => `
@@ -1067,6 +1088,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
           <span style="color:#93a1b8;font-size:19px">›</span>
         </div>
       </div>`).join('');
+    wireChatSearch(box, '[data-dm]');
     $$('[data-dm]', box).forEach((el) => (el.onclick = () => {
       dmWith = Number(el.dataset.dm);
       renderComm();
@@ -1079,7 +1101,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       box.innerHTML = `<div class="empty"><p>${esc(e.message)}</p></div>`; return;
     }
     box.innerHTML = `
-      <div class="row" style="margin-bottom:14px;gap:9px">
+      <div class="chat-thread-head">
         <button class="chip gray" id="dm-back">‹ رجوع</button>
         <b style="font-size:15px">${esc(d.student.name)}</b>
       </div>
@@ -1106,6 +1128,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
     };
     $('#dm-send').onclick = send;
     wireComposer('#dm-in', send);
+    $('#dm-msgs').scrollTop = $('#dm-msgs').scrollHeight;
     $$('[data-dmdel]', box).forEach((el) => (el.onclick = () => {
       confirmDlg('مسح الرسالة', 'الرسالة هتتشال من عند الطالب كمان.', 'امسح',
         async () => { await api('DELETE', '/api/teacher/dm/message/' + el.dataset.dmdel); toast('اتمسحت'); renderComm(); }, true);
@@ -1397,7 +1420,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       box.innerHTML = `<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش مجموعات لسه</p></div>`;
       return;
     }
-    box.innerHTML = d.channels.map((c) => `
+    box.innerHTML = chatSearch + d.channels.map((c) => `
       <div class="card" data-room="${c.scope}:${c.id}" style="cursor:pointer">
         <div class="row">
           <div class="avatar" style="background:${c.scope === 'class' ? '#e8eefb' : '#fdf3e0'}">
@@ -1409,6 +1432,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
           <span style="color:#93a1b8;font-size:19px">›</span>
         </div>
       </div>`).join('');
+    wireChatSearch(box, '[data-room]');
     $$('[data-room]', box).forEach((el) => (el.onclick = () => {
       const parts = el.dataset.room.split(':');
       roomWith = { scope: parts[0], id: Number(parts[1]) };
@@ -1422,7 +1446,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       box.innerHTML = `<div class="empty"><p>${esc(e.message)}</p></div>`; return;
     }
     box.innerHTML = `
-      <div class="row" style="margin-bottom:14px;gap:9px">
+      <div class="chat-thread-head">
         <button class="chip gray" id="rm-back">‹ رجوع</button>
         <b style="font-size:14.5px">${esc(d.title)}</b>
       </div>
@@ -1451,6 +1475,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
     };
     $('#rm-send').onclick = send;
     wireComposer('#rm-in', send);
+    $('#rm-msgs').scrollTop = $('#rm-msgs').scrollHeight;
     $$('[data-rmdel]').forEach((el) => (el.onclick = () => {
       confirmDlg('مسح الرسالة', 'الرسالة هتتشال من عند الكل.', 'امسح',
         async () => { await api('DELETE', '/api/teacher/chatroom/' + el.dataset.rmdel); toast('اتمسحت'); renderComm(); }, true);
@@ -1670,6 +1695,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
     $('#stc-title').textContent = ch.kind;
 
     box.innerHTML = `
+      <div class="chat-thread-head"><div class="chat-thread-title"><b>${esc(ch.name)}</b><small>${esc(ch.kind)}</small></div></div>
       <div class="chat-scroll" id="sc-msgs"><p style="text-align:center;color:#6b7a94;padding:20px">بنحمّل…</p></div>
       <div class="composer">
         <textarea class="composer-in" id="sc-in" rows="1" maxlength="2000" placeholder="اكتب رسالة…"></textarea>
@@ -1701,6 +1727,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
     };
     $('#sc-send').onclick = send;
     wireComposer('#sc-in', send);
+    $('#sc-msgs').scrollTop = $('#sc-msgs').scrollHeight;
   }
 
   /* ---------- التسليم ---------- */

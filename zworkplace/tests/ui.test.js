@@ -677,7 +677,7 @@ async function api(method, p, body, t) {
     const src = fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
     ok('renderChatRooms بيفحص roomWith', /function renderChatRooms\(box\)\s*\{\s*if \(roomWith\)/.test(src));
     ok('الضغط على الغرفة بيحدد roomWith', /data-room[\s\S]{0,300}roomWith = \{/.test(src));
-    ok('renderComm بيوصل للغرف', /function renderComm[\s\S]{0,400}renderChatRooms\(box\)/.test(src));
+    ok('renderComm بيوصل للغرف', /function renderComm[\s\S]{0,700}renderChatRooms\(box\)/.test(src));
     ok('فيه صندوق كتابة في الغرفة', /id="rm-in"/.test(src));
     ok('فيه زرار إرسال في الغرفة', /id="rm-send"/.test(src));
   }
@@ -845,6 +845,19 @@ async function api(method, p, body, t) {
     ok('لا مكتبة أفاتارات', !/js\/avatars\.js/.test(html) && !fs.existsSync(path.join(ROOT, 'js/avatars.js')));
     ok('لا اختيار أفاتار', !/su-avatar|su-av|st-avatar|th-avatar/.test(html));
     ok('النوع متاح في التسجيل', /id="su-gender"/.test(html) && /gender: \$\('#su-gender-val'\)\.value/.test(app));
+  }
+
+  /* تصميم الدراسة الداكن مقتصر على الدردشة ويدعم البحث الحقيقي. */
+  {
+    const app = fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
+    const css = fs.readFileSync(path.join(ROOT, 'css/app.css'), 'utf8');
+    const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    ok('واجهة الطالب داكنة للدردشة فقط', /id="screen-stchat" class="screen sub study-chat"/.test(html));
+    ok('التواصل داكن للدردشة وليس الإعلانات', /classList.toggle\('study-chat', st.commTab !== 'ann'\)/.test(app));
+    ok('ألوان النموذج الداكنة', /\.study-chat \.chat-scroll\{[^}]*#20222f/.test(css) && /#4548c9/.test(css));
+    ok('البحث يفلتر الغرف والطلاب', /wireChatSearch\(box, '\[data-room\]'\)/.test(app) && /wireChatSearch\(box, '\[data-dm\]'\)/.test(app));
+    ok('خانة الرسائل تتمدد وتتمرير', /\.study-chat \.chat-scroll\{[^}]*overflow-y:auto/.test(css));
+    ok('مفيش أزرار مكالمات وهمية', !/i-phone|i-video/.test(app));
   }
 
   /* ══════════ ٣٥) فقاعات الدردشة — شكل تيليجرام ══════════
