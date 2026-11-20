@@ -169,6 +169,20 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
   $$('[data-back]').forEach((b) => (b.onclick = back));
   $$('[data-nav]').forEach((b) => (b.onclick = () => navTo(b.dataset.nav)));
 
+  /*
+   * زر الرجوع جوه الشاشات الفرعية (المس).
+   * كان مربوط بـnavTo('teacher') اللي بيعمل show(..., false) — يعني مش
+   * بيسجّل في الـhistory، والرجوع كان بيرجع لشاشة غلط بعد كده.
+   * دلوقتي بيرجع للمس مباشرة، وبيصفّر الـhistory عشان مسار الرجوع يفضل صح.
+   */
+  $$('[data-nav="teacher"]').forEach((b) => {
+    b.onclick = () => {
+      history = [];
+      show('screen-teacher', false);
+      renderTeacherHome();
+    };
+  });
+
   function navTo(what) {
     if (what === 'teacher') { show('screen-teacher', false); renderTeacherHome(); }
     else if (what === 'organize') { show('screen-organize'); renderOrganize(); }
@@ -306,11 +320,6 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
     try {
       const me = await api('GET', '/api/teacher/me');
       st.teacher = me;
-      $('#th-stats').innerHTML = `
-        <div class="stat s-pink"><b>${me.pending}</b><i>طلبات مستنية</i></div>
-        <div class="stat s-blue"><b>${me.students}</b><i>طلاب مفعّلين</i></div>
-        <div class="stat s-gold"><b>${me.classes}</b><i>فصول</i></div>
-        <div class="stat s-mint"><b>${me.groups}</b><i>مجموعات</i></div>`;
       const badge = $('#th-badge');
       badge.hidden = !me.pending;
       badge.textContent = me.pending > 99 ? '99+' : me.pending;
@@ -1375,23 +1384,15 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
     st.student = s;
     $('#st-hello').textContent = 'أهلاً بيك';
     $('#st-name').textContent = s.name;
+    $('#st-code').textContent = s.code;
+    $('#st-group').textContent = s.group ? s.group.name : 'لسه من غير مجموعة';
 
-    const girls = s.group && s.group.gender === 'girls';
-    $('#st-card').innerHTML = `
-      <div class="mc-top">
-        <div class="avatar ${girls ? 'girl' : ''}" style="background:rgba(255,255,255,.14);color:#fff">
-          ${esc(initials(s.name))}</div>
-        <div>
-          <div class="mc-name">${esc(s.name)}</div>
-          <div class="mc-sub">${s.group ? esc(s.group.className) : 'لسه من غير مجموعة'}</div>
-        </div>
-      </div>
-      <div class="mc-grid">
-        <div class="mc-cell"><span>كودك</span><b>${esc(s.code)}</b></div>
-        <div class="mc-cell"><span>المجموعة</span><b>${s.group ? esc(s.group.name) : '—'}</b></div>
-        <div class="mc-cell"><span>دورك</span><b class="${s.isLeader ? 'gold' : ''}">${s.isLeader ? ico('award','ic-sm') + ' قائد' : 'عضو'}</b></div>
-        <div class="mc-cell"><span>الحساب</span><b>مفعّل</b></div>
-      </div>`;
+    const lead = $('#st-lead');
+    lead.hidden = !s.isLeader;
+    if (s.isLeader && !lead.dataset.filled) {
+      lead.innerHTML = ico('award', 'ic-sm');
+      lead.dataset.filled = '1';
+    }
 
     // شارات
     try {

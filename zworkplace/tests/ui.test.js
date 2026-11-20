@@ -124,13 +124,22 @@ async function api(method, p, body, t) {
     window.document.querySelector('#tl-go').click();
     await sleep(600);
     eq('دخل لوحة المس', visible(window), 'screen-teacher');
-    ok('فيها ٤ بلاطات', window.document.querySelectorAll('#th-tiles .tile').length === 4);
-    const txt = window.document.querySelector('#th-tiles').textContent;
+    const grid = window.document.querySelector('#screen-teacher .pad-grid');
+    ok('فيها شبكة زراير', !!grid);
+    ok('فيها ٤ زراير مربعة', window.document.querySelectorAll('#screen-teacher .sq').length === 4);
+    const txt = grid.textContent;
     ok('لوحة التنظيم', /لوحة التنظيم/.test(txt));
     ok('الإشعارات', /الإشعارات/.test(txt));
     ok('التواصل', /التواصل/.test(txt));
     ok('مساحة الملفات', /مساحة الملفات/.test(txt));
-    ok('الإحصائيات ظاهرة', /\d/.test(window.document.querySelector('#th-stats').textContent));
+    // الشاشة ثابتة: مفيش .scroll جوه لوحة المس
+    ok('مفيش سكرول في لوحة المس', !window.document.querySelector('#screen-teacher .scroll'));
+    // الشكل المربع ٢×٢ — بنفحص ملف الـCSS مباشرة (jsdom مش بيحمّل ستايلات هنا)
+    const cssTxt = fs.readFileSync(path.join(ROOT, 'css', 'app.css'), 'utf8');
+    const pg = (cssTxt.match(/\.pad-grid\{([^}]*)\}/) || ['', ''])[1];
+    ok('الشبكة عمودين', /grid-template-columns:\s*1fr\s+1fr/.test(pg));
+    ok('الشبكة صفين', /grid-template-rows:\s*1fr\s+1fr/.test(pg));
+    ok('مفيش تمرير في الشبكة', /overflow:\s*hidden/.test(pg));
   }
 
   /* ---------- ٣. لوحة التنظيم ---------- */
@@ -255,12 +264,15 @@ async function api(method, p, body, t) {
     const { window } = await makeDom(STOK);
     await sleep(600);
     eq('على شاشة الطالب', visible(window), 'screen-student');
-    const card = window.document.querySelector('#st-card').textContent;
-    ok('شايف اسمه', card.includes(r.data.student.name.split(' ')[0]));
-    ok('شايف كوده', card.includes(NEW_CODE));
-    ok('شايف مجموعته', card.includes(r.data.student.group.name));
-    ok('عنده ٤ مساحات', window.document.querySelectorAll('#st-tiles .tile').length === 4);
-    const t = window.document.querySelector('#st-tiles').textContent;
+    const head = window.document.querySelector('#screen-student .st-top').textContent;
+    ok('شايف اسمه', head.includes(r.data.student.name.split(' ')[0]));
+    ok('شايف كوده', head.includes(NEW_CODE));
+    ok('شايف مجموعته', head.includes(r.data.student.group.name));
+    // البطاقة جوه الهيدر نفسه — مفيش كارت منفصل
+    ok('البطاقة جوه الهيدر', !window.document.querySelector('#st-card'));
+    ok('مفيش سكرول في شاشة الطالب', !window.document.querySelector('#screen-student .scroll'));
+    ok('عنده ٤ مساحات', window.document.querySelectorAll('#screen-student .sq').length === 4);
+    const t = window.document.querySelector('#screen-student .pad-grid').textContent;
     ok('الدردشة', /الدردشة/.test(t));
     ok('التسليم', /التسليم/.test(t));
     ok('ملفات مجموعتي', /مجموعتي/.test(t));

@@ -143,21 +143,24 @@
       <button class="icon-btn" id="th-logout" title="خروج" data-icon="logout"></button>
     </div>
   </header>
-  <div class="scroll">
-    <div class="sec-head"><h3>نظرة سريعة</h3></div>
-    <div class="stats4" id="th-stats"></div>
-    <div class="sec-head"><h3>الأقسام</h3></div>
-    <div class="tiles" id="th-tiles">
-      <button class="tile t-blue" data-nav="organize">
-        <span class="t-ico" data-icon="grid"></span><b>لوحة التنظيم</b><i>فصول · مجموعات · شارات</i></button>
-      <button class="tile t-gold" data-nav="requests">
-        <span class="t-ico" data-icon="bell"></span><b>الإشعارات</b><i>طلبات الانضمام</i>
-        <span class="badge" id="th-badge" hidden>0</span></button>
-      <button class="tile t-green" data-nav="comm">
-        <span class="t-ico" data-icon="chat"></span><b>التواصل</b><i>إعلانات · دردشة</i></button>
-      <button class="tile t-navy" data-nav="files">
-        <span class="t-ico" data-icon="folder"></span><b>مساحة الملفات</b><i>شغل المجموعات</i></button>
-    </div>
+  <div class="pad-grid">
+    <button class="sq t-blue" data-nav="organize">
+      <span class="sq-ico" data-icon="grid"></span>
+      <b>لوحة التنظيم</b>
+    </button>
+    <button class="sq t-gold" data-nav="requests">
+      <span class="sq-ico" data-icon="bell"></span>
+      <b>الإشعارات</b>
+      <span class="badge" id="th-badge" hidden>0</span>
+    </button>
+    <button class="sq t-green" data-nav="comm">
+      <span class="sq-ico" data-icon="chat"></span>
+      <b>التواصل</b>
+    </button>
+    <button class="sq t-navy" data-nav="files">
+      <span class="sq-ico" data-icon="folder"></span>
+      <b>مساحة الملفات</b>
+    </button>
   </div>
 </section>
 
@@ -219,10 +222,16 @@
 
 <!-- ═══════════ الطالب: الرئيسية ═══════════ -->
 <section id="screen-student" class="screen">
-  <header class="th-top">
-    <div>
-      <div class="th-greet" id="st-hello">مساحة العمل</div>
+  <header class="th-top st-top">
+    <div class="st-head">
+      <div class="th-greet" id="st-hello">أهلاً بيك</div>
       <h2 id="st-name">—</h2>
+      <div class="st-meta">
+        <span class="st-code" id="st-code">—</span>
+        <span class="st-dot"></span>
+        <span id="st-group">—</span>
+        <span class="st-lead" id="st-lead" hidden data-icon="award"></span>
+      </div>
     </div>
     <div style="display:flex;gap:8px">
       <button class="icon-btn" id="st-bell" title="الإشعارات" style="position:relative">
@@ -231,21 +240,25 @@
       <button class="icon-btn" id="st-logout" title="خروج" data-icon="logout"></button>
     </div>
   </header>
-  <div class="scroll">
-    <div class="my-card" id="st-card"></div>
-    <div class="sec-head"><h3>مساحاتي</h3></div>
-    <div class="tiles" id="st-tiles">
-      <button class="tile t-blue" data-snav="chat">
-        <span class="t-ico" data-icon="chat"></span><b>مساحة الدردشة</b><i>مجموعتك · فصلك</i></button>
-      <button class="tile t-gold" data-snav="submit">
-        <span class="t-ico" data-icon="upload"></span><b>مساحة التسليم</b><i>المطلوب منك</i>
-        <span class="badge" id="st-task-badge" hidden>0</span></button>
-      <button class="tile t-green" data-snav="files">
-        <span class="t-ico" data-icon="folder"></span><b>ملفات مجموعتي</b><i>شغلنا كله</i></button>
-      <button class="tile t-navy" data-snav="notify">
-        <span class="t-ico" data-icon="bell"></span><b>الإشعارات</b><i>إعلانات المس</i>
-        <span class="badge" id="st-notif-badge" hidden>0</span></button>
-    </div>
+  <div class="pad-grid">
+    <button class="sq t-blue" data-snav="chat">
+      <span class="sq-ico" data-icon="chat"></span>
+      <b>الدردشة</b>
+    </button>
+    <button class="sq t-gold" data-snav="submit">
+      <span class="sq-ico" data-icon="upload"></span>
+      <b>التسليم</b>
+      <span class="badge" id="st-task-badge" hidden>0</span>
+    </button>
+    <button class="sq t-green" data-snav="files">
+      <span class="sq-ico" data-icon="folder"></span>
+      <b>ملفات مجموعتي</b>
+    </button>
+    <button class="sq t-navy" data-snav="notify">
+      <span class="sq-ico" data-icon="bell"></span>
+      <b>الإشعارات</b>
+      <span class="badge" id="st-notif-badge" hidden>0</span>
+    </button>
   </div>
 </section>
 

@@ -332,10 +332,7 @@ input,textarea,select{font-family:inherit}
 }
 
 /* ══════════ الإحصاءات ══════════ */
-.stats4{
-  display:grid;grid-template-columns:repeat(2,1fr);
-  gap:11px;margin-bottom:6px;
-}
+.stats4{display:none}
 .stat{
   background:#fff;border-radius:var(--r-md);
   padding:16px 14px;box-shadow:var(--shadow-1);
@@ -636,6 +633,93 @@ input,textarea,select{font-family:inherit}
   *{animation:none!important;transition:none!important}
 }
 
+
+/* ══════════ الشاشة الرئيسية — شبكة ثابتة ══════════
+   الشاشة كلها ثابتة: الهيدر فوق، والأربع زراير مالية الباقي.
+   مفيش سكرول خالص — كل حاجة في مكانها على طول. */
+
+.pad-grid{
+  flex:1;display:grid;
+  grid-template-columns:1fr 1fr;
+  grid-template-rows:1fr 1fr;
+  gap:12px;
+  padding:14px;
+  min-height:0;
+  overflow:hidden;
+}
+
+.sq{
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:10px;
+  background:#fff;border-radius:var(--r-lg);
+  box-shadow:var(--shadow-1);
+  padding:14px 10px;
+  min-height:0;min-width:0;
+  position:relative;
+  transition:transform .12s ease,box-shadow .14s ease;
+}
+.sq:active{transform:scale(.965);box-shadow:var(--shadow-2)}
+
+.sq .sq-ico{
+  width:52px;height:52px;border-radius:17px;
+  display:grid;place-items:center;flex-shrink:0;
+}
+.sq b{
+  font-size:14.5px;font-weight:800;
+  letter-spacing:-.2px;color:var(--ink);
+  text-align:center;line-height:1.3;
+  max-width:100%;
+}
+
+/* نفس ألوان البلاطات القديمة */
+.sq.t-blue  .sq-ico{background:rgba(29,79,168,.10);color:var(--navy-500)}
+.sq.t-gold  .sq-ico{background:rgba(246,183,60,.16);color:#c98a0d}
+.sq.t-green .sq-ico{background:rgba(46,211,163,.14);color:#12a67c}
+.sq.t-navy  .sq-ico{background:rgba(20,59,133,.09);color:var(--navy-600)}
+
+/* الشارة على الزرار المربع */
+.sq .badge{
+  position:absolute;top:10px;left:10px;
+  min-width:24px;height:24px;padding:0 7px;
+  border-radius:9px;font-size:12px;
+  display:grid;place-items:center;
+  background:var(--pink);color:#fff;font-weight:800;
+}
+
+/* ══════════ رأس الطالب — البطاقة جوه الهيدر ══════════ */
+.st-top{align-items:flex-start}
+.st-head{min-width:0;flex:1}
+.st-meta{
+  display:flex;align-items:center;gap:7px;
+  margin-top:7px;font-size:12px;font-weight:700;
+  color:#c8d6f2;min-width:0;
+}
+.st-code{
+  font-variant-numeric:tabular-nums;
+  letter-spacing:.4px;
+  background:rgba(255,255,255,.14);
+  padding:3px 9px;border-radius:8px;
+  color:#fff;flex-shrink:0;
+}
+.st-dot{
+  width:4px;height:4px;border-radius:50%;
+  background:rgba(255,255,255,.4);flex-shrink:0;
+}
+.st-lead{
+  display:grid;place-items:center;
+  width:20px;height:20px;border-radius:6px;
+  background:var(--gold-2);color:#5c3f07;
+  flex-shrink:0;
+}
+.st-lead[hidden]{display:none}
+
+/* على الشاشات القصيرة نقلّل شوية */
+@media (max-height:680px){
+  .sq .sq-ico{width:46px;height:46px;border-radius:15px}
+  .sq b{font-size:13.5px}
+  .pad-grid{gap:10px;padding:12px}
+}
+
 </style>
 <script>
 /* ═══════════════════════════════════════════════
@@ -853,21 +937,24 @@ input,textarea,select{font-family:inherit}
       <button class="icon-btn" id="th-logout" title="خروج" data-icon="logout"></button>
     </div>
   </header>
-  <div class="scroll">
-    <div class="sec-head"><h3>نظرة سريعة</h3></div>
-    <div class="stats4" id="th-stats"></div>
-    <div class="sec-head"><h3>الأقسام</h3></div>
-    <div class="tiles" id="th-tiles">
-      <button class="tile t-blue" data-nav="organize">
-        <span class="t-ico" data-icon="grid"></span><b>لوحة التنظيم</b><i>فصول · مجموعات · شارات</i></button>
-      <button class="tile t-gold" data-nav="requests">
-        <span class="t-ico" data-icon="bell"></span><b>الإشعارات</b><i>طلبات الانضمام</i>
-        <span class="badge" id="th-badge" hidden>0</span></button>
-      <button class="tile t-green" data-nav="comm">
-        <span class="t-ico" data-icon="chat"></span><b>التواصل</b><i>إعلانات · دردشة</i></button>
-      <button class="tile t-navy" data-nav="files">
-        <span class="t-ico" data-icon="folder"></span><b>مساحة الملفات</b><i>شغل المجموعات</i></button>
-    </div>
+  <div class="pad-grid">
+    <button class="sq t-blue" data-nav="organize">
+      <span class="sq-ico" data-icon="grid"></span>
+      <b>لوحة التنظيم</b>
+    </button>
+    <button class="sq t-gold" data-nav="requests">
+      <span class="sq-ico" data-icon="bell"></span>
+      <b>الإشعارات</b>
+      <span class="badge" id="th-badge" hidden>0</span>
+    </button>
+    <button class="sq t-green" data-nav="comm">
+      <span class="sq-ico" data-icon="chat"></span>
+      <b>التواصل</b>
+    </button>
+    <button class="sq t-navy" data-nav="files">
+      <span class="sq-ico" data-icon="folder"></span>
+      <b>مساحة الملفات</b>
+    </button>
   </div>
 </section>
 
@@ -929,10 +1016,16 @@ input,textarea,select{font-family:inherit}
 
 <!-- ═══════════ الطالب: الرئيسية ═══════════ -->
 <section id="screen-student" class="screen">
-  <header class="th-top">
-    <div>
-      <div class="th-greet" id="st-hello">مساحة العمل</div>
+  <header class="th-top st-top">
+    <div class="st-head">
+      <div class="th-greet" id="st-hello">أهلاً بيك</div>
       <h2 id="st-name">—</h2>
+      <div class="st-meta">
+        <span class="st-code" id="st-code">—</span>
+        <span class="st-dot"></span>
+        <span id="st-group">—</span>
+        <span class="st-lead" id="st-lead" hidden data-icon="award"></span>
+      </div>
     </div>
     <div style="display:flex;gap:8px">
       <button class="icon-btn" id="st-bell" title="الإشعارات" style="position:relative">
@@ -941,21 +1034,25 @@ input,textarea,select{font-family:inherit}
       <button class="icon-btn" id="st-logout" title="خروج" data-icon="logout"></button>
     </div>
   </header>
-  <div class="scroll">
-    <div class="my-card" id="st-card"></div>
-    <div class="sec-head"><h3>مساحاتي</h3></div>
-    <div class="tiles" id="st-tiles">
-      <button class="tile t-blue" data-snav="chat">
-        <span class="t-ico" data-icon="chat"></span><b>مساحة الدردشة</b><i>مجموعتك · فصلك</i></button>
-      <button class="tile t-gold" data-snav="submit">
-        <span class="t-ico" data-icon="upload"></span><b>مساحة التسليم</b><i>المطلوب منك</i>
-        <span class="badge" id="st-task-badge" hidden>0</span></button>
-      <button class="tile t-green" data-snav="files">
-        <span class="t-ico" data-icon="folder"></span><b>ملفات مجموعتي</b><i>شغلنا كله</i></button>
-      <button class="tile t-navy" data-snav="notify">
-        <span class="t-ico" data-icon="bell"></span><b>الإشعارات</b><i>إعلانات المس</i>
-        <span class="badge" id="st-notif-badge" hidden>0</span></button>
-    </div>
+  <div class="pad-grid">
+    <button class="sq t-blue" data-snav="chat">
+      <span class="sq-ico" data-icon="chat"></span>
+      <b>الدردشة</b>
+    </button>
+    <button class="sq t-gold" data-snav="submit">
+      <span class="sq-ico" data-icon="upload"></span>
+      <b>التسليم</b>
+      <span class="badge" id="st-task-badge" hidden>0</span>
+    </button>
+    <button class="sq t-green" data-snav="files">
+      <span class="sq-ico" data-icon="folder"></span>
+      <b>ملفات مجموعتي</b>
+    </button>
+    <button class="sq t-navy" data-snav="notify">
+      <span class="sq-ico" data-icon="bell"></span>
+      <b>الإشعارات</b>
+      <span class="badge" id="st-notif-badge" hidden>0</span>
+    </button>
   </div>
 </section>
 
@@ -1179,6 +1276,20 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
   $$('[data-back]').forEach((b) => (b.onclick = back));
   $$('[data-nav]').forEach((b) => (b.onclick = () => navTo(b.dataset.nav)));
 
+  /*
+   * زر الرجوع جوه الشاشات الفرعية (المس).
+   * كان مربوط بـnavTo('teacher') اللي بيعمل show(..., false) — يعني مش
+   * بيسجّل في الـhistory، والرجوع كان بيرجع لشاشة غلط بعد كده.
+   * دلوقتي بيرجع للمس مباشرة، وبيصفّر الـhistory عشان مسار الرجوع يفضل صح.
+   */
+  $$('[data-nav="teacher"]').forEach((b) => {
+    b.onclick = () => {
+      history = [];
+      show('screen-teacher', false);
+      renderTeacherHome();
+    };
+  });
+
   function navTo(what) {
     if (what === 'teacher') { show('screen-teacher', false); renderTeacherHome(); }
     else if (what === 'organize') { show('screen-organize'); renderOrganize(); }
@@ -1316,11 +1427,6 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
     try {
       const me = await api('GET', '/api/teacher/me');
       st.teacher = me;
-      $('#th-stats').innerHTML = `
-        <div class="stat s-pink"><b>${me.pending}</b><i>طلبات مستنية</i></div>
-        <div class="stat s-blue"><b>${me.students}</b><i>طلاب مفعّلين</i></div>
-        <div class="stat s-gold"><b>${me.classes}</b><i>فصول</i></div>
-        <div class="stat s-mint"><b>${me.groups}</b><i>مجموعات</i></div>`;
       const badge = $('#th-badge');
       badge.hidden = !me.pending;
       badge.textContent = me.pending > 99 ? '99+' : me.pending;
@@ -2385,23 +2491,15 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
     st.student = s;
     $('#st-hello').textContent = 'أهلاً بيك';
     $('#st-name').textContent = s.name;
+    $('#st-code').textContent = s.code;
+    $('#st-group').textContent = s.group ? s.group.name : 'لسه من غير مجموعة';
 
-    const girls = s.group && s.group.gender === 'girls';
-    $('#st-card').innerHTML = `
-      <div class="mc-top">
-        <div class="avatar ${girls ? 'girl' : ''}" style="background:rgba(255,255,255,.14);color:#fff">
-          ${esc(initials(s.name))}</div>
-        <div>
-          <div class="mc-name">${esc(s.name)}</div>
-          <div class="mc-sub">${s.group ? esc(s.group.className) : 'لسه من غير مجموعة'}</div>
-        </div>
-      </div>
-      <div class="mc-grid">
-        <div class="mc-cell"><span>كودك</span><b>${esc(s.code)}</b></div>
-        <div class="mc-cell"><span>المجموعة</span><b>${s.group ? esc(s.group.name) : '—'}</b></div>
-        <div class="mc-cell"><span>دورك</span><b class="${s.isLeader ? 'gold' : ''}">${s.isLeader ? ico('award','ic-sm') + ' قائد' : 'عضو'}</b></div>
-        <div class="mc-cell"><span>الحساب</span><b>مفعّل</b></div>
-      </div>`;
+    const lead = $('#st-lead');
+    lead.hidden = !s.isLeader;
+    if (s.isLeader && !lead.dataset.filled) {
+      lead.innerHTML = ico('award', 'ic-sm');
+      lead.dataset.filled = '1';
+    }
 
     // شارات
     try {

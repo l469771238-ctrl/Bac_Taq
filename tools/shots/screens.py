@@ -98,12 +98,10 @@ def teacher():
     ImageDraw.Draw(mask).rounded_rectangle([0, 0, W-1, px(hh)], radius=px(20), fill=255)
     img.paste(hdr.convert('RGB'), (0, 0), mask)
 
-    # العنوان — على اليمين (padding-top 22)
     tr = CW - 20
     TT(img, (tr, 22), 'مساحة العمل', A6, 12.5, (200, 214, 242), 'ra')
     TT(img, (tr, 40), 'مس أسماء', A8, 25, WHITE, 'ra')
 
-    # أزرار الإعدادات والخروج — على الشمال
     bl = 20
     for i, ic in enumerate(['settings', 'logout']):
         x = bl + i*(42+8)
@@ -111,54 +109,30 @@ def teacher():
                    outline=(255, 255, 255, 41), width=1.5)
         img = ICO(img, ic, x+21, 30+21, 20, WHITE, 1.5)
 
-    # .scroll — padding 16 16
-    y = hh
-    # .sec-head — margin 24 4 13 (أول واحد margin-top 4)
-    y += 4
-    TT(img, (CW-20, y), 'نظرة سريعة', A8, 17, INK, 'ra')
-    y += 13 + 17
+    # .pad-grid — 2×2 مالي باقي الشاشة
+    gx, gy0 = 14, hh + 14
+    gap = 12
+    cw = (CW - 2*gx - gap) / 2
+    chh = (CH - gy0 - gx - gap) / 2
 
-    # .stats4 — grid 2 أعمدة، gap 11
-    gap = 11; sw = (CW - 32 - gap)/2; sh = 78
-    stats = [('0', 'طلبات مستنية', PINK), ('273', 'طلاب مفعّلين', NAVY5),
-             ('1', 'فصول', GOLD), ('2', 'مجموعات', MINT)]
-    for i, (n, l, c) in enumerate(stats):
-        col_i, row_i = i % 2, i // 2
-        x = CW - 16 - sw - col_i*(sw+gap)     # RTL: أول واحد على اليمين
-        yy = y + row_i*(sh+gap)
-        img = card(img, [px(x), px(yy), px(x+sw), px(yy+sh)], px(13), WHITE, px(8), 34, px(3))
-        # .stat b — 26px
-        TL(img, (x+sw/2, yy+24), n, L8, 26, INK, 'mm')
-        TTm(img, (x+sw/2, yy+50), l, A6, 12, INK3)
-        # .stat::after — 5px على الشمال
-        rr(img, [x, yy, x+5, yy+sh], 3, fill=c)
-        rr(img, [x, yy, x+5, yy+5], 0, fill=c)
-
-    y += 2*sh + gap + 6
-    # .sec-head الثاني
-    y += 24
-    TT(img, (CW-20, y), 'الأقسام', A8, 17, INK, 'ra')
-    y += 13 + 17
-
-    # .tiles — gap 11
-    tiles = [('grid', 'لوحة التنظيم', 'فصول · مجموعات · شارات', T_ICO_BLUE, NAVY5, None),
-             ('bell', 'الإشعارات', 'طلبات الانضمام', T_ICO_GOLD, (201, 138, 13), '0'),
-             ('chat', 'التواصل', 'إعلانات · دردشة', T_ICO_GREEN, (18, 166, 124), None),
-             ('folder', 'مساحة الملفات', 'شغل المجموعات', T_ICO_NAVY, NAVY6, None)]
-    th = 88
-    for i, (ic, t1, t2, ibg, icol, badge) in enumerate(tiles):
-        yy = y + i*(th+gap)
-        img = card(img, [px(16), px(yy), px(CW-16), px(yy+th)], px(18), WHITE, px(9), 40, px(4))
-        # .t-ico 52px radius 17 — على اليمين
-        ir = CW - 16 - 18; il = ir - 52
-        rr(img, [il, yy+18, ir, yy+18+52], 17, fill=ibg)
-        img = ICO(img, ic, il+26, yy+18+26, 24, icol, 1.5)
-        tx = il - 15
-        TT(img, (tx, yy+23), t1, A8, 16.5, INK, 'ra')
-        TT(img, (tx, yy+48), t2, A6, 12.5, INK3, 'ra')
+    tiles = [('grid',  'لوحة التنظيم',  T_ICO_BLUE,  NAVY5,       None),
+             ('bell',  'الإشعارات',     T_ICO_GOLD,  (201,138,13), '0'),
+             ('chat',  'التواصل',       T_ICO_GREEN, (18,166,124), None),
+             ('folder','مساحة الملفات', T_ICO_NAVY,  NAVY6,       None)]
+    for i, (ic, label, ibg, icol, badge) in enumerate(tiles):
+        ci, ri = i % 2, i // 2
+        x = CW - gx - cw - ci*(cw+gap)     # RTL: الأول على اليمين
+        y = gy0 + ri*(chh+gap)
+        img = card(img, [px(x), px(y), px(x+cw), px(y+chh)], px(18), WHITE, px(9), 40, px(4))
+        cx0, cy0 = x + cw/2, y + chh/2 - 12
+        img = rr_a(img, [cx0-26, cy0-26, cx0+26, cy0+26], 17, fill=ibg)
+        img = ICO(img, ic, cx0, cy0, 24, icol, 1.5)
+        TTm(img, (cx0, cy0 + 40), label, A8, 14.5, INK)
         if badge:
-            rr(img, [16+16, yy+14, 16+16+22, yy+14+22], 8, fill=PINK)
-            TL(img, (16+16+11, yy+14+11), badge, L8, 11.5, WHITE, 'mm')
+            img = rr_a(img, [x+10, y+10, x+34, y+34], 9, fill=PINK)
+            from PIL import ImageFont
+            ImageDraw.Draw(img).text((px(x+22), px(y+22)), badge,
+                                     font=ImageFont.truetype(L8, px(12)), fill=WHITE, anchor='mm')
     return save(img, '02-teacher.png')
 
 
@@ -167,7 +141,9 @@ def teacher():
 # ═══════════════════════════════════════════════
 def student():
     img = Image.new('RGBA', (W, H), PAPER+(255,))
-    hh = 94
+
+    # الهيدر أطول شوية — فيه الاسم والكود والمجموعة
+    hh = 132
     hdr = brandfill(W, px(hh)).convert('RGBA')
     ov = Image.new('RGBA', hdr.size, (0, 0, 0, 0))
     ImageDraw.Draw(ov).ellipse([px(-60), px(-90), px(-60+200), px(-90+200)], fill=(255, 255, 255, 15))
@@ -180,94 +156,61 @@ def student():
     TT(img, (tr, 22), 'أهلاً بيك', A6, 12.5, (200, 214, 242), 'ra')
     TT(img, (tr, 40), 'سارة محمد', A8, 25, WHITE, 'ra')
 
+    # .st-meta — كود · نقطة · مجموعة · شارة القيادة
+    my = 80
+    from PIL import ImageFont
+    # شارة القيادة على الشمال الأول
+    lg_x = tr - 20
+    img = rr_a(img, [lg_x-20, my-2, lg_x, my+18], 6, fill=GOLD2)
+    img = ICO(img, 'award', lg_x-10, my+8, 13, (92, 63, 7), 1.6)
+    # المجموعة
+    grp_w = 62
+    TT(img, (lg_x - 28, my), 'الياسمين', A7, 12, (200, 214, 242), 'ra')
+    # نقطة
+    dot_x = lg_x - 28 - grp_w - 8
+    img = rr_a(img, [dot_x-2, my+6, dot_x+2, my+10], 2, fill=(255, 255, 255, 102))
+    # الكود في بادج
+    code_x = dot_x - 10
+    code_w = 58
+    img = rr_a(img, [code_x-code_w, my-3, code_x, my+21], 8, fill=(255, 255, 255, 36))
+    ImageDraw.Draw(img).text((px(code_x-code_w/2), px(my+9)), '102438',
+                             font=ImageFont.truetype(L7, px(12)), fill=WHITE, anchor='mm')
+
     bl = 20
     for i, ic in enumerate(['bell', 'logout']):
         x = bl + i*(42+8)
-        img = rr_a(img, [x, 34, x+42, 34+42], 14, fill=(255, 255, 255, 36),
+        img = rr_a(img, [x, 24, x+42, 24+42], 14, fill=(255, 255, 255, 36),
                    outline=(255, 255, 255, 41), width=1.5)
-        img = ICO(img, ic, x+21, 34+21, 20, WHITE, 1.5)
+        img = ICO(img, ic, x+21, 24+21, 20, WHITE, 1.5)
         if ic == 'bell':
-            # .icon-btn .badge — top -4 left -4
-            rr(img, [x-4, 30, x-4+19, 30+19], 7, fill=PINK, outline=PAPER, width=2.5)
-            TL(img, (x-4+9.5, 30+9.5), '2', L8, 10, WHITE, 'mm')
+            img = rr_a(img, [x-4, 20, x-4+19, 20+19], 7, fill=PINK,
+                       outline=PAPER, width=2.5)
+            ImageDraw.Draw(img).text((px(x-4+9.5), px(20+9.5)), '2',
+                                     font=ImageFont.truetype(L8, px(10)), fill=WHITE, anchor='mm')
 
-    y = hh + 16
-    # .my-card — padding 22, grad-brand
-    ch = 210
-    cg = brandfill(px(CW-32), px(ch))
-    cm = Image.new('L', (px(CW-32), px(ch)), 0)
-    ImageDraw.Draw(cm).rounded_rectangle([0, 0, px(CW-32)-1, px(ch)-1], radius=px(18), fill=255)
-    img.paste(cg, (px(16), px(y)), cm)
+    # .pad-grid
+    gx, gy0 = 14, hh + 14
+    gap = 12
+    cw = (CW - 2*gx - gap) / 2
+    chh = (CH - gy0 - gx - gap) / 2
 
-    # .my-card::after — دايرة بيضاء .07 على الشمال فوق
-    cir = Image.new('RGBA', (W, H), (0, 0, 0, 0))
-    ImageDraw.Draw(cir).ellipse([px(16-50), px(y-80), px(16-50+180), px(y-80+180)],
-                                fill=(255, 255, 255, 18))
-    cir = cir.filter(ImageFilter.GaussianBlur(px(1)))
-    keep = Image.new('L', (W, H), 0)
-    ImageDraw.Draw(keep).rounded_rectangle([px(16), px(y), px(CW-16), px(y+ch)], radius=px(18), fill=255)
-    cir.putalpha(Image.composite(cir.getchannel('A'), Image.new('L', (W, H), 0), keep))
-    img = Image.alpha_composite(img, cir)
-
-    # .mc-top — padding 22، أفاتار 44 + الاسم على يمينها
-    ax = CW - 16 - 22 - 44
-    img = rr_a(img, [ax, y+22, ax+44, y+22+44], 15, fill=(255, 255, 255, 36))
-    from PIL import ImageFont
-    _d2 = ImageDraw.Draw(img)
-    _d2.text((px(ax+22), px(y+22+22)), 'سم', font=ImageFont.truetype(A8, px(15)),
-             fill=WHITE, anchor='mm')
-    tx = ax - 12
-    TT(img, (tx, y+24), 'سارة محمد', A8, 21, WHITE, 'ra')
-    TT(img, (tx, y+52), 'الصف الثالث الثانوي', A6, 12, (190, 206, 235), 'ra')
-
-    # .mc-grid — عمودين × عمودين
-    gy = y + 22 + 44 + 16
-    gh = (ch - (gy - y) - 22) / 2
-    gw = (CW - 44) / 2
-    cells = [('كودك', '102438', False), ('المجموعة', 'الياسمين', False),
-             ('دورك', 'قائد', True), ('الحساب', 'مفعّل', False)]
-    for i, (k, v, gold) in enumerate(cells):
+    tiles = [('chat',   'الدردشة',       T_ICO_BLUE,  NAVY5,       None),
+             ('upload', 'التسليم',       T_ICO_GOLD,  (201,138,13), '3'),
+             ('folder', 'ملفات مجموعتي', T_ICO_GREEN, (18,166,124), None),
+             ('bell',   'الإشعارات',     T_ICO_NAVY,  NAVY6,       '5')]
+    for i, (ic, label, ibg, icol, badge) in enumerate(tiles):
         ci, ri = i % 2, i // 2
-        cx0 = CW - 16 - 22 - ci*gw          # من اليمين للشمال
-        cy0 = gy + ri*gh
-        img = rr_a(img, [cx0-gw, cy0, cx0, cy0+gh], 0, fill=(255, 255, 255, 26))
-        TTm(img, (cx0-gw/2, cy0+9), k, A6, 10.5, (143, 167, 204))
-        if v.isdigit():
-            from PIL import ImageFont
-            _d = ImageDraw.Draw(img)
-            _d.text((px(cx0-gw/2), px(cy0+36)), v, font=ImageFont.truetype(L8, px(14)),
-                    fill=GOLD2 if gold else WHITE, anchor='mm')
-        else:
-            TTm(img, (cx0-gw/2, cy0+27), v, A8, 14, GOLD2 if gold else WHITE)
-    # فواصل 1px
-    img = rr_a(img, [CW-16-22-gw-0.5, gy, CW-16-22-gw+0.5, gy+2*gh], 0,
-               fill=(255, 255, 255, 40))
-    img = rr_a(img, [CW-16-22-2*gw, gy+gh-0.5, CW-16-22, gy+gh+0.5], 0,
-               fill=(255, 255, 255, 40))
-
-    y = y + ch + 6
-    # .sec-head
-    y += 24
-    TT(img, (CW-20, y), 'مساحاتي', A8, 17, INK, 'ra')
-    y += 13 + 17
-
-    tiles = [('chat', 'مساحة الدردشة', 'مجموعتك · فصلك', T_ICO_BLUE, NAVY5, None),
-             ('upload', 'مساحة التسليم', 'المطلوب منك', T_ICO_GOLD, (201, 138, 13), '3'),
-             ('folder', 'ملفات مجموعتي', 'شغلنا كله', T_ICO_GREEN, (18, 166, 124), None),
-             ('bell', 'الإشعارات', 'إعلانات المس', T_ICO_NAVY, NAVY6, '5')]
-    th = 88; gap = 11
-    for i, (ic, t1, t2, ibg, icol, badge) in enumerate(tiles):
-        yy = y + i*(th+gap)
-        img = card(img, [px(16), px(yy), px(CW-16), px(yy+th)], px(18), WHITE, px(9), 40, px(4))
-        ir = CW - 16 - 18; il = ir - 52
-        rr(img, [il, yy+18, ir, yy+18+52], 17, fill=ibg)
-        img = ICO(img, ic, il+26, yy+18+26, 24, icol, 1.5)
-        tx = il - 15
-        TT(img, (tx, yy+23), t1, A8, 16.5, INK, 'ra')
-        TT(img, (tx, yy+48), t2, A6, 12.5, INK3, 'ra')
+        x = CW - gx - cw - ci*(cw+gap)
+        y = gy0 + ri*(chh+gap)
+        img = card(img, [px(x), px(y), px(x+cw), px(y+chh)], px(18), WHITE, px(9), 40, px(4))
+        cx0, cy0 = x + cw/2, y + chh/2 - 12
+        img = rr_a(img, [cx0-26, cy0-26, cx0+26, cy0+26], 17, fill=ibg)
+        img = ICO(img, ic, cx0, cy0, 24, icol, 1.5)
+        TTm(img, (cx0, cy0 + 40), label, A8, 14.5, INK)
         if badge:
-            rr(img, [32, yy+14, 54, yy+36], 8, fill=PINK)
-            TL(img, (43, yy+25), badge, L8, 11.5, WHITE, 'mm')
+            img = rr_a(img, [x+10, y+10, x+34, y+34], 9, fill=PINK)
+            ImageDraw.Draw(img).text((px(x+22), px(y+22)), badge,
+                                     font=ImageFont.truetype(L8, px(12)), fill=WHITE, anchor='mm')
     return save(img, '03-student.png')
 
 
