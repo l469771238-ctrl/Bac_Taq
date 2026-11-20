@@ -267,7 +267,32 @@ public class MainActivity extends Activity {
             }
         });
 
-        web.setWebChromeClient(new WebChromeClient());
+        // لازم WebChromeClient بيعرض الحوارات — النسخة الفاضية بترجّع false
+        // صامت في onJsConfirm، فكان أي confirm() جوه الصفحة بيموت من غير أثر.
+        web.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onJsAlert(WebView view, String url, String message,
+                                     final android.webkit.JsResult result) {
+                new android.app.AlertDialog.Builder(MainActivity.this)
+                        .setMessage(message)
+                        .setCancelable(false)
+                        .setPositiveButton("حسناً", (d, w) -> result.confirm())
+                        .show();
+                return true;
+            }
+
+            @Override
+            public boolean onJsConfirm(WebView view, String url, String message,
+                                       final android.webkit.JsResult result) {
+                new android.app.AlertDialog.Builder(MainActivity.this)
+                        .setMessage(message)
+                        .setCancelable(false)
+                        .setPositiveButton("أيوه", (d, w) -> result.confirm())
+                        .setNegativeButton("إلغاء", (d, w) -> result.cancel())
+                        .show();
+                return true;
+            }
+        });
         web.loadUrl(base + "/?zapi=" + android.net.Uri.encode(base));
         root.addView(web, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));

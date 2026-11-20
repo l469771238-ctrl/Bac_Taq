@@ -290,6 +290,7 @@ route('GET', '/api/teacher/settings', async (req, res) => {
     defaults: { maxGroup: DEFAULT_MAX_GROUP },
     classCount: db.prepare('SELECT COUNT(*) n FROM classes').get().n,
     groupCount: db.prepare('SELECT COUNT(*) n FROM groups').get().n,
+    rosterCount: db.prepare('SELECT COUNT(*) n FROM roster').get().n,
   });
 });
 

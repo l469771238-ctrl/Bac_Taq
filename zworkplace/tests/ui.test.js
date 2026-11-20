@@ -597,6 +597,131 @@ async function api(method, p, body, t) {
     ok('التابات بتغيّر المحتوى', seen.size >= 2, 'عدد الحالات: ' + seen.size);
   }
 
+  /* ══════════ ١٦) نصوص الكود ما تظهرش للمستخدم ══════════
+     غلطة علامة تنصيص واحدة (') بدل backtick بتخلي ${ico(...)} يطلع
+     نص خام على الشاشة. الفحص ده بيمنعها ترجع. */
+  console.log('\n[١٦] نصوص الكود مش ظاهرة للمستخدم');
+  {
+    const src = fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
+    const lines = src.split('\n');
+    const bad = [];
+    lines.forEach((l, i) => {
+      // تيرناري جوه template literal سليم: ${x ? 'a' : 'b'} — نتجاهله
+      let check = l.replace(/\$\{[^{}]*\?[^{}]*\}/g, '');
+      // أي ${...} فاضل بين علامتين مفردتين → مش هيتفسّر
+      const m = check.match(/'[^']*\$\{[^'"]*'/g);
+      if (m) bad.push(`${i + 1}: ${m[0].slice(0, 60)}`);
+    });
+    ok('مفيش ${...} جوه علامات مفردة', bad.length === 0, bad.join(' | '));
+
+    // كل ملفات الصفحات بتشتغل
+    const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    ok('الصفحة فيها مكتبتي الأيقونات والتطبيق',
+      html.includes('js/icons.js') && html.includes('js/app.js'));
+  }
+
+  /* ══════════ ١٧) hidden بيخفي فعلاً ══════════
+     .sq .badge بيحدد display:grid فبيتغلّب على hidden —
+     والنتيجة عدّاد «0» بيظهر من غير سبب. */
+  console.log('\n[١٧] hidden بيخفّي فعلاً');
+  {
+    const css = fs.readFileSync(path.join(ROOT, 'css/app.css'), 'utf8');
+    ok('قاعدة [hidden] عامة موجودة', /\[hidden\]\s*\{[^}]*display\s*:\s*none\s*!important/.test(css),
+      'لازم [hidden]{display:none !important}');
+
+    // الشارات كلها hidden في الـHTML الافتراضي
+    const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const badges = html.match(/class="badge"[^>]*>/g) || [];
+    const shown = badges.filter((b) => !b.includes('hidden'));
+    ok('كل الشارات مخفية في الـHTML', shown.length === 0,
+      `ظاهر من غير hidden: ${shown.length}`);
+  }
+
+  /* ══════════ ١٨) مفيش confirm() بتاع المتصفح ══════════
+     confirm() بيرجّع false صامت جوه WebView الأندرويد،
+     فكل زرار فيه تأكيد كان بيبقى ميت. */
+  console.log('\n[١٨] مفيش confirm() في الكود');
+  {
+    const src = fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
+    const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    const uses = (code.match(/(^|[^.\w])confirm\s*\(/g) || []).length;
+    ok('مفيش confirm() مستخدم', uses === 0, `لقيت ${uses}`);
+    ok('فيه حوار تأكيد بديل', /function confirmDlg/.test(src));
+  }
+
+  /* ══════════ ١٩) كل حذف بيتأكد الأول ══════════
+     الحذف بضغطة واحدة = الطالبة بتمسح شغل شهر بالغلط. */
+  console.log('\n[١٩] كل إجراء حذف بيتأكد');
+  {
+    const src = fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
+    const lines = src.split('\n');
+    const bare = [];
+    lines.forEach((l, i) => {
+      if (/api\('DELETE'/.test(l)) {
+        const ctx = lines.slice(Math.max(0, i - 8), i + 1).join(' ');
+        if (!/confirmDlg/.test(ctx)) bare.push(i + 1 + ': ' + l.trim().slice(0, 50));
+      }
+    });
+    ok('مفيش حذف من غير تأكيد', bare.length === 0, bare.join(' | '));
+    ok('مسح الملف الشخصي بيتأكد', /data-mine-del[\s\S]{0,200}confirmDlg/.test(src));
+    ok('حذف الإعلان بيتأكد', /data-del\]'[\s\S]{0,400}confirmDlg/.test(src));
+    ok('مسح رسالة الغرفة بيتأكد', /data-rmdel[\s\S]{0,300}confirmDlg/.test(src));
+    ok('مسح رسالة العضو بيتأكد', /data-dmdel[\s\S]{0,300}confirmDlg/.test(src));
+    ok('إلغاء التسليم بيتأكد', /data-unsub[\s\S]{0,300}confirmDlg/.test(src));
+  }
+
+  /* ══════════ ٢٠) غرف الدردشة بتفتح فعلاً ══════════
+     renderComm لازم يمرّر لـrenderChatRooms اللي بيفحص roomWith. */
+  console.log('\n[٢٠] غرف الدردشة بتفتح');
+  {
+    const src = fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
+    ok('renderChatRooms بيفحص roomWith', /function renderChatRooms\(box\)\s*\{\s*if \(roomWith\)/.test(src));
+    ok('الضغط على الغرفة بيحدد roomWith', /data-room[\s\S]{0,300}roomWith = \{/.test(src));
+    ok('renderComm بيوصل للغرف', /function renderComm[\s\S]{0,400}renderChatRooms\(box\)/.test(src));
+    ok('فيه صندوق كتابة في الغرفة', /id="rm-in"/.test(src));
+    ok('فيه زرار إرسال في الغرفة', /id="rm-send"/.test(src));
+  }
+
+  /* ══════════ ٢١) كشف الطلبة متاح ══════════ */
+  console.log('\n[٢١] كشف الطلبة');
+  {
+    const app = fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
+    const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const srv = fs.readFileSync(path.join(ROOT, 'server/index.js'), 'utf8');
+    ok('شاشة الكشف موجودة', html.includes('id="screen-roster"'));
+        ok('زرار فتح الكشف في الإعدادات', app.includes('#set-roster'));
+    ok('بيقرا من /api/teacher/roster', /api\('GET', '\/api\/teacher\/roster/.test(app));
+    ok('فيه بحث', app.includes('rs-q'));
+    ok('السيرفر بيرجّع عدد الكشف', srv.includes('rosterCount'));
+  }
+
+  /* ══════════ ٢٢) كلمات السر الضعيفة مرفوضة ══════════ */
+  console.log('\n[٢٢] كلمات السر الضعيفة');
+  {
+    const A = require(path.join(ROOT, 'server/auth.js'));
+    ok('مسافات بس مرفوضة', !!A.passProblem('        '));
+    ok('أرقام بس مرفوضة', !!A.passProblem('12345678'));
+    ok('حرف واحد مكرر مرفوض', !!A.passProblem('aaaaaaaa'));
+    ok('قصيرة مرفوضة', !!A.passProblem('ab'));
+    ok('طويلة جدًا مرفوضة', !!A.passProblem('a'.repeat(300)));
+    ok('asmaa2026 مقبولة', A.passProblem('asmaa2026') === '');
+    ok('goodpass1 مقبولة', A.passProblem('goodpass1') === '');
+    ok('كلمة عربية مقبولة', A.passProblem('كلمةسر123') === '');
+    // الهاش
+    const h = A.hash('goodpass1');
+    ok('الهاش مش الباسورد', h.hash !== 'goodpass1');
+    ok('التحقق شغال', A.verify('goodpass1', h.hash, h.salt));
+    ok('باسورد غلط مرفوض', !A.verify('wrong', h.hash, h.salt));
+  }
+
+  /* ══════════ ٢٣) الجلسات ══════════ */
+  console.log('\n[٢٣] الجلسات');
+  {
+    const A = require(path.join(ROOT, 'server/auth.js'));
+    ok('التوكن عشوائي ٤٨ حرف', A.newToken().length === 48);
+    ok('١٠٠ توكن مختلفين', new Set(Array.from({ length: 100 }, () => A.newToken())).size === 100);
+  }
+
   console.log(`\n=== النتيجة: ${pass} نجح · ${fail} فشل ===`);
   if (fail) {
     console.log('فشل: ' + fails.join(' · '));

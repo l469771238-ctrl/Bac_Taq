@@ -388,7 +388,62 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
           • محدش يشوف ملفات مجموعة تانية<br>
           • أقصى حجم للملف ١٢٠ ميجا
         </div>
+      </div>
+
+      <div class="sec-head"><h3>كشف الطلبة</h3></div>
+      <div class="card">
+        <p style="font-size:12px;color:#5b6b85;margin:0 0 12px;line-height:1.8">
+          الكشف اللي بيتسجّل بيه الطلبة — ${d.rosterCount || '٢٧٣'} كود.
+        </p>
+        <div class="acts">
+          <button class="btn ghost" id="set-roster">افتحي الكشف</button>
+        </div>
+      </div>
+
+      <div class="sec-head"><h3>كلمة السر</h3></div>
+      <div class="card">
+        <p style="font-size:12px;color:#5b6b85;margin:0 0 12px;line-height:1.8">
+          غيّري كلمة سرك من وقت للتاني. هتحتاجيها في الدخول من أي جهاز.
+        </p>
+        <div class="acts">
+          <button class="btn ghost" id="set-pass">تغيير كلمة السر</button>
+        </div>
       </div>`;
+
+    $('#set-pass').onclick = () => {
+      sheet(`
+        <h3>كلمة سر جديدة</h3>
+        <p class="sub">٨ حروف على الأقل.</p>
+        <label class="field"><span>كلمة السر الحالية</span>
+          <input id="pw-old" type="password" placeholder="••••••••" autocomplete="current-password"></label>
+        <label class="field"><span>الجديدة</span>
+          <input id="pw-new" type="password" placeholder="••••••••" autocomplete="new-password"></label>
+        <label class="field"><span>الجديدة تاني</span>
+          <input id="pw-new2" type="password" placeholder="••••••••" autocomplete="new-password"></label>
+        <div class="sheet-acts">
+          <button class="btn ghost" data-close>إلغاء</button>
+          <button class="btn primary" id="pw-ok">احفظ</button>
+        </div>`, () => {
+        $('#pw-old').focus();
+        $('#pw-ok').onclick = async () => {
+          const oldP = $('#pw-old').value;
+          const a = $('#pw-new').value;
+          const b = $('#pw-new2').value;
+          if (!oldP) return toast('اكتبي كلمة السر الحالية');
+          if (a.length < 8) return toast('الجديدة ٨ حروف على الأقل');
+          if (a !== b) return toast('الجديدتين مش زي بعض');
+          try {
+            // نتأكد من كلمة السر الحالية الأول
+            await api('POST', '/api/teacher/login', { password: oldP });
+            await api('POST', '/api/teacher/password', { password: a });
+            closeSheet();
+            toast('كلمة السر اتغيّرت');
+          } catch (e) {
+            toast(e.status === 401 ? 'كلمة السر الحالية غلط' : e.message);
+          }
+        };
+      });
+    };
 
     let val = d.maxGroup;
     const paint = () => ($('#set-val').textContent = val);
@@ -399,6 +454,49 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
         const r = await api('PATCH', '/api/teacher/settings', { maxGroup: val });
         toast('اتحفظ — الحد بقى ' + r.maxGroup + ' أعضاء');
       } catch (e) { toast(e.message); }
+    };
+    $('#set-roster').onclick = () => { show('screen-roster'); renderRoster(); };
+  }
+
+  /* ---------------- كشف الطلبة ---------------- */
+
+  let rosterQ = '';
+
+  async function renderRoster() {
+    const box = $('#roster-body');
+    box.innerHTML = `
+      <label class="field" style="margin-bottom:12px">
+        <input id="rs-q" placeholder="دوّري بالاسم أو الكود…" value="${esc(rosterQ)}"
+          style="padding:13px 15px;border-radius:13px;border:1.5px solid #e3e8f2;font-family:inherit;font-size:14px;width:100%">
+      </label>
+      <div id="rs-list"><p style="text-align:center;color:#6b7a94;padding:24px">بنحمّل…</p></div>`;
+
+    let d;
+    try { d = await api('GET', '/api/teacher/roster' + (rosterQ ? '?q=' + encodeURIComponent(rosterQ) : '')); }
+    catch (e) { $('#rs-list').innerHTML = `<div class="empty"><p>${esc(e.message)}</p></div>`; return; }
+
+    const list = $('#rs-list');
+    if (!d.rows.length) {
+      list.innerHTML = `<div class="empty"><div class="e-ico">${ico("users", "ic-xl")}</div><p>مفيش حد بالاسم ده</p></div>`;
+    } else {
+      list.innerHTML = `
+        <p style="font-size:12px;color:#6b7a94;margin:0 0 10px">
+          ${d.rows.length}${rosterQ ? ' نتيجة' : ' من ' + d.total} طالب</p>
+        ${d.rows.map((r) => `
+          <div class="mem" style="padding:11px 0;border-bottom:1px dashed #e6ecf5">
+            <div class="avatar" style="width:32px;height:32px;font-size:12px;border-radius:9px">${esc(initials(r.name))}</div>
+            <div style="flex:1;min-width:0">
+              <b style="font-size:13px">${esc(r.name)}</b>
+              <small style="font-size:11px;color:#6b7a94;display:block;direction:ltr;text-align:right">${esc(r.code)}</small>
+            </div>
+          </div>`).join('')}`;
+    }
+
+    const qi = $('#rs-q');
+    let tm = null;
+    qi.oninput = () => {
+      clearTimeout(tm);
+      tm = setTimeout(() => { rosterQ = qi.value.trim(); renderRoster().then(() => $('#rs-q')?.focus()); }, 350);
     };
   }
 
@@ -850,7 +948,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
             <span>${esc(a.to)} · ${when(a.at)}</span>
             <button class="chip red" data-del="${a.id}">حذف</button>
           </div>
-        </div>`).join('') : '<div class="empty"><div class="e-ico">${ico("bell","ic-xl")}</div><p>مفيش إعلانات لسه</p></div>'}`;
+        </div>`).join('') : `<div class="empty"><div class="e-ico">${ico("bell","ic-xl")}</div><p>مفيش إعلانات لسه</p></div>`}`;
 
     let scope = 'all';
     $$('#an-seg button').forEach((b) => (b.onclick = () => {
@@ -866,8 +964,9 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
         renderComm();
       } catch (e) { toast(e.message); }
     };
-    $$('[data-del]', box).forEach((el) => (el.onclick = async () => {
-      try { await api('DELETE', '/api/teacher/announce/' + el.dataset.del); renderComm(); } catch (e) { toast(e.message); }
+    $$('[data-del]', box).forEach((el) => (el.onclick = () => {
+      confirmDlg('حذف الإعلان', 'الإعلان هيتشال من عند كل الطلبة.', 'احذف',
+        async () => { await api('DELETE', '/api/teacher/announce/' + el.dataset.del); toast('اتحذف'); renderComm(); }, true);
     }));
   }
 
@@ -879,7 +978,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
     }
     const students = data.rows.filter((s) => s.status === 'active');
     if (!students.length) {
-      box.innerHTML = '<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش طلاب مفعّلين لسه</p></div>';
+      box.innerHTML = `<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش طلاب مفعّلين لسه</p></div>`;
       return;
     }
     box.innerHTML = students.map((s) => `
@@ -910,7 +1009,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
         ${d.msgs.length ? d.msgs.map((m) => `
           <div class="msg mine"><div class="m-body">${esc(m.body)}</div>
             <div class="m-meta"><span>${when(m.at)}</span><span>المس</span></div></div>`).join('')
-          : '<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش رسايل لسه — ابدأي</p></div>'}
+          : `<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش رسايل لسه — ابدأي</p></div>`}
       </div>
       <div style="display:flex;gap:8px;margin-top:12px">
         <input id="ch-in" placeholder="اكتبي رسالة…" style="flex:1;padding:13px 15px;border-radius:13px;border:1.5px solid #e3e8f2;font-family:inherit;font-size:14px">
@@ -947,7 +1046,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
     }
     const students = d.rows.filter((x) => x.status === 'active');
     if (!students.length) {
-      box.innerHTML = '<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش طلاب مفعّلين لسه</p></div>';
+      box.innerHTML = `<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش طلاب مفعّلين لسه</p></div>`;
       return;
     }
     box.innerHTML = `
@@ -986,7 +1085,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
             <div class="m-meta"><span>${when(m.at)}</span>
               <button class="chip red" data-dmdel="${m.id}" style="font-size:10px">مسح</button></div>
           </div>`).join('')
-          : '<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش رسايل — اكتبي أول واحدة</p></div>'}
+          : `<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش رسايل — اكتبي أول واحدة</p></div>`}
       </div>
       <div style="display:flex;gap:8px;margin-top:12px">
         <input id="dm-in" placeholder="اكتبي رسالة…" maxlength="2000"
@@ -1004,11 +1103,9 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
     };
     $('#dm-send').onclick = send;
     $('#dm-in').onkeydown = (e) => { if (e.key === 'Enter') send(); };
-    $$('[data-dmdel]', box).forEach((el) => (el.onclick = async () => {
-      try {
-        await api('DELETE', '/api/teacher/dm/message/' + el.dataset.dmdel);
-        renderComm();
-      } catch (e) { toast(e.message); }
+    $$('[data-dmdel]', box).forEach((el) => (el.onclick = () => {
+      confirmDlg('مسح الرسالة', 'الرسالة هتتشال من عند الطالب كمان.', 'امسح',
+        async () => { await api('DELETE', '/api/teacher/dm/message/' + el.dataset.dmdel); toast('اتمسحت'); renderComm(); }, true);
     }));
   }
 
@@ -1158,21 +1255,21 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       </div>`);
 
     $$('[data-pdl]').forEach((el) => (el.onclick = () => downloadFile(el.dataset.pdl)));
-    $$('[data-pdel]').forEach((el) => (el.onclick = async () => {
-      try {
+    $$('[data-pdel]').forEach((el) => (el.onclick = () => {
+      confirmDlg('مسح الملف', 'ملف الطالب هيتشال نهائي.', 'امسح', async () => {
         await api('DELETE', '/api/files/' + el.dataset.pdel);
         closeSheet();
         toast('اتمسح');
         renderFiles();
-      } catch (e) { toast(e.message); }
+      }, true);
     }));
-    $$('[data-tdel]').forEach((el) => (el.onclick = async () => {
-      try {
+    $$('[data-tdel]').forEach((el) => (el.onclick = () => {
+      confirmDlg('مسح المطلوب', 'المطلوب هيتشال من كل الطلبة.', 'امسح', async () => {
         await api('DELETE', '/api/teacher/tasks/' + el.dataset.tdel);
         closeSheet();
         toast('المطلوب اتمسح');
         renderFiles();
-      } catch (e) { toast(e.message); }
+      }, true);
     }));
     $('#p-zip').onclick = () => downloadZip('studentId=' + sid);
     $('#p-addtask').onclick = () => taskSheet({ studentId: sid, name: m.name });
@@ -1217,12 +1314,12 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       d.classes.forEach((c) => c.groups.forEach((g) => { if (g.id === gid) gname = g.name; }));
       taskSheet({ groupId: gid, name: gname });
     }));
-    $$('[data-deltask]', box).forEach((el) => (el.onclick = async () => {
-      try {
+    $$('[data-deltask]', box).forEach((el) => (el.onclick = () => {
+      confirmDlg('مسح المطلوب', 'المطلوب هيتشال من كل الطلبة.', 'امسح', async () => {
         await api('DELETE', '/api/teacher/tasks/' + el.dataset.deltask);
         toast('اتمسح');
         renderFiles();
-      } catch (e) { toast(e.message); }
+      }, true);
     }));
   }
 
@@ -1295,7 +1392,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       box.innerHTML = `<div class="empty"><p>${esc(e.message)}</p></div>`; return;
     }
     if (!d.channels.length) {
-      box.innerHTML = '<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش مجموعات لسه</p></div>';
+      box.innerHTML = `<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش مجموعات لسه</p></div>`;
       return;
     }
     box.innerHTML = d.channels.map((c) => `
@@ -1337,7 +1434,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
             <div class="m-body">${esc(m.body)}</div>
             <div class="m-meta"><span>${when(m.at)}</span>
               <button class="chip red" data-rmdel="${m.id}" style="font-size:10px">مسح</button></div>
-          </div>`).join('') : '<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش رسايل</p></div>'}
+          </div>`).join('') : `<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش رسايل</p></div>`}
       </div>
       <div style="display:flex;gap:8px;margin-top:12px">
         <input id="rm-in" placeholder="اكتبي رسالة…" style="flex:1;padding:13px 15px;border-radius:13px;border:1.5px solid #e3e8f2;font-family:inherit;font-size:14px">
@@ -1354,11 +1451,9 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
     };
     $('#rm-send').onclick = send;
     $('#rm-in').onkeydown = (e) => { if (e.key === 'Enter') send(); };
-    $$('[data-rmdel]').forEach((el) => (el.onclick = async () => {
-      try {
-        await api('DELETE', '/api/teacher/chatroom/' + el.dataset.rmdel);
-        renderComm();
-      } catch (e) { toast(e.message); }
+    $$('[data-rmdel]').forEach((el) => (el.onclick = () => {
+      confirmDlg('مسح الرسالة', 'الرسالة هتتشال من عند الكل.', 'امسح',
+        async () => { await api('DELETE', '/api/teacher/chatroom/' + el.dataset.rmdel); toast('اتمسحت'); renderComm(); }, true);
     }));
   }
 
@@ -1422,7 +1517,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
     }
 
     if (!d.items.length && !d.pendingTasks) {
-      box.innerHTML = '<div class="empty"><div class="e-ico">${ico("inbox","ic-xl")}</div><p>مفيش إشعارات لسه</p></div>';
+      box.innerHTML = `<div class="empty"><div class="e-ico">${ico("inbox","ic-xl")}</div><p>مفيش إشعارات لسه</p></div>`;
       return;
     }
 
@@ -1519,7 +1614,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
           <div class="m-body">${esc(m.body)}</div>
           <div class="m-meta"><span></span><span>${when(m.at)}</span></div>
         </div>`).join('')
-      : '<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش رسايل لسه — ابدأ انت</p></div>';
+      : `<div class="empty"><div class="e-ico">${ico("chat","ic-xl")}</div><p>مفيش رسايل لسه — ابدأ انت</p></div>`;
 
     const send = async () => {
       const v = $('#sc-in').value.trim();
@@ -1568,12 +1663,12 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
 
     $$('[data-sub]', box).forEach((el) => (el.onclick = () => submitSheet(Number(el.dataset.sub), false)));
     $$('[data-resub]', box).forEach((el) => (el.onclick = () => submitSheet(Number(el.dataset.resub), true)));
-    $$('[data-unsub]', box).forEach((el) => (el.onclick = async () => {
-      try {
+    $$('[data-unsub]', box).forEach((el) => (el.onclick = () => {
+      confirmDlg('إلغاء التسليم', 'تقدر ترفع الشغل تاني بعد كده.', 'الغِ التسليم', async () => {
         await api('DELETE', '/api/student/submit/' + el.dataset.unsub);
         toast('التسليم اتلغى');
         renderSubmit();
-      } catch (e) { toast(e.message); }
+      }, true);
     }));
   }
 
@@ -1668,12 +1763,11 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
 
     $$('[data-dl]', box).forEach((el) => (el.onclick = () => downloadFile(el.dataset.dl)));
     $$('[data-mine-del]', box).forEach((el) => (el.onclick = async () => {
-      if (!confirm('تمسح الملف ده؟')) return;
-      try {
+      confirmDlg('مسح الملف', 'الملف هيتشال نهائي.', 'امسح', async () => {
         await api('DELETE', '/api/files/' + el.dataset.mineDel);
         toast('اتمسح');
         renderGroupFiles();
-      } catch (e) { toast(e.message); }
+      }, true);
     }));
   }
 
@@ -1778,6 +1872,7 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
   function closeSheet() {
     if (sheetEl) { sheetEl.remove(); sheetEl = null; }
   }
+
 
   /* ---------------- تشغيل ---------------- */
 

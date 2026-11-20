@@ -703,6 +703,10 @@ input,textarea,select{font-family:inherit}
   background:var(--gold-2);color:#5c3f07;
   flex-shrink:0;
 }
+/* أي عنصر بيتحطّ عليه hidden لازم يختفي فعلاً — من غير القاعدة دي
+   كلاسات زي .sq .badge و.icon-btn .badge بتحدد display صريح فبتتغلّب
+   على hidden، والنتيجة عدّاد «0» بينور من غير ما يكون فيه حاجة. */
+[hidden]{display:none !important}
 .st-lead[hidden]{display:none}
 
 /* على الشاشات القصيرة نقلّل شوية */
