@@ -722,6 +722,33 @@ async function api(method, p, body, t) {
     ok('١٠٠ توكن مختلفين', new Set(Array.from({ length: 100 }, () => A.newToken())).size === 100);
   }
 
+  /* ══════════ ٢٤) العناصر الزخرفية مش بتمتص اللمس ══════════
+     دايرة .th-top::after كانت بتترسم فوق زرارَي الإعدادات والخروج
+     وبتامتص اللمس — الزرارين كانوا ميتين تمامًا. */
+  console.log('\n[٢٤] العناصر الزخرفية مش بتمتص اللمس');
+  {
+    const css = fs.readFileSync(path.join(ROOT, 'css/app.css'), 'utf8');
+    const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)];
+    const bare = [];
+    for (const [, sel, body] of rules) {
+      if (!/::(before|after)/.test(sel)) continue;
+      if (!/position\s*:\s*absolute/.test(body)) continue;
+      if (!/pointer-events\s*:\s*none/.test(body)) bare.push(sel.trim());
+    }
+    ok('كل ::before/::after المطلقة معاها pointer-events:none', bare.length === 0, bare.join(' | '));
+
+    // الأزرار لازم تكون فوق أي طبقة زخرفية
+    const btnRule = css.match(/\.th-top \.icon-btn\{([^}]*)\}/);
+    ok('أزرار الرأس فوق الدايرة', !!btnRule && /z-index\s*:\s*[2-9]/.test(btnRule[1]),
+      btnRule ? btnRule[1].replace(/\s+/g, ' ').slice(0, 70) : 'القاعدة مش موجودة');
+
+    // زرارَي الرأس مربوطين
+    const app = fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
+    ok('زرار الإعدادات مربوط', /\$\('#th-settings'\)\.onclick/.test(app));
+    ok('زرار الخروج مربوط', /\$\('#th-logout'\)\.onclick/.test(app));
+    ok('الخروج بيمسح التوكن', /th-logout[\s\S]{0,400}setToken\(''\)/.test(app));
+  }
+
   console.log(`\n=== النتيجة: ${pass} نجح · ${fail} فشل ===`);
   if (fail) {
     console.log('فشل: ' + fails.join(' · '));

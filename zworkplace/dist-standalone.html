@@ -188,9 +188,13 @@ input,textarea,select{font-family:inherit}
   position:relative;overflow:hidden;
   border-radius:0 0 var(--r-lg) var(--r-lg);
 }
+/* دايرة زخرفية — لازم pointer-events:none.
+   من غيرها بتترسم فوق زرارَي الإعدادات والخروج (تلاقيهم جواها)
+   وبتامتص اللمس، فالزرارين مبيستجيبوش خالص. */
 .th-top::after{
   content:"";position:absolute;width:200px;height:200px;
   border-radius:50%;top:-90px;left:-60px;background:#fff;opacity:.06;
+  pointer-events:none;
 }
 .th-greet{
   display:flex;align-items:center;gap:6px;
@@ -205,6 +209,8 @@ input,textarea,select{font-family:inherit}
   background:rgba(255,255,255,.14);
   color:#fff;border:1.5px solid rgba(255,255,255,.16);
   width:42px;height:42px;border-radius:14px;
+  /* فوق الدايرة الزخرفية — طبقة تانية أمان لو pointer-events اتلغت */
+  position:relative;z-index:2;
 }
 .th-top .icon-btn:active{background:rgba(255,255,255,.24)}
 
@@ -350,6 +356,7 @@ input,textarea,select{font-family:inherit}
 .stat::after{
   content:"";position:absolute;top:0;left:0;
   width:5px;height:100%;border-radius:0 4px 4px 0;
+  pointer-events:none;
 }
 .stat.s-blue::after{background:var(--navy-500)}
 .stat.s-gold::after{background:var(--gold)}
@@ -430,6 +437,7 @@ input,textarea,select{font-family:inherit}
 .my-card::after{
   content:"";position:absolute;width:180px;height:180px;
   border-radius:50%;top:-80px;left:-50px;background:#fff;opacity:.07;
+  pointer-events:none;
 }
 .my-card .mc-top{
   display:flex;align-items:center;justify-content:space-between;
