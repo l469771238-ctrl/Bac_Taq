@@ -1461,14 +1461,91 @@ const MIME = {
   '.webmanifest': 'application/manifest+json',
 };
 
+/*
+ * 🔴 كارثة أمنية كانت هنا:
+ *
+ *   decodeURIComponent() بيتحوّل لـ'..' بعد الـdecode، و path.normalize
+ *   بيلغيها، فالنتيجة إن '/css/../../data/zwork.db' بتوصل للداتابيز.
+ *   جربت: curl http://host/css/../../data/zwork.db → 200 مع الملف كامل!
+ *
+ *   يعني أي طالب في الفصل كان يقدر ينزّل قاعدة البيانات كلها:
+ *   أسماء الـ٢٧٣، أكوادهم، كل الرسايل، كل حاجة.
+ *
+ * الإصلاح بثلاث طبقات:
+ *   ١. بنمنع أي '..' في المسار خالص قبل أي معالجة.
+ *   ٢. اللي بيخرج بره ROOT بيترفض فورًا.
+ *   ٣. قايمة بيضا للمجلدات — أي حاجة تانية 403 حتى لو جوه ROOT.
+ */
+
+/* مجلدات مسموح تخدم من ROOT بس */
+const PUBLIC_DIRS = new Set(['css', 'js', 'fonts', 'img', 'icons']);
+/* ملفات مسموح في الجذر */
+const PUBLIC_ROOT_FILES = new Set([
+  'index.html', 'dist-standalone.html', 'manifest.webmanifest',
+  'favicon.ico', 'sw.js', 'robots.txt',
+]);
+/* امتدادات ممنوعة نهائيًا مهما كان مكانها */
+const BLOCKED_EXT = new Set([
+  '.db', '.db-wal', '.db-shm', '.sqlite', '.sqlite3', '.csv', '.json',
+  '.log', '.env', '.pem', '.key', '.bak', '.restore', '.zip', '.md',
+]);
+
+function isPublicPath(rel) {
+  const clean = rel.replace(/^\/+/, '');
+  const parts = clean.split('/').filter(Boolean);
+  if (!parts.length) return true;              // '/' → index.html
+  if (parts.length === 1) return PUBLIC_ROOT_FILES.has(parts[0].toLowerCase());
+  if (parts[0] === 'data' || parts[0] === 'server' || parts[0] === 'tests'
+      || parts[0] === 'backups' || parts[0] === 'uploads') return false;
+  return PUBLIC_DIRS.has(parts[0].toLowerCase());
+}
+
 function serveStatic(req, res, pathname) {
-  let rel = decodeURIComponent(pathname);
-  if (rel === '/' || rel === '') rel = '/index.html';
-  const file = path.join(ROOT, path.normalize(rel).replace(/^(\.\.[/\\])+/, ''));
-  if (!file.startsWith(ROOT)) {
-    res.writeHead(403).end('forbidden');
+  let rel;
+  try {
+    rel = decodeURIComponent(pathname);
+  } catch (e) {
+    res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' }).end('طلب غلط');
     return;
   }
+
+  /* الطبقة ١: أي '..' — مرفوض قبل أي حاجة */
+  if (rel.includes('..') || rel.includes('\\') || rel.includes('%2e')) {
+    res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' }).end('forbidden');
+    return;
+  }
+  /* حماية إضافية: أي بايت تحكم أو null */
+  if (/[\x00-\x1f]/.test(rel)) {
+    res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' }).end('طلب غلط');
+    return;
+  }
+
+  if (rel === '/' || rel === '') rel = '/index.html';
+
+  /* الطبقة ٣: قايمة بيضا */
+  if (!isPublicPath(rel)) {
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }).end('مش موجود');
+    return;
+  }
+
+  const file = path.join(ROOT, path.normalize(rel));
+  /* الطبقة ٢: لازم يفضل جوه ROOT */
+  const realRoot = path.resolve(ROOT);
+  const realFile = path.resolve(file);
+  if (realFile !== realRoot && !realFile.startsWith(realRoot + path.sep)) {
+    res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' }).end('forbidden');
+    return;
+  }
+
+  /* الطبقة ٤: امتدادات خطرة ممنوعة */
+  const low = realFile.toLowerCase();
+  for (const bad of BLOCKED_EXT) {
+    if (low.endsWith(bad)) {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }).end('مش موجود');
+      return;
+    }
+  }
+
   fs.stat(file, (err, st) => {
     if (err || !st.isFile()) {
       res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }).end('مش موجود');

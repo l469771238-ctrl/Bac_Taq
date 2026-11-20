@@ -820,8 +820,10 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
 
   async function renderComm() {
     const box = $('#comm-body');
+    if (!box) return;
     if (st.commTab === 'ann') return renderAnnounce(box);
     if (st.commTab === 'dm') return renderDMList(box);
+    // الـHTML بيسمّي التاب 'room' — كنا بنقارن بـ'rooms' فمفيش حاجة كانت بتحصل
     return renderChatRooms(box);
   }
 

@@ -558,6 +558,45 @@ async function api(method, p, body, t) {
     ok('مفيش أخطاء JavaScript', t.errs.length === 0, t.errs.join(' | '));
   }
 
+  /* ---------- ١٤. الأمان: منع قراءة الملفات الحساسة ---------- */
+  {
+    const attacks = [
+      'css/../../data/zwork.db',
+      'css/../../server/index.js',
+      'css/../../data/students.csv',
+      'data/zwork.db',
+      'server/index.js',
+      'css/%2e%2e/data/zwork.db',
+    ];
+    for (const a of attacks) {
+      const r = await fetch(`${BASE}/${a}`);
+      ok(`ممنوع: ${a}`, r.status !== 200);
+    }
+    for (const g of ['index.html', 'css/app.css', 'js/app.js', 'js/icons.js']) {
+      const r = await fetch(`${BASE}/${g}`);
+      ok(`مسموح: ${g}`, r.status === 200);
+    }
+  }
+
+  /* ---------- ١٥. تابات التواصل لازم تغيّر المحتوى ---------- */
+  {
+    const { window } = await makeDom(await teacherToken());
+    await sleep(500);
+    window.document.querySelector('[data-nav="comm"]').click();
+    await sleep(900);
+    const seen = new Set();
+    for (const t of ['ann', 'room', 'dm']) {
+      const tab = window.document.querySelector(`#comm-tabs [data-t="${t}"]`);
+      if (tab) {
+        tab.click();
+        await sleep(800);
+        const body = window.document.querySelector('#comm-body');
+        seen.add((body.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 40));
+      }
+    }
+    ok('التابات بتغيّر المحتوى', seen.size >= 2, 'عدد الحالات: ' + seen.size);
+  }
+
   console.log(`\n=== النتيجة: ${pass} نجح · ${fail} فشل ===`);
   if (fail) {
     console.log('فشل: ' + fails.join(' · '));
