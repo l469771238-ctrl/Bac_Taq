@@ -2,6 +2,12 @@ node_modules/
 *.log
 # tools/OWNER.md is committed on purpose: this repo is private and it is the owner's manual
 shots/
+# صور Z-Project النهائية (مولّدة بـtools/shots) — محفوظة عن قصد
+!shots/
+shots/*
+!shots/zproj/
+shots/zproj/*
+!shots/zproj/*.png
 probe_out/
 
 # قاعدة بيانات الفصل — بتتولد على السيرفر، مش بتتحفظ في git
@@ -22,3 +28,4 @@ zworkplace/uploads/*
 !zworkplace/uploads/.gitkeep
 zworkplace/backups/
 zworkplace/data/*.db*
+__pycache__/

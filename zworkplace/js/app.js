@@ -307,10 +307,10 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
       const me = await api('GET', '/api/teacher/me');
       st.teacher = me;
       $('#th-stats').innerHTML = `
-        <div class="stat4 gold"><b>${me.pending}</b><span>طلبات مستنية</span></div>
-        <div class="stat4"><b>${me.students}</b><span>طلاب مفعّلين</span></div>
-        <div class="stat4"><b>${me.classes}</b><span>فصول</span></div>
-        <div class="stat4"><b>${me.groups}</b><span>مجموعات</span></div>`;
+        <div class="stat s-pink"><b>${me.pending}</b><i>طلبات مستنية</i></div>
+        <div class="stat s-blue"><b>${me.students}</b><i>طلاب مفعّلين</i></div>
+        <div class="stat s-gold"><b>${me.classes}</b><i>فصول</i></div>
+        <div class="stat s-mint"><b>${me.groups}</b><i>مجموعات</i></div>`;
       const badge = $('#th-badge');
       badge.hidden = !me.pending;
       badge.textContent = me.pending > 99 ? '99+' : me.pending;
@@ -366,8 +366,8 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
 
       <div class="sec-head"><h3>نظرة عامة</h3></div>
       <div class="stats4">
-        <div class="stat4"><b>${d.classCount}</b><span>فصول</span></div>
-        <div class="stat4"><b>${d.groupCount}</b><span>مجموعات</span></div>
+        <div class="stat s-blue"><b>${d.classCount}</b><i>فصول</i></div>
+        <div class="stat s-mint"><b>${d.groupCount}</b><i>مجموعات</i></div>
       </div>
 
       <div class="card" style="background:#f8fafd">
