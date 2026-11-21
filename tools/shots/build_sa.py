@@ -42,7 +42,7 @@ import shutil, zipfile, sys
 tmp = '/tmp/zipbuild'
 shutil.rmtree(tmp, ignore_errors=True)
 os.makedirs(tmp)
-for item in ['index.html', 'manifest.webmanifest', 'favicon.ico', 'css', 'js', 'fonts', 'img',
+for item in ['index.html', 'chat-preview.html', 'manifest.webmanifest', 'favicon.ico', 'css', 'js', 'fonts', 'img',
              'server', 'tests', 'dist-standalone.html']:
     src = os.path.join(root, item)
     if os.path.isdir(src):
@@ -52,6 +52,12 @@ for item in ['index.html', 'manifest.webmanifest', 'favicon.ico', 'css', 'js', '
         shutil.copy2(src, os.path.join(tmp, item))
 os.makedirs(os.path.join(tmp, 'data'), exist_ok=True)
 shutil.copy2(os.path.join(root, 'data', 'students.csv'), os.path.join(tmp, 'data'))
+
+# واجهة الدردشة الجديدة — موجودة في جذر المستودع (خارج مجلد zworkplace)
+proj_root = os.path.dirname(root)
+chat_src = os.path.join(proj_root, 'chat-preview.html')
+if os.path.exists(chat_src):
+    shutil.copy2(chat_src, os.path.join(tmp, 'chat-preview.html'))
 
 # ═══ ملفات التشغيل في جذر الـzip ═══
 # من غيرهم السيرفر مش بيلاقي نقطة البداية لما الملفات تترفع في /home/container
