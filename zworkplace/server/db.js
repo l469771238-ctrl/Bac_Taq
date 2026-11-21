@@ -33,26 +33,38 @@ const DB_PATH = process.env.ZDB || path.join(__dirname, '..', 'data', 'zwork.db'
 async function prefetch(dbPath, store, key) {
   const dir = path.dirname(dbPath);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  if (!store) return { restored: false, note: 'مفيش تخزين خارجي' };
+  if (!store) throw new Error('التخزين الخارجي غير متاح');
+  let stream;
   try {
-    const stream = await store.get(key);
-    const chunks = [];
-    for await (const c of stream) chunks.push(c);
-    const buf = Buffer.concat(chunks);
-    if (buf.length < 16) return { restored: false, note: 'مفيش نسخة محفوظة' };
-    if (buf.slice(0, 16).toString('utf8') !== 'SQLite format 3\u0000') {
-      return { restored: false, note: 'النسخة المحفوظة تالفة' };
-    }
-    try { fs.unlinkSync(dbPath + '-wal'); } catch (e) {}
-    try { fs.unlinkSync(dbPath + '-shm'); } catch (e) {}
-    fs.writeFileSync(dbPath, buf);
-    return { restored: true, bytes: buf.length };
+    stream = await (store.getSnapshot || store.get)(key);
   } catch (e) {
-    if (e.status === 404 || /not exist|مش موجود/i.test(String(e.message))) {
-      return { restored: false, note: 'أول تشغيل — مفيش نسخة' };
-    }
-    return { restored: false, note: e.message };
+    if (e.status === 404) return { restored: false, note: 'مفيش نسخة خارجية' };
+    throw new Error('تعذر قراءة النسخة الخارجية: ' + e.message);
   }
+  const chunks = [];
+  if (Buffer.isBuffer(stream)) chunks.push(stream);
+  else for await (const chunk of stream) chunks.push(chunk);
+  const buf = Buffer.concat(chunks);
+  if (buf.length < 100 || buf.slice(0, 16).toString('utf8') !== 'SQLite format 3\u0000') {
+    throw new Error('النسخة الخارجية تالفة أو غير مكتملة');
+  }
+  // القرص المحلي قد يحتوي تغييرات أحدث لم تُرفع بعد. لا نستبدله بصمت.
+  // تشغيل نسختين من السيرفر على نفس التخزين غير مدعوم.
+  if (fs.existsSync(dbPath)) return { restored: false, note: 'تم الاحتفاظ بالقاعدة المحلية الموجودة' };
+  const tmp = dbPath + '.restore';
+  try {
+    fs.writeFileSync(tmp, buf);
+    const check = new DatabaseSync(tmp, { readOnly: true });
+    try {
+      const result = check.prepare('PRAGMA integrity_check').get();
+      if (!result || Object.values(result)[0] !== 'ok') throw new Error('فحص سلامة النسخة فشل');
+    } finally { check.close(); }
+    fs.renameSync(tmp, dbPath);
+  } catch (e) {
+    try { fs.unlinkSync(tmp); } catch (_) {}
+    throw e;
+  }
+  return { restored: true, bytes: buf.length };
 }
 
 function open(dbPath = DB_PATH) {

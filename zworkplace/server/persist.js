@@ -24,6 +24,8 @@ let store = null;
 let dbPath = null;
 let dirty = false;
 let saving = false;
+let activeSave = null;
+let revision = 0;
 let lastSave = 0;
 let lastError = '';
 let saveCount = 0;
@@ -37,14 +39,15 @@ function attach(db, p) {
   } catch (e) {
     store = null;
   }
-  if (!store) return { ok: false, note: 'مفيش تخزين' };
+  if (!store || !available()) return { ok: false, note: 'الحفظ الخارجي غير مفعّل' };
+  if (timer) clearInterval(timer);
 
   // علامة "متسخة" على أي تعديل — أرخص من مقارنة الملفات
   const origExec = db.exec.bind(db);
   db.exec = function (sql, ...args) {
     const r = origExec(sql, ...args);
     const up = String(sql).trim().toUpperCase();
-    if (!up.startsWith('SELECT') && !up.startsWith('PRAGMA')) dirty = true;
+    if (!up.startsWith('SELECT') && !up.startsWith('PRAGMA') && !up.startsWith('VACUUM')) { dirty = true; revision++; }
     return r;
   };
 
@@ -56,8 +59,9 @@ function attach(db, p) {
     for (const m of ['run']) {
       const orig = st[m].bind(st);
       st[m] = function (...a) {
-        dirty = true;
-        return orig(...a);
+        const result = orig(...a);
+        dirty = true; revision++;
+        return result;
       };
     }
     return st;
@@ -102,31 +106,37 @@ async function restore() {
 
 /** بيحفظ القاعدة في التخزين لو فيه تعديلات */
 async function flush(force) {
-  if (!store || !dbPath) return { ok: false, note: 'مفيش تخزين' };
-  if (saving) return { ok: false, note: 'بيحفظ بالفعل' };
+  if (!store || !dbPath || !available()) return { ok: false, note: 'الحفظ الخارجي غير مفعّل' };
+  if (activeSave) {
+    if (!force) return { ok: false, note: 'بيحفظ بالفعل' };
+    await activeSave;
+  }
   if (!dirty && !force) return { ok: true, skipped: true };
 
   saving = true;
-  const tmp = path.join(path.dirname(dbPath), '.snapshot.db');
-  try {
-    // VACUUM INTO بيدي ملف نظيف بدون الـWAL — أأمن نسخة
-    if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
-    global.__sharedDb.exec(`VACUUM INTO '${tmp.replace(/'/g, "''")}'`);
-    const body = fs.readFileSync(tmp);
-    fs.unlinkSync(tmp);
-
-    await store.put({ key: KEY, body, mime: 'application/x-sqlite3' });
-    dirty = false;
-    lastSave = Date.now();
-    saveCount++;
-    lastError = '';
-    return { ok: true, bytes: body.length };
-  } catch (e) {
-    lastError = e.message;
-    return { ok: false, note: e.message };
-  } finally {
-    saving = false;
-  }
+  activeSave = (async () => {
+    const tmp = path.join(path.dirname(dbPath), '.snapshot.db');
+    try {
+      if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
+      global.__sharedDb.exec(`VACUUM INTO '${tmp.replace(/'/g, "''")}'`);
+      const body = fs.readFileSync(tmp);
+      fs.unlinkSync(tmp);
+      const captured = revision;
+      const put = store.putSnapshot || store.put;
+      await put({ key: KEY, body, mime: 'application/x-sqlite3' });
+      dirty = revision !== captured;
+      lastSave = Date.now();
+      saveCount++;
+      lastError = '';
+      return { ok: true, bytes: body.length };
+    } catch (e) {
+      lastError = e.message;
+      return { ok: false, note: e.message };
+    } finally {
+      saving = false;
+    }
+  })();
+  try { return await activeSave; } finally { activeSave = null; }
 }
 
 /**

@@ -97,7 +97,7 @@ async function token() {
   const jwt = `${signingInput}.${b64url(sig)}`;
 
   const form = `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${encodeURIComponent(jwt)}`;
-  const res = await api('/token', 'POST', form, {
+  const res = await api('https://oauth2.googleapis.com/token', 'POST', form, {
     'Content-Type': 'application/x-www-form-urlencoded',
     'Content-Length': Buffer.byteLength(form),
   });
@@ -151,6 +151,38 @@ async function put({ key, body, mime }) {
   return put({ key, body: Buffer.concat(chunks), mime });
 }
 
+/* قاعدة البيانات تحتاج مفتاحاً ثابتاً، بخلاف ملفات الطلاب التي تُحفظ بمعرّف Drive. */
+async function snapshotId(key) {
+  const t = await token();
+  const quote = (value) => String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  const q = "name = '" + quote(key) + "' and '" + quote(FOLDER) + "' in parents and trashed = false";
+  const res = await api('/drive/v3/files?q=' + encodeURIComponent(q) + '&fields=files(id,name)&pageSize=100', 'GET', null, { Authorization: 'Bearer ' + t });
+  const j = await json(res);
+  if (res.statusCode >= 300 || !Array.isArray(j.files)) throw new Error('تعذر البحث عن نسخة قاعدة البيانات في Drive');
+  if (j.files.length > 1) throw new Error('توجد نسخ قاعدة متعددة بنفس الاسم في Drive؛ يلزم مراجعتها قبل التشغيل');
+  return j.files.length ? j.files[0].id : null;
+}
+
+async function getSnapshot(key) {
+  const id = await snapshotId(key);
+  if (!id) throw Object.assign(new Error('النسخة مش موجودة'), { status: 404 });
+  return get(id);
+}
+
+async function putSnapshot({ key, body, mime }) {
+  const id = await snapshotId(key);
+  if (!id) return put({ key, body, mime });
+  const t = await token();
+  const res = await api('https://www.googleapis.com/upload/drive/v3/files/' + encodeURIComponent(id) + '?uploadType=media&fields=id', 'PATCH', body, {
+    Authorization: 'Bearer ' + t,
+    'Content-Type': mime || 'application/octet-stream',
+    'Content-Length': String(body.length),
+  });
+  const j = await json(res);
+  if (res.statusCode >= 300 || !j.id) throw new Error('تعذر تحديث نسخة قاعدة البيانات في Drive');
+  return j.id;
+}
+
 async function get(key) {
   const t = await token();
   const res = await api('/drive/v3/files/' + encodeURIComponent(key) + '?alt=media', 'GET', null, {
@@ -202,4 +234,4 @@ async function health() {
   }
 }
 
-module.exports = { put, get, getSize, del, health, ready, KIND: 'drive' };
+module.exports = { put, get, getSize, del, health, ready, putSnapshot, getSnapshot, KIND: 'drive' };

@@ -1504,6 +1504,7 @@ route('GET', '/api/health', async (req, res) => {
     classes: db.prepare('SELECT COUNT(*) n FROM classes').get().n,
     files: db.prepare('SELECT COUNT(*) n FROM files').get().n,
     storage: STORAGE.kind,
+    persistence: { enabled: PERSIST.status().enabled, saved: PERSIST.status().lastSave > 0, pending: PERSIST.status().dirty, error: !!PERSIST.status().lastError },
   });
 });
 
@@ -1522,6 +1523,7 @@ route('GET', '/api/teacher/storage', async (req, res) => {
     limit: h.limit || 0,
     files: count,
     onServer: dbSize,
+    persistence: PERSIST.status(),
   });
 });
 
@@ -1785,9 +1787,21 @@ async function main() {
   });
 
   // حفظ أخير عند الإغلاق
+  let stopping = false;
   const bye = () => {
-    PERSIST.flush(true).finally(() => process.exit(0));
-    setTimeout(() => process.exit(0), 3000);
+    if (stopping) return;
+    stopping = true;
+    const deadline = setTimeout(() => { console.error('⚠️ انتهت مهلة الإغلاق قبل اكتمال الحفظ'); process.exit(1); }, 15000);
+    deadline.unref();
+    // نتوقف عن قبول طلبات جديدة، وننتظر الطلبات الجارية قبل أخذ آخر نسخة.
+    server.close(() => {
+      PERSIST.flush(true).then((r) => {
+        if (!r.ok && PERSIST.available()) {
+          console.error('⚠️ فشل الحفظ عند الإغلاق:', r.note);
+          process.exitCode = 1;
+        }
+      }).finally(() => { clearTimeout(deadline); process.exit(process.exitCode || 0); });
+    });
   };
   process.on('SIGTERM', bye);
   process.on('SIGINT', bye);
