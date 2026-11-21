@@ -58,6 +58,33 @@ function ensureTeacher() {
 }
 let teacher = null;
 
+/* ═══ SSE للدردشة اللحظية ═══ */
+/*每个 studentId عنده قائمة الاتصالات المفتوحة (EventSource) */
+const chatStreams = new Map();   // studentId → Set<response>
+
+function registerChatStream(studentId, res) {
+  if (!chatStreams.has(studentId)) chatStreams.set(studentId, new Set());
+  chatStreams.get(studentId).add(res);
+  res.on('close', () => {
+    const s = chatStreams.get(studentId);
+    if (s) { s.delete(res); if (s.size === 0) chatStreams.delete(studentId); }
+  });
+  res.on('error', () => {
+    const s = chatStreams.get(studentId);
+    if (s) { s.delete(res); if (s.size === 0) chatStreams.delete(studentId); }
+  });
+}
+
+/* 보내 رسالة جديدة لكل العملاء المتصلين بالدردشة دي */
+function broadcastChat(studentId, msg) {
+  const s = chatStreams.get(studentId);
+  if (!s || s.size === 0) return;
+  const data = 'data: ' + JSON.stringify(msg) + '\n\n';
+  for (const res of s) {
+    try { res.write(data); } catch (e) { /* العميل انقطع — يتم التنظيف عبر close/error */ }
+  }
+}
+
 /**
  * تحميل كشف الأسماء تلقائيًا.
  * على استضافة جديدة القاعدة فاضية — لازم الكشف يبقى موجود من الأول
@@ -680,7 +707,33 @@ route('POST', '/api/teacher/chat/:studentId', async (req, res, body, p) => {
   const r = db
     .prepare('INSERT INTO messages (kind, scope, student_id, body, created_at) VALUES (?,?,?,?,?)')
     .run('chat', 'student', sid, text, Date.now());
-  json(res, 201, { id: Number(r.lastInsertRowid) });
+  const newId = Number(r.lastInsertRowid);
+  broadcastChat(sid, { kind: 'chat', id: newId, body: text, from: 'teacher', at: Date.now(), student_id: sid });
+  json(res, 201, { id: newId });
+});
+
+/* SSE — حushing رسائل جديدة للعميل without refresh */
+route('GET', '/api/teacher/chat/stream/:studentId', async (req, res, body, p) => {
+  if (!needTeacher(req, res)) return;
+  const sid = Number(p.studentId);
+  const st = db.prepare('SELECT * FROM students WHERE id = ?').get(sid);
+  if (!st) return json(res, 404, { error: 'الطالب مش موجود' });
+
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache, no-transform',
+    'Connection': 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  });
+  res.write('\n');   // ping بسيط لفتح القناة
+
+  registerChatStream(sid, res);
+
+  // لوقطع الاتصال من العميل، نتوقف عن الإرسال
+  req.on('close', () => {
+    const s = chatStreams.get(sid);
+    if (s) s.delete(res);
+  });
 });
 
 /* ====== الطالب ====== */
@@ -1376,7 +1429,31 @@ route('POST', '/api/teacher/dm/:studentId', async (req, res, body, p) => {
   const r = db
     .prepare('INSERT INTO messages (kind, scope, student_id, body, created_at) VALUES (?,?,?,?,?)')
     .run('chat', 'student', sid, text, Date.now());
-  json(res, 201, { id: Number(r.lastInsertRowid) });
+  const newId = Number(r.lastInsertRowid);
+  broadcastChat(sid, { kind: 'dm', id: newId, body: text, from: 'teacher', at: Date.now(), student_id: sid });
+  json(res, 201, { id: newId });
+});
+
+route('GET', '/api/teacher/dm/stream/:studentId', async (req, res, body, p) => {
+  if (!needTeacher(req, res)) return;
+  const sid = Number(p.studentId);
+  const st = db.prepare('SELECT * FROM students WHERE id = ?').get(sid);
+  if (!st) return json(res, 404, { error: 'الطالب مش موجود' });
+
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache, no-transform',
+    'Connection': 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  });
+  res.write('\n');
+
+  registerChatStream(sid, res);
+
+  req.on('close', () => {
+    const s = chatStreams.get(sid);
+    if (s) s.delete(res);
+  });
 });
 
 route('DELETE', '/api/teacher/dm/message/:id', async (req, res, body, p) => {

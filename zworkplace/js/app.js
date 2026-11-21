@@ -1042,17 +1042,44 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
         <textarea class="composer-in" id="ch-in" rows="1" placeholder="اكتبي رسالة…"></textarea>
         <button class="composer-send" id="ch-send" title="إرسال">${ico('send','ic')}</button>
       </div>`;
-    $('#ch-back').onclick = () => { st.chatWith = null; renderComm(); };
+    let chEs = null;
+
+    const appendMsg = (m) => {
+      const box2 = $('#ch-msgs');
+      const empty = box2.querySelector('.empty');
+      if (empty) { empty.remove(); }
+      box2.insertAdjacentHTML('beforeend',
+        bubbleList([{ body: m.body, at: m.at, name: 'مس أسماء', avatar: '', mine: true }])
+      );
+      box2.scrollTop = box2.scrollHeight;
+    };
+
+    $('#ch-back').onclick = () => {
+      if (chEs) { try { chEs.close(); } catch (e) {} chEs = null; }
+      st.chatWith = null;
+      renderComm();
+    };
+
     const send = async () => {
       const body = $('#ch-in').value.trim();
       if (!body) return;
       try {
         await api('POST', '/api/teacher/chat/' + sid, { body });
-        renderComm();
+        $('#ch-in').value = '';
       } catch (e) { toast(e.message); }
     };
     $('#ch-send').onclick = send;
     wireComposer('#ch-in', send);
+
+    // 연결 SSE للرسائل اللحظية
+    try {
+      chEs = new EventSource('/api/teacher/chat/stream/' + sid);
+      chEs.onmessage = (ev) => {
+        try { const m = JSON.parse(ev.data); if (m.kind === 'chat') appendMsg(m); } catch (e) {}
+      };
+      chEs.onerror = () => { try { chEs.close(); } catch (e) {} chEs = null; };
+    } catch (e) { /* المتصفح ما يدعمش EventSource — يظل الوضع طبيعي بدون لحظية */ }
+
     const box2 = $('#ch-msgs');
     if (box2) box2.scrollTop = box2.scrollHeight;
   }
@@ -1117,17 +1144,48 @@ const ico = (n, cls) => (window.icon ? window.icon(n, cls || '') : '');
         <textarea class="composer-in" id="dm-in" rows="1" maxlength="2000" placeholder="اكتبي رسالة…"></textarea>
         <button class="composer-send" id="dm-send" title="إرسال">${ico('send','ic')}</button>
       </div>`;
-    $('#dm-back').onclick = () => { dmWith = null; renderComm(); };
+    let dmEs = null;
+
+    const appendDmMsg = (m) => {
+      const box2 = $('#dm-msgs');
+      const empty = box2.querySelector('.empty');
+      if (empty) { empty.remove(); }
+      box2.insertAdjacentHTML('beforeend',
+        bubbleList([{ body: m.body, at: m.at, name: 'مس أسماء', avatar: '', mine: true, del: m.id, delAttr: 'dmdel' }])
+      );
+      box2.scrollTop = box2.scrollHeight;
+      // إعادة ربط أزرار الحذف للرسالة الجديدة
+      $$('[data-dmdel]', box).forEach((el) => (el.onclick = () => {
+        confirmDlg('مسح الرسالة', 'الرسالة هتتشال من عند الطالب كمان.', 'امسح',
+          async () => { await api('DELETE', '/api/teacher/dm/message/' + el.dataset.dmdel); toast('اتمسحت'); renderComm(); }, true);
+      }));
+    };
+
+    $('#dm-back').onclick = () => {
+      if (dmEs) { try { dmEs.close(); } catch (e) {} dmEs = null; }
+      dmWith = null;
+      renderComm();
+    };
+
     const send = async () => {
       const v = $('#dm-in').value.trim();
       if (!v) return;
       try {
         await api('POST', '/api/teacher/dm/' + sid, { body: v });
-        renderComm();
+        $('#dm-in').value = '';
       } catch (e) { toast(e.message); }
     };
     $('#dm-send').onclick = send;
     wireComposer('#dm-in', send);
+
+    try {
+      dmEs = new EventSource('/api/teacher/dm/stream/' + sid);
+      dmEs.onmessage = (ev) => {
+        try { const m = JSON.parse(ev.data); if (m.kind === 'dm') appendDmMsg(m); } catch (e) {}
+      };
+      dmEs.onerror = () => { try { dmEs.close(); } catch (e) {} dmEs = null; };
+    } catch (e) { /* EventSource غير مدعوم — الوضع طبيعي بدون لحظية */ }
+
     $('#dm-msgs').scrollTop = $('#dm-msgs').scrollHeight;
     $$('[data-dmdel]', box).forEach((el) => (el.onclick = () => {
       confirmDlg('مسح الرسالة', 'الرسالة هتتشال من عند الطالب كمان.', 'امسح',
