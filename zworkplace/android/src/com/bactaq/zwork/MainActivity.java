@@ -3,6 +3,7 @@ package com.bactaq.zwork;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.SharedPreferences;
+import android.content.DialogInterface;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.text.InputType;
@@ -276,7 +277,9 @@ public class MainActivity extends Activity {
                 new android.app.AlertDialog.Builder(MainActivity.this)
                         .setMessage(message)
                         .setCancelable(false)
-                        .setPositiveButton("حسناً", (d, w) -> result.confirm())
+                        .setPositiveButton("حسناً", new DialogInterface.OnClickListener() {
+                            @Override public void onClick(DialogInterface d, int w) { result.confirm(); }
+                        })
                         .show();
                 return true;
             }
@@ -287,8 +290,12 @@ public class MainActivity extends Activity {
                 new android.app.AlertDialog.Builder(MainActivity.this)
                         .setMessage(message)
                         .setCancelable(false)
-                        .setPositiveButton("أيوه", (d, w) -> result.confirm())
-                        .setNegativeButton("إلغاء", (d, w) -> result.cancel())
+                        .setPositiveButton("أيوه", new DialogInterface.OnClickListener() {
+                            @Override public void onClick(DialogInterface d, int w) { result.confirm(); }
+                        })
+                        .setNegativeButton("إلغاء", new DialogInterface.OnClickListener() {
+                            @Override public void onClick(DialogInterface d, int w) { result.cancel(); }
+                        })
                         .show();
                 return true;
             }
